@@ -18,7 +18,7 @@ int tlistInitial (TaskList *tlist, Task *tasks, int tlist_size, Task **head, Tas
 		tasks[i].tid = i;
 		//tasks[i]->parent
 		//tasts[i]->state
-		tasks[i]->position = stack[i* STACKSIZE];
+		tasks[i]->position = stack[i* TASKIZE];
 		tasks[i]->tf[13] = (char) position;
 		//tasks[i]->tf
 		
