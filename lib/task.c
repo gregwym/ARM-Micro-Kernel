@@ -2,7 +2,7 @@
 #include "task.h"
 #include "kernel.h"
 
-int tlistInitial (TaskList *tlist, Task *tasks, int tlist_size, Task **head, Task **tail, int max_p) {
+int tlistInitial (TaskList *tlist, Task *tasks, int tlist_size, Task **head, Task **tail, int max_p, char* stack) {
 	tlist->list_size = tlist_size;
 	tlist->list_counter = 0;
 	tlist->max_plvl = max_p;
@@ -18,8 +18,10 @@ int tlistInitial (TaskList *tlist, Task *tasks, int tlist_size, Task **head, Tas
 		tasks[i].tid = i;
 		//tasks[i]->parent
 		//tasts[i]->state
-		//tasks[i]->position
+		tasks[i]->position = stack[i*TASKSIZE];
+		tasks[i]->tf[13] = (char) position;
 		//tasks[i]->tf
+		
 	}
 	
 	for (i = 0; i < max_p; i++) {
@@ -28,14 +30,14 @@ int tlistInitial (TaskList *tlist, Task *tasks, int tlist_size, Task **head, Tas
 	}
 }
 
-int tlistPush (TaskList *tlist, void *datum, int priority) {
+int tlistPush (TaskList *tlist, int priority) {
 	//assert(tlist->list_counter < tlist->list_size, "Exceed tlist size!");
 	//assert(priority >= 0 && priority <= PRIORITY_LVL, "Invalid priority value!");
 	int i;
 	Task *new_task;
 	
 	new_task = &tlist->tasklist[tlist->list_counter];
-	new_task->tf[14] = (int)datum;
+	new_task->tf[14] = tlist->position;
 	new_task->priority = priority;
 	//todo, initialisze Task
 	
