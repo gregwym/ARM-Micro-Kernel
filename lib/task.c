@@ -18,7 +18,7 @@ int tlistInitial (TaskList *tlist, Task *tasks, int tlist_size, Task **head, Tas
 		tasks[i].tid = i;
 		//tasks[i]->parent
 		//tasts[i]->state
-		tasks[i]->position = stack[i*TASKSIZE];
+		tasks[i]->position = stack[i* STACKSIZE];
 		tasks[i]->tf[13] = (char) position;
 		//tasks[i]->tf
 		
@@ -30,14 +30,14 @@ int tlistInitial (TaskList *tlist, Task *tasks, int tlist_size, Task **head, Tas
 	}
 }
 
-int tlistPush (TaskList *tlist, int priority) {
+int tlistPush (TaskList *tlist, void *context, int priority) {
 	//assert(tlist->list_counter < tlist->list_size, "Exceed tlist size!");
 	//assert(priority >= 0 && priority <= PRIORITY_LVL, "Invalid priority value!");
 	int i;
 	Task *new_task;
 	
 	new_task = &tlist->tasklist[tlist->list_counter];
-	new_task->tf[14] = tlist->position;
+	new_task->tf[14] = context;
 	new_task->priority = priority;
 	//todo, initialisze Task
 	
