@@ -13,12 +13,12 @@ int main( int argc, char* argv[] ) {
 	char *data;
 	
 	TaskList tlist;
-	Task tasks[TASKNUM];
-	char *stack[TASKNUM * TASKSIZE];
-	Task *priority_head[PRIORITY_LVL];
-	Task *priority_tail[PRIORITY_LVL];
+	Task tasks[TASK_MAX];
+	char *stack[TASK_MAX * TASK_STACK_SIZE];
+	Task *priority_head[TASK_PRIORITY_MAX];
+	Task *priority_tail[TASK_PRIORITY_MAX];
 	
-	tlistInitial(&tlist, tasks, TASKNUM, priority_head, priority_tail, PRIORITY_LVL, stack);
+	tlistInitial(&tlist, tasks, TASK_MAX, priority_head, priority_tail, TASK_PRIORITY_MAX, stack);
 	
 	tlistPush(&tlist, data, 6);		//0
 	tlistPush(&tlist, data, 4);		//1
