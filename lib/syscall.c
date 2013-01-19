@@ -1,5 +1,5 @@
 #include "type.h"
-#include "callno.h"
+#include "syscall_no.h"
 #include "ourlib.h"
 
 
