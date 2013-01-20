@@ -1,6 +1,9 @@
 #include "types.h"
 #include "task.h"
 #include "kernel.h"
+#include <bwio.h>
+#include <ts7200.h>
+
 
 int tlistInitial (TaskList *tlist, Task *tasks, int tlist_size, Task **head, Task **tail, int max_p, char* stack) {
 	tlist->list_size = tlist_size;
@@ -18,8 +21,8 @@ int tlistInitial (TaskList *tlist, Task *tasks, int tlist_size, Task **head, Tas
 		tasks[i].tid = i;
 		//tasks[i]->parent
 		//tasts[i]->state
-		tasks[i]->position = stack[i * TASK_STACK_SIZE];
-		tasks[i]->tf[13] = (char) position;
+		tasks[i]->position = &stack[i * TASK_STACK_SIZE];
+		tasks[i]->tf[14] = (char) position;
 		//tasks[i]->tf
 		
 	}
@@ -37,7 +40,7 @@ int tlistPush (TaskList *tlist, void *context, int priority) {
 	Task *new_task;
 	
 	new_task = &tlist->tasklist[tlist->list_counter];
-	new_task->tf[14] = context;
+	new_task->tf[15] = context;
 	new_task->priority = priority;
 	//todo, initialisze Task
 	
@@ -73,6 +76,8 @@ int tlistPush (TaskList *tlist, void *context, int priority) {
 	}
 	
 	tlist->list_counter++;
+	
+	bwprintf("Task(tid: %d) is created at %x\n", new_task->tid, new_task->position);
 	return 1;
 }
 

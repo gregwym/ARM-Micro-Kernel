@@ -1,16 +1,19 @@
 #include "type.h"
 #include "syscall_no.h"
-#include "ourlib.h"
+//#include "ourlib.h"
 
 
 void syscall(int *tf) {
+	int *ptr = 0x28;
 	
-	switch (tf[?]) {
+	switch (tf[0]) {
 		case SYS_exit:
 			//todo
 			break;
 		case SYS_create:
-			//todo
+			*ptr = 0x218000 + tlistPush;
+			asm("swi 0");
+			
 			break;
 		case SYS_pass:
 			//todo

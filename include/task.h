@@ -9,7 +9,7 @@ enum TaskState {
 }
 
 typedef struct task_descripter {
-	char 		tf[15];						//trapframe
+	char 		tf[16];						//trapframe
 	int 		tid;						//id
 	TaskState 	state;						//task state
 	int 		priority;					//priority
@@ -19,13 +19,13 @@ typedef struct task_descripter {
 } Task;
 
 typedef struct task_list {
-	int 	list_size;
-	int 	list_counter;
-	int 	max_plvl;
-	Task 	*tasklist;
-	Task 	*head;
-	Task 	**priority_head;
-	Task 	**priority_tail;
+	int 		list_size;
+	int 		list_counter;
+	int 		max_plvl;
+	Task 		*tasklist;
+	Task 		*head;
+	Task 		**priority_head;
+	Task 		**priority_tail;
 } TaskList;
 
 
