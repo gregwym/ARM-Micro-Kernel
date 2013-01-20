@@ -1,8 +1,8 @@
 #
-# Makefile for busy-wait IO tests
+# Makefile for ARM Micro Kernel
 #
 XCC     = gcc
-AS	= as
+AS	    = as
 LD      = ld
 CFLAGS  = -c -fPIC -Wall -I. -I./include -mcpu=arm920t -msoft-float
 # -g: include hooks for gdb
@@ -16,23 +16,29 @@ ASFLAGS	= -mcpu=arm920t -mapcs-32
 
 LDFLAGS = -init main -Map main.map -N  -T orex.ld -L/u/wbcowan/gnuarm-4.0.2/lib/gcc/arm-elf/4.0.2 -L./lib
 
-all: libbwio.a main.s main.elf
+OBJECTS = main.o
 
-main.s: main.c
-	$(XCC) -S $(CFLAGS) main.c
+all: main.elf
 
-main.o: main.s
-	$(AS) $(ASFLAGS) -o main.o main.s
+%.s: %.c
+	$(XCC) -S $(CFLAGS) $<
 
-main.elf: main.o
-	$(LD) $(LDFLAGS) -o $@ main.o -lbwio -lgcc
+$(OBJECTS): %.o: %.s
+	$(AS) $(ASFLAGS) -o $@ $<
 
 libbwio.a:
 	$(MAKE) -C ./io all
 
+libstdlib.a:
+	$(MAKE) -C ./stdlib all
+
+main.elf: $(OBJECTS) libbwio.a libstdlib.a
+	$(LD) $(LDFLAGS) -o $@ $(OBJECTS) -lstdlib -lbwio -lgcc
+
 clean:
 	-rm -f *.elf *.s *.o main.map
 	$(MAKE) -C ./io clean
+	$(MAKE) -C ./stdlib clean
 
 install:
 	cp *.elf ~/cs452/tftp
