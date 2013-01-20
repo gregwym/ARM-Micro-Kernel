@@ -17,16 +17,17 @@ ASFLAGS	= -mcpu=arm920t -mapcs-32
 
 ARFLAGS = rcs
 
+OBJECTS = bwio.o
+
 all:  bwio.a
 	
+%.s: %.c
+	$(XCC) -S $(CFLAGS) $<
 
-bwio.s: bwio.c 
-	$(XCC) -S $(CFLAGS) bwio.c
+$(OBJECTS): %.o: %.s
+	$(AS) $(ASFLAGS) -o $@ $<
 
-bwio.o: bwio.s
-	$(AS) $(ASFLAGS) -o bwio.o bwio.s
-
-bwio.a: bwio.o
+bwio.a: $(OBJECTS)
 	$(AR) $(ARFLAGS) $@ bwio.o
 	cp bwio.a ../lib/libbwio.a
 
