@@ -5,4 +5,4 @@
 #define TASK_STACK_SIZE 1000
 #define TASK_PRIORITY_MAX 10
 
-#endif //KERNEL_H
+#endif // __KERNEL_H__

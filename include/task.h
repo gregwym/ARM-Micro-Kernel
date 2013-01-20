@@ -35,4 +35,4 @@ int tlistPush (TaskList *tlist, void *context, int priority);
 
 Task* tlistPop(TaskList *tlist);
 
-#endif //__TASK_H__
+#endif // __TASK_H__
