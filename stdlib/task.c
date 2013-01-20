@@ -2,7 +2,6 @@
 #include "task.h"
 #include "kernel.h"
 #include <bwio.h>
-#include <ts7200.h>
 
 
 int tlistInitial (TaskList *tlist, Task *tasks, int tlist_size, Task **head, Task **tail, int max_p, char* stack) {
@@ -18,11 +17,10 @@ int tlistInitial (TaskList *tlist, Task *tasks, int tlist_size, Task **head, Tas
 	
 	for (i = 0; i < tlist_size; i++) {
 		tasks[i].next = NULL;
-		tasks[i].tid = i;
+		tasks[i].tid = -1;
 		//tasks[i]->parent
 		//tasts[i]->state
-		tasks[i]->position = &stack[i * TASK_STACK_SIZE];
-		tasks[i]->tf[14] = (char) position;
+		tasks[i].position = &stack[(i+1) * TASK_STACK_SIZE - 4];
 		//tasks[i]->tf
 		
 	}
@@ -40,8 +38,10 @@ int tlistPush (TaskList *tlist, void *context, int priority) {
 	Task *new_task;
 	
 	new_task = &tlist->tasklist[tlist->list_counter];
-	new_task->tf[15] = context;
+	new_task->tf[15] = (int)context;
 	new_task->priority = priority;
+	new_task->state = Ready;
+	new_task->tid = tlist->list_counter;
 	//todo, initialisze Task
 	
 	
@@ -68,7 +68,7 @@ int tlistPush (TaskList *tlist, void *context, int priority) {
 	}
 	
 	//link to next p_head
-	for (i = priority + 1; i < PRIORITY_LVL; i++) {
+	for (i = priority + 1; i < TASK_PRIORITY_MAX; i++) {
 		if (tlist->priority_head[i] != NULL) {
 			new_task->next = tlist->priority_head[i];
 			break;
@@ -77,7 +77,7 @@ int tlistPush (TaskList *tlist, void *context, int priority) {
 	
 	tlist->list_counter++;
 	
-	bwprintf("Task(tid: %d) is created at %x\n", new_task->tid, new_task->position);
+	// bwprintf("Task(tid: %d) is created at %x\n", new_task->tid, new_task->position);
 	return 1;
 }
 
@@ -96,6 +96,7 @@ Task* tlistPop(TaskList *tlist) {
 	}
 	
 	ret = tlist->head;
+	ret->state = Zombie;
 	tlist->head = tlist->head->next;
 	return ret;
 }

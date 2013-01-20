@@ -1,6 +1,12 @@
+<<<<<<< HEAD:lib/syscall.c
 #include "type.h"
 #include "syscall_no.h"
 //#include "ourlib.h"
+=======
+#include <type.h>
+#include <syscall_no.h>
+#include <stdlib.h>
+>>>>>>> 8e664c515ac195f387880710fbee281105600bc5:syscall.c
 
 
 void syscall(int *tf) {

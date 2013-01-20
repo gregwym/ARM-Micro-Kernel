@@ -1,15 +1,14 @@
 #ifndef __TASK_H__
 #define __TASK_H__
 
-enum TaskState { 
-	"Active",
-	"ready",
-	"Zombie",
-	"Empty"
-}
+typedef enum TaskState { 
+	Active,
+	Ready,
+	Zombie
+} TaskState;
 
 typedef struct task_descripter {
-	char 		tf[16];						//trapframe
+	int 		tf[16];						//trapframe
 	int 		tid;						//id
 	TaskState 	state;						//task state
 	int 		priority;					//priority
