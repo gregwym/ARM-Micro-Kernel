@@ -1,6 +1,6 @@
-#include "type.h"
-#include "syscall_no.h"
-#include "ourlib.h"
+#include <type.h>
+#include <syscall_no.h>
+#include <stdlib.h>
 
 
 void syscall(int *tf) {

@@ -1,6 +1,6 @@
-#include "ts7200.h"
-#include "bwio.h"
-#include "ourlib.h"
+#include <ts7200.h>
+#include <bwio.h>
+#include <stdlib.h>
 
 void assert(int boolean, char * msg) {
 	if (boolean) {
