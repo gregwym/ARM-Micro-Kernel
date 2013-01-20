@@ -1,12 +1,12 @@
 #ifndef __TASK_H__
 #define __TASK_H__
 
-enum TaskState { 
-	"Active",
-	"ready",
-	"Zombie",
-	"Empty"
-}
+typedef enum { 
+	Active,
+	ready,
+	Zombie,
+	Empty
+} TaskState;
 
 typedef struct task_descripter {
 	char 		tf[15];						//trapframe
@@ -35,4 +35,4 @@ int tlistPush (TaskList *tlist, void *context, int priority);
 
 Task* tlistPop(TaskList *tlist);
 
-#endif //__TASK_H__
+#endif // __TASK_H__

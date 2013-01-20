@@ -1,5 +1,5 @@
 #
-# Makefile for busy-wait IO library
+# Makefile for stdlib library
 #
 XCC     = gcc
 AS	= as
@@ -17,9 +17,9 @@ ASFLAGS	= -mcpu=arm920t -mapcs-32
 
 ARFLAGS = rcs
 
-OBJECTS = bwio.o
+OBJECTS = assert.o #task.o
 
-all:  bwio.a
+all:  stdlib.a
 	
 %.s: %.c
 	$(XCC) -S $(CFLAGS) $<
@@ -27,9 +27,10 @@ all:  bwio.a
 $(OBJECTS): %.o: %.s
 	$(AS) $(ASFLAGS) -o $@ $<
 
-bwio.a: $(OBJECTS)
-	$(AR) $(ARFLAGS) $@ bwio.o
-	cp bwio.a ../lib/libbwio.a
+stdlib.a: $(OBJECTS)
+	$(AR) $(ARFLAGS) $@ $(OBJECTS)
+	cp *.a ../lib/libstdlib.a
 
 clean:
 	-rm -f *.s *.a *.o
+

@@ -1,6 +1,6 @@
-#include "types.h"
-#include "task.h"
-#include "kernel.h"
+#include <types.h>
+#include <task.h>
+#include <kernel.h>
 
 int tlistInitial (TaskList *tlist, Task *tasks, int tlist_size, Task **head, Task **tail, int max_p, char* stack) {
 	tlist->list_size = tlist_size;
