@@ -7,10 +7,10 @@
 /*
  * Bit flags for DEBUG()
  */
-#define DB_PLIO        0x001
-#define DB_TIMER       0x002
-#define DB_USER_INPUT  0x004
-#define DB_TRAIN_CTRL  0x008
+// #define DB_PLIO        0x001
+// #define DB_TIMER       0x002
+// #define DB_USER_INPUT  0x004
+// #define DB_TRAIN_CTRL  0x008
 // #define DB_THREADS     0x010
 // #define DB_VM          0x020
 // #define DB_EXEC        0x040
@@ -21,9 +21,9 @@
 // #define DB_KMALLOC     0x800
  
 #if 0
-#define DEBUG(d, fmt, ...) (((dbflags) & (d)) ? plprintf(COM2, fmt, __VA_ARGS__) : 0)
+#define DEBUG(d, fmt, ...) (((dbflags) & (d)) ? bwprintf(COM2, fmt, __VA_ARGS__) : 0)
 #else
-#define DEBUG(d, fmt, args...) (((dbflags) & (d)) ? plprintf(COM2, fmt, ##args) : 0)
+#define DEBUG(d, fmt, args...) (((dbflags) & (d)) ? bwprintf(COM2, fmt, ##args) : 0)
 #endif
  
 #endif // __DEBUG_H__
