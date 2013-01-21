@@ -4,31 +4,29 @@
 typedef enum TaskState { 
 	Active,
 	Ready,
-	Zombie
+	Zombie, 
+	Empty
 } TaskState;
 
 typedef struct task_descripter {
-	int 		tf[16];						//trapframe
 	int 		tid;						//id
 	TaskState 	state;						//task state
 	int 		priority;					//priority
-	void 		*position;					//poistion in the stack
+	void 		*init_sp;					//poistion in the stack
 	struct 		task_descripter *next;		//next task
-	struct 		task_descripter *parent;	//parent
+	int 		parent_tid;					//parent
 } Task;
 
 typedef struct task_list {
-	int 		list_size;
-	int 		list_counter;
-	int 		max_plvl;
-	Task 		*tasklist;
-	Task 		*head;
-	Task 		**priority_head;
-	Task 		**priority_tail;
+	int 		list_counter;				// New insert task index (no free)
+	Task 		*task_array;				// 
+	Task 		*head;						// Task pointer to the head of list
+	Task 		**priority_heads;			// Task pointers to the head of each priority
+	Task 		**priority_tails;			// Task pointers to the tail of each priority
 } TaskList;
 
 
-int tlistInitial (TaskList *tlist, Task *tasks, int tlist_size, Task **head, Task **tail, int max_p, char* stack);
+int tlistInitial (TaskList *tlist, Task *task_array, Task **heads, Task **tails, char* stacks);
 
 int tlistPush (TaskList *tlist, void *context, int priority);
 

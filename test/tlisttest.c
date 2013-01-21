@@ -14,7 +14,7 @@ int main( int argc, char* argv[] ) {
 	
 	TaskList tlist;
 	Task tasks[TASK_MAX];
-	char *stack[TASK_MAX * TASK_STACK_SIZE];
+	char stack[TASK_MAX * TASK_STACK_SIZE];
 	Task *priority_head[TASK_PRIORITY_MAX];
 	Task *priority_tail[TASK_PRIORITY_MAX];
 	
