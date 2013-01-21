@@ -17,7 +17,7 @@ ASFLAGS	= -mcpu=arm920t -mapcs-32
 
 ARFLAGS = rcs
 
-OBJECTS = assert.o task.o
+OBJECTS = assert.o task.o kernel.o
 
 all:  stdlib.a
 	
