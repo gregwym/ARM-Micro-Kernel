@@ -6,6 +6,7 @@
 #define __BWIO_H__
 
 #include <ts7200.h>
+#include <debug.h>
 
 #ifndef __VA_LIST_H__
 #define __VA_LIST_H__

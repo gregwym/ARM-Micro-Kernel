@@ -1,15 +1,14 @@
 #ifndef __TASK_H__
 #define __TASK_H__
 
-typedef enum { 
+typedef enum TaskState { 
 	Active,
-	ready,
-	Zombie,
-	Empty
+	Ready,
+	Zombie
 } TaskState;
 
 typedef struct task_descripter {
-	char 		tf[15];						//trapframe
+	int 		tf[16];						//trapframe
 	int 		tid;						//id
 	TaskState 	state;						//task state
 	int 		priority;					//priority
@@ -19,13 +18,13 @@ typedef struct task_descripter {
 } Task;
 
 typedef struct task_list {
-	int 	list_size;
-	int 	list_counter;
-	int 	max_plvl;
-	Task 	*tasklist;
-	Task 	*head;
-	Task 	**priority_head;
-	Task 	**priority_tail;
+	int 		list_size;
+	int 		list_counter;
+	int 		max_plvl;
+	Task 		*tasklist;
+	Task 		*head;
+	Task 		**priority_head;
+	Task 		**priority_tail;
 } TaskList;
 
 
@@ -35,4 +34,4 @@ int tlistPush (TaskList *tlist, void *context, int priority);
 
 Task* tlistPop(TaskList *tlist);
 
-#endif // __TASK_H__
+#endif //__TASK_H__
