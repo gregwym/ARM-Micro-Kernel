@@ -4,28 +4,27 @@
 #include <bwio.h>
 
 
-int tlistInitial (TaskList *tlist, Task *tasks, int tlist_size, Task **head, Task **tail, int max_p, char* stack) {
-	tlist->list_size = tlist_size;
+int tlistInitial (TaskList *tlist, Task *task_array, Task **head, Task **tail, char* stacks) {}
 	tlist->list_counter = 0;
-	tlist->max_plvl = max_p;
-	tlist->tasklist = tasks;
+	tlist->task_array = task_array;
 	tlist->head = NULL;
-	tlist->priority_head = head;
-	tlist->priority_tail = tail;
+	tlist->priority_heads = heads;
+	tlist->priority_tails = tails;
 	
 	int i;
 	
-	for (i = 0; i < tlist_size; i++) {
-		tasks[i].next = NULL;
+	for (i = 0; i < TASK_MAX; i++) {
 		tasks[i].tid = -1;
-		//tasks[i]->parent
-		//tasts[i]->state
-		tasks[i].position = &stack[(i+1) * TASK_STACK_SIZE - 4];
-		//tasks[i]->tf
-		
+		tasts[i].state = Empty;
+		tasks[i].priority = -1;
+		tasks[i].init_sp = &(stacks[(i+1) * TASK_STACK_SIZE - 4]);
+		tasks[i].next = NULL;
+		tasks[i].parent_tid = -1;
 	}
 	
-	for (i = 0; i < max_p; i++) {
+	// TODO: Add magic number to the end of each stack, so can detect stack overflow
+
+	for (i = 0; i < TASK_MAX; i++) {
 		head[i] = NULL;
 		tail[i] = NULL;
 	}
@@ -37,16 +36,15 @@ int tlistPush (TaskList *tlist, void *context, int priority) {
 	int i;
 	Task *new_task;
 	
-	new_task = &tlist->tasklist[tlist->list_counter];
-	new_task->tf[15] = (int)context;
-	new_task->priority = priority;
-	new_task->state = Ready;
+	// Find and fill in new task
+	new_task = &(tlist->tasklist[tlist->list_counter]);
+	// TODO: Save trapframe on user stack (maybe not here)
 	new_task->tid = tlist->list_counter;
-	//todo, initialisze Task
+	new_task->state = Ready;
+	new_task->priority = priority;
 	
-	
-	//change head
-	if (tlist->list_counter == 0) {
+	// Change head
+	if (tlist->head == NULL) {
 		tlist->head = new_task;
 	} else if (tlist->head->priority > priority) {
 		tlist->head = new_task;
@@ -56,6 +54,7 @@ int tlistPush (TaskList *tlist, void *context, int priority) {
 	if (tlist->priority_tail[priority] == NULL) {
 		tlist->priority_head[priority] = new_task;
 		tlist->priority_tail[priority] = new_task;
+		// Link higher priority task next to new_task
 		for (i = priority - 1; i >= 0; i--) {
 			if (tlist->priority_tail[i] != NULL) {
 				tlist->priority_tail[i]->next = new_task;
@@ -83,20 +82,20 @@ int tlistPush (TaskList *tlist, void *context, int priority) {
 
 Task* tlistPop(TaskList *tlist) {
 	//assert(tlist->head != NULL, "TaskList is already empty!");
-	int toppriority;
-	Task *ret;
+	int top_priority = -1;
+	Task *ret = NULL;
 	
-	toppriority = tlist->head->priority;
+	top_priority = tlist->head->priority;
 	
-	if (tlist->priority_head[toppriority] == tlist->priority_tail[toppriority]) {
-		tlist->priority_head[toppriority] = NULL;
-		tlist->priority_tail[toppriority] = NULL;
+	// Adjust top_priority head and tails
+	if (tlist->priority_head[top_priority] == tlist->priority_tail[top_priority]) {
+		tlist->priority_head[top_priority] = NULL;
+		tlist->priority_tail[top_priority] = NULL;
 	} else {
 		tlist->priority_head[toppriority] = tlist->priority_head[toppriority]->next;
 	}
 	
 	ret = tlist->head;
-	ret->state = Zombie;
 	tlist->head = tlist->head->next;
 	return ret;
 }
