@@ -1,8 +1,6 @@
 #ifndef __SYSCALL_H__
 #define __SYSCALL_H__
 
-void syscall(int *tf);
+int Create(int priority, void (*code) ());
 
-
-
-#endif //
+#endif // __SYSCALL_H__

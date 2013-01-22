@@ -1,30 +1,54 @@
-#include <type.h>
 #include <syscall_no.h>
 #include <stdlib.h>
+#include <syscall_handler.h>
+#include <bwio.h>
 
+int Create(int priority, void (*code) ()) {
+	int *lr = 0;
+	asm("mov %0, lr"
+		:"=r"(lr)
+		:
+	);
 
-void syscall(int *tf) {
-	int *ptr = 0x28;
-	
-	switch (tf[0]) {
-		case SYS_exit:
-			//todo
-			break;
-		case SYS_create:
-			*ptr = 0x218000 + tlistPush;
-			asm("swi 0");
-			
-			break;
-		case SYS_pass:
-			//todo
-			break;
-		default:
-			assert(1, "Invalid syscall number");
-			break;
-	}
-	
-	//get return value
-	
-	//add pc
-	
+	int *pc;
+	asm("mov %0, pc"
+		:"=r"(pc)
+		:
+	);
+
+	int *fp;
+	asm("mov %0, fp"
+		:"=r"(fp)
+		:
+	);
+	bwprintf(COM2, "CREATE: PC 0x%x, lr 0x%x, fp 0x%x\n", pc, lr, fp);
+
+	int *swi_entry = (int *) SWI_ENTRY_POINT;
+	*swi_entry = (int) DATA_REGION_BASE + syscall_handler;
+
+	asm("swi 1");
+	bwprintf(COM2, "Got back\n");
+	bwprintf(COM2, "Got back next line\n");
+
+	// asm("MOV pc, %0"
+	// 	:
+	// 	:"r"(lr));
+
+	asm("mov %0, lr"
+		:"=r"(lr)
+		:
+	);
+
+	asm("mov %0, pc"
+		:"=r"(pc)
+		:
+	);
+
+	asm("mov %0, fp"
+		:"=r"(fp)
+		:
+	);
+	bwprintf(COM2, "CREATE: PC 0x%x, lr 0x%x, fp 0x%x\n", pc, lr, fp);
+
+	return 0;
 }
