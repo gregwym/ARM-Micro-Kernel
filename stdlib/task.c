@@ -101,5 +101,3 @@ Task* tlistPop(TaskList *tlist) {
 	tlist->head = tlist->head->next;
 	return ret;
 }
-
-	
