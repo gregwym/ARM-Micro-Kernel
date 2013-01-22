@@ -23,6 +23,11 @@ kernelEntry:
 	orr 	r12, r12, #0x13
 	msr 	CPSR_c, r12
 
+	@ Save lr to stack and copy lr to r4, since lr will be changed on bl
+	stmfd	sp!, {lr}
+	mov		r4, lr
+
+	bl		syscallHandler(PLT)
 
 	@ldmfd	sp, {fp, sp, pc}
 	@.size	kernelEntry, .-kernelEntry
@@ -48,6 +53,7 @@ kernelExit:
 	orr 	r12, r12, #0x13
 	msr 	CPSR_c, r12
 
+	ldmfd	sp!, {lr}
 	movs	pc, lr
 
 	.size	kernelExit, .-kernelExit

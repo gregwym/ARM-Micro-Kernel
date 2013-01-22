@@ -4,6 +4,10 @@
 #include <bwio.h>
 #include <usertrap.h>
 
+void Exit() {
+	asm("swi 0");
+}
+
 int Create(int priority, void (*code) ()) {
 	int *lr = 0;
 	asm("mov %0, lr"
