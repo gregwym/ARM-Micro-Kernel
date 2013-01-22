@@ -16,7 +16,7 @@ ASFLAGS	= -mcpu=arm920t -mapcs-32
 
 LDFLAGS = -init main -Map main.map -N  -T orex.ld -L/u/wbcowan/gnuarm-4.0.2/lib/gcc/arm-elf/4.0.2 -L./lib
 
-OBJECTS = main.o syscall.o syscall_handler.o
+OBJECTS = main.o syscall.o syscall_handler.o asm/usertrap.o
 
 all: main.elf
 
@@ -37,6 +37,7 @@ main.elf: $(OBJECTS) libbwio.a libstdlib.a
 
 clean:
 	-rm -f *.elf *.s *.o main.map
+	-rm asm/*.o
 	$(MAKE) -C ./io clean
 	$(MAKE) -C ./stdlib clean
 
