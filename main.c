@@ -1,6 +1,7 @@
 #include <bwio.h>
 #include <stdlib.h>
 #include <syscall.h>
+#include <usertrap.h>
 
 void printCPSR(){
 	int cpsr;
@@ -10,22 +11,7 @@ void printCPSR(){
 		:
 	);
 	cpsr = cpsr & 0x1f;
-	DEBUG(DB_SYSCALL, "USER: CPSR 0x%x SP 0x%x\n", cpsr, &cpsr);
-}
-
-inline void switchCpuMode(int flag) {
-	asm("MRS R12, CPSR");
-	asm("BIC R12, R12, #0x1F");
-	switch(flag){
-		case CPU_MODE_SVC:
-			asm("ORR R12, R12, #0x13"); break;
-		case CPU_MODE_SYS:
-			asm("ORR R12, R12, #0x1f"); break;
-		case CPU_MODE_USER:
-		default:
-			asm("ORR R12, R12, #0x10");
-	}
-	asm("MSR CPSR_c, R12");
+	DEBUG(DB_SYSCALL, "USER: CPSR 0x%x\n", cpsr);
 }
 
 void user_program2() {
@@ -40,13 +26,19 @@ void user_program() {
 	Create(0, DATA_REGION_BASE + user_program2);
 
 	bwprintf(COM2, "Back to user program\n");
-	// asm("MOV PC, LR");
+	printCPSR();
 }
 
 int main() {
 	bwsetfifo(COM2, OFF);
+	printCPSR();
 
-	int sp = 0;
+	// int fp;
+	// asm("mov %0, FP"
+	// 	:"=r"(fp)
+	// 	:
+	// );
+	// DEBUG(DB_SYSCALL, "KERNEL: FP 0x%x\n", fp);
 
 	// Initialize Kernel Global vairable's storage
 	// KernelGlobal kernel_global;
@@ -68,45 +60,44 @@ int main() {
 	// 	:"r"(&kernel_global));
 	// asm("sub sp, sp, #4");
 
-	// Create(0, user_program);
+	// Setup global kernel entry
+	int *swi_entry = (int *) SWI_ENTRY_POINT;
+	*swi_entry = (int) DATA_REGION_BASE + kernelEntry;
 
+	// Allocate user_sp for the first user_program
+	char *user_sp = &(stack[TASK_STACK_SIZE - 4]);
 
-	int *usersp = &(stack[TASK_STACK_SIZE - 4]);
-
-
-	//switch to system mode
+	// switch to system mode
 	switchCpuMode(CPU_MODE_SYS);
 
-	bwprintf(COM2, "In system mode\n");
-
-	//write sp
+	// write sp
 	asm("mov sp, %0"
 		:
-		:"r"(usersp)
+		:"r"(user_sp)
 	);
 
-	bwprintf(COM2, "Set usersp to 0x%x\n", usersp);
+	bwprintf(COM2, "In system mode, initialize user_sp to 0x%x\n", user_sp);
 
-	//bk to svc mode
+	// back to svc mode
 	switchCpuMode(CPU_MODE_SVC);
 
-	bwprintf(COM2, "In svc mode, sp 0x%x\n", &sp);
+	bwprintf(COM2, "In svc mode\n");
 
-	//adjust SPSR
-	asm("MRS R12, CPSR");
-	asm("BIC R12, R12, #0x1F");
-	asm("ORR R12, R12, #0x10");
-	asm("MSR SPSR_c, R12");
+	// Switch to USER mode and start user_program()
+	switchCpuMode(CPU_MODE_USER);
+	user_program();
 
-	bwprintf(COM2, "SPSR Adjusted\n");
+	// Cannot switch back since USER mode does not has the privilege
+	// switchCpuMode(CPU_MODE_SVC);
 
-	//switch to user mode
-	asm("MOVS PC, %0"
-		:
-		:"r"(DATA_REGION_BASE + user_program));
-	// user_program();
-
+	printCPSR();
 	bwprintf(COM2, "Came back to main\n");
+
+	// asm("mov %0, FP"
+	// 	:"=r"(fp)
+	// 	:
+	// );
+	// DEBUG(DB_SYSCALL, "KERNEL: FP 0x%x\n", fp);
 
 	return 0;
 }

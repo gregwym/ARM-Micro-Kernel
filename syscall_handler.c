@@ -3,15 +3,9 @@
 #include <stdlib.h>
 
 
-void syscall_handler() {
-	
-
-	// asm("add sp, sp, #4");
-	// asm("ldr r3, [sp, #-4]");
-
+void syscallHandler() {
 	int callno = -1;
 	int *lr = 0;
-	// KernelGlobal *kernel_global = NULL;
 	asm("mov %0, lr"
 		:"=r"(lr)
 		:
@@ -25,10 +19,6 @@ void syscall_handler() {
 	);
 	callno = callno & 0xffffff;
 
-	// asm("mov %0, r3"
-	// 	:"=r"(kernel_global)
-	// 	:);
-	// bwprintf(COM2, "Kernel global variables: 0x%x, task_list 0x%x\n", kernel_global, kernel_global->task_list);
 	bwprintf(COM2, "lr: 0x%x Call number: %d\n", lr, callno);
 
 	int cpsr = -1;

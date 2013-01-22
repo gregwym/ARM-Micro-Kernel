@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <syscall_handler.h>
 #include <bwio.h>
+#include <usertrap.h>
 
 int Create(int priority, void (*code) ()) {
 	int *lr = 0;
@@ -22,9 +23,6 @@ int Create(int priority, void (*code) ()) {
 		:
 	);
 	bwprintf(COM2, "CREATE: PC 0x%x, lr 0x%x, fp 0x%x\n", pc, lr, fp);
-
-	int *swi_entry = (int *) SWI_ENTRY_POINT;
-	*swi_entry = (int) DATA_REGION_BASE + syscall_handler;
 
 	asm("swi 1");
 	bwprintf(COM2, "Got back\n");
