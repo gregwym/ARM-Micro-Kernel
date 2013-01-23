@@ -1,21 +1,21 @@
 #ifndef __TASK_H__
 #define __TASK_H__
 
-typedef enum TaskState { 
+typedef enum TaskState {
 	Active,
 	Ready,
-	Zombie, 
+	Zombie,
 	Empty
 } TaskState;
 
 typedef struct task_descripter {
-	int 		tid;						//id
+	int			tid;						//id
 	int			generation;					//generation
-	TaskState 	state;						//task state
-	int 		priority;					//priority
-	void 		*init_sp;					//poistion in the stack
-	struct 		task_descripter *next;		//next task
-	int 		parent_tid;					//parent
+	TaskState	state;						//task state
+	int			priority;					//priority
+	void		*init_sp;					//poistion in the stack
+	struct		task_descripter *next;		//next task
+	int			parent_tid;					//parent
 } Task;
 
 typedef struct task_list {
@@ -41,8 +41,6 @@ void flistInitial(FreeList *flist, Task *task_array);
 Task *createTask(FreeList *flist, int priority, void * context());
 
 Task* popTask(TaskList *tlist, FreeList *flist);
-
-
 
 
 #endif //__TASK_H__
