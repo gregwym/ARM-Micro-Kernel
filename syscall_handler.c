@@ -1,27 +1,22 @@
 #include <bwio.h>
+#include <syscall.h>
 #include <syscall_handler.h>
 #include <stdlib.h>
 
 void sysExit() {
-
+	DEBUG(DB_SYSCALL, "I WANNA EXIT!!!!!\n");
 }
 
 void syscallHandler() {
 	int callno = -1;
-	int *lr = 0;
-	asm("mov %0, r4"
-		:"=r"(lr)
-		:
-	);
-
-	asm("ldr r3, [r4, #-4]");
-	asm("mov %0, r3"
+	asm("ldr %0, [r0, #-4]"
 		:"=r"(callno)
 		:
 	);
+
 	callno = callno & 0xffffff;
 
-	bwprintf(COM2, "lr: 0x%x Call number: %d\n", lr, callno);
+	bwprintf(COM2, "Call number: %d\n", callno);
 
 	switch(callno) {
 		case SYS_exit:
@@ -31,5 +26,8 @@ void syscallHandler() {
 			break;
 	}
 
+	// asm("sub	sp, fp, #16");
+	// asm("ldmfd	sp, {sl, fp, sp}");
+	// kernelExit(DATA_REGION_BASE + Exit);
 }
 

@@ -2,15 +2,15 @@
 #include <task.h>
 #include <kernel.h>
 #include <bwio.h>
-
+#include <usertrap.h>
 
 void tlistInitial (TaskList *tlist, Task **heads, Task **tails) {
 	tlist->head = NULL;
 	tlist->priority_heads = heads;
 	tlist->priority_tails = tails;
-	
+
 	int i;
-	
+
 	// TODO: Add magic number to the end of each stack, so can detect stack overflow
 
 	for (i = 0; i < TASK_MAX; i++) {
@@ -18,14 +18,14 @@ void tlistInitial (TaskList *tlist, Task **heads, Task **tails) {
 		tails[i] = NULL;
 	}
 
-}	
-	
+}
+
 int tlistPush (TaskList *tlist, Task *new_task) {
 	//assert(tlist->list_counter < tlist->list_size, "Exceed tlist size!");
 	//assert(priority >= 0 && priority <= TASK_PRIORITY_MAX, "Invalid priority value!");
 	int i;
 	int priority = new_task->priority;
-	
+
 	// Find and fill in new task
 	// Change head
 	new_task->next = NULL;
@@ -34,7 +34,7 @@ int tlistPush (TaskList *tlist, Task *new_task) {
 	} else if (tlist->head->priority > priority) {
 		tlist->head = new_task;
 	}
-	
+
 	//change tail's link
 	if (tlist->priority_tails[priority] == NULL) {
 		tlist->priority_heads[priority] = new_task;
@@ -50,7 +50,7 @@ int tlistPush (TaskList *tlist, Task *new_task) {
 		tlist->priority_tails[priority]->next = new_task;
 		tlist->priority_tails[priority] = new_task;
 	}
-	
+
 	//link to next p_head
 	for (i = priority + 1; i < TASK_PRIORITY_MAX; i++) {
 		if (tlist->priority_heads[i] != NULL) {
@@ -58,8 +58,8 @@ int tlistPush (TaskList *tlist, Task *new_task) {
 			break;
 		}
 	}
-	
-	
+
+
 	// bwprintf("Task(tid: %d) is created at %x\n", new_task->tid, new_task->position);
 	return 1;
 }
@@ -68,9 +68,9 @@ Task* popTask(TaskList *tlist, FreeList *flist) {
 	//assert(tlist->head != NULL, "TaskList is already empty!");
 	int top_priority = -1;
 	Task *ret = NULL;
-	
+
 	top_priority = tlist->head->priority;
-	
+
 	// Adjust top_priority head and tails
 	if (tlist->priority_heads[top_priority] == tlist->priority_tails[top_priority]) {
 		tlist->priority_heads[top_priority] = NULL;
@@ -78,10 +78,10 @@ Task* popTask(TaskList *tlist, FreeList *flist) {
 	} else {
 		tlist->priority_heads[top_priority] = tlist->priority_heads[top_priority]->next;
 	}
-	
+
 	ret = tlist->head;
 	tlist->head = tlist->head->next;
-	
+
 	if (flist->head == NULL) {
 		flist->head = ret;
 		flist->tail = ret;
@@ -93,7 +93,7 @@ Task* popTask(TaskList *tlist, FreeList *flist) {
 		flist->tail->next = NULL;
 		flist->tail->state = Empty;
 	}
-	
+
 	return ret;
 }
 
@@ -114,7 +114,7 @@ void flistInitial(FreeList *flist, Task *task_array) {
 	}
 	task_array[TASK_MAX - 1].next = NULL;
 	task_array[TASK_MAX - 1].state = Empty;
-	
+
 	flist->head = &task_array[0];
 	flist->tail = &task_array[TASK_MAX - 1];
 }
@@ -128,7 +128,8 @@ Task *createTask(FreeList *flist, int priority, void * context()) {
 	ret->generation += 1;
 	ret->priority = priority;
 	flist->head = flist->head->next;
-	
+	initTrap(ret->init_sp, context);
+
 	return ret;
 }
 

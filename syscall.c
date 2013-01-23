@@ -63,5 +63,5 @@ void Pass() {
 }
 
 void Exit() {
-
+	asm("swi 0");
 }
