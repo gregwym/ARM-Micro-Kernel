@@ -24,7 +24,7 @@ void syscallHandler() {
 	bwprintf(COM2, "lr: 0x%x Call number: %d\n", lr, callno);
 
 	switch(callno) {
-		case: SYS_exit:
+		case SYS_exit:
 			sysExit();
 			break;
 		default:

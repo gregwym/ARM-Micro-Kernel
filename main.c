@@ -43,7 +43,7 @@ int main() {
 	// Initialize Kernel Global vairable's storage
 	// KernelGlobal kernel_global;
 
-	// Initialize TaskList
+	/* Initialize TaskList */
 	// TaskList task_list;
 	// Task tasks[TASK_MAX];
 	// Task *priority_head[TASK_PRIORITY_MAX];
@@ -60,9 +60,11 @@ int main() {
 	// 	:"r"(&kernel_global));
 	// asm("sub sp, sp, #4");
 
-	// Setup global kernel entry
+	/* Setup global kernel entry */
 	int *swi_entry = (int *) SWI_ENTRY_POINT;
 	*swi_entry = (int) DATA_REGION_BASE + kernelEntry;
+
+	/* Should start scheduler
 
 	// Allocate user_sp for the first user_program
 	char *user_sp = &(stack[TASK_STACK_SIZE - 4]);
@@ -89,6 +91,7 @@ int main() {
 
 	// Cannot switch back since USER mode does not has the privilege
 	// switchCpuMode(CPU_MODE_SVC);
+	*/
 
 	printCPSR();
 	bwprintf(COM2, "Came back to main\n");

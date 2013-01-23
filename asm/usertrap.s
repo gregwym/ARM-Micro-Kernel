@@ -17,20 +17,17 @@ kernelEntry:
 	mov		ip, sp
 	stmfd	sp!, {r0, r1, r2, r3, r4, r5, r6, r7, r8, sb, sl, fp, ip, lr}
 
+	@ Save sp to r5 for syscallHandler
+	mov		r5, sp
+
 	@ Switch back to svc mode
 	mrs		r12, cpsr
 	bic 	r12, r12, #0x1f
 	orr 	r12, r12, #0x13
 	msr 	CPSR_c, r12
 
-	@ Save lr to stack and copy lr to r4, since lr will be changed on bl
-	stmfd	sp!, {lr}
-	mov		r4, lr
-
-	bl		syscallHandler(PLT)
-
-	@ldmfd	sp, {fp, sp, pc}
-	@.size	kernelEntry, .-kernelEntry
+	@ Branch to syscallHandler, NEVER comeback
+	b		syscallHandler(PLT)
 
 	.align	2
 	.global	kernelExit
