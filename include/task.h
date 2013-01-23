@@ -10,6 +10,7 @@ typedef enum TaskState {
 
 typedef struct task_descripter {
 	int 		tid;						//id
+	int			generation;					//generation
 	TaskState 	state;						//task state
 	int 		priority;					//priority
 	void 		*init_sp;					//poistion in the stack
@@ -18,18 +19,30 @@ typedef struct task_descripter {
 } Task;
 
 typedef struct task_list {
-	int 		list_counter;				// New insert task index (no free)
-	Task 		*task_array;				// 
 	Task 		*head;						// Task pointer to the head of list
 	Task 		**priority_heads;			// Task pointers to the head of each priority
 	Task 		**priority_tails;			// Task pointers to the tail of each priority
 } TaskList;
 
+typedef struct free_list {
+	Task		*head;
+	Task		*tail;
+} FreeList;
 
-int tlistInitial (TaskList *tlist, Task *task_array, Task **heads, Task **tails, char* stacks);
 
-int tlistPush (TaskList *tlist, void *context, int priority);
+void tlistInitial (TaskList *tlist, Task **heads, Task **tails);
 
-Task* tlistPop(TaskList *tlist);
+int tlistPush (TaskList *tlist, Task *new_task);
+
+void tarrayInitial(Task *task_array, char *stacks);
+
+void flistInitial(FreeList *flist, Task *task_array);
+
+Task *createTask(FreeList *flist, int priority, void * context());
+
+Task* popTask(TaskList *tlist, FreeList *flist);
+
+
+
 
 #endif //__TASK_H__

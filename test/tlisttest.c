@@ -7,46 +7,54 @@
 
 int main( int argc, char* argv[] ) {
 	
-	// char str[] = "Hello\n\r";
 	bwsetfifo( COM2, OFF );
 	
-	char *data;
+	int i;
 	
+	void * prt;
 	TaskList tlist;
-	Task tasks[TASK_MAX];
+	FreeList flist;
+	Task task_array[TASK_MAX];
 	char stack[TASK_MAX * TASK_STACK_SIZE];
 	Task *priority_head[TASK_PRIORITY_MAX];
 	Task *priority_tail[TASK_PRIORITY_MAX];
 	
-	tlistInitial(&tlist, tasks, TASK_MAX, priority_head, priority_tail, TASK_PRIORITY_MAX, stack);
+	tarrayInitial(&task_array, &stack);
+	flistInitial(&flist, &task_array);
+	tlistInitial(&tlist, priority_head, priority_tail);
 	
-	tlistPush(&tlist, data, 6);		//0
-	tlistPush(&tlist, data, 4);		//1
-	tlistPush(&tlist, data, 2);		//2
-	tlistPush(&tlist, data, 2);		//3
-	tlistPush(&tlist, data, 4);		//4
-	tlistPush(&tlist, data, 6);		//5
-	//2, 3, 1, 4, 0, 5
+	Task *tmp;
 	
-	Task *tmp = tlist.head;
-	
-	while (tmp != NULL) {
-		bwprintf(COM2, "%d\n", tmp->tid);
-		tmp = tmp->next;
+	for (i = 0; i < 10; i++) {
+		tlistPush(&tlist, createTask(&flist, i, prt));
 	}
-	
-	tlistPop(&tlist);
-	tlistPop(&tlist);
-	tlistPop(&tlist);
 	
 	tmp = tlist.head;
 	
 	while (tmp != NULL) {
-		bwprintf(COM2, "after: %d\n", tmp->tid);
+		bwprintf(COM2, "Insert: %d\n", tmp->tid);
 		tmp = tmp->next;
 	}
 	
-	//4, 0, 5
+	for (i = 0; i < 10; i++) {
+		popTask(&tlist, &flist);
+	}
+	
+	while (tmp != NULL) {
+		bwprintf(COM2, "Pop: %d\n", tmp->tid);
+		tmp = tmp->next;
+	}
+	
+	for (i = 0; i < 10; i++) {
+		tlistPush(&tlist, createTask(&flist, 9 - i, prt));
+	}
+	
+	tmp = tlist.head;
+	
+	while (tmp != NULL) {
+		bwprintf(COM2, "Insert: %d\n", tmp->tid);
+		tmp = tmp->next;
+	}
 	
 	
 	return 0;
