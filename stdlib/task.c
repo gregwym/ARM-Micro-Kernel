@@ -4,7 +4,7 @@
 #include <bwio.h>
 #include <usertrap.h>
 
-void tlistInitial (TaskList *tlist, Task **heads, Task **tails) {
+void tlistInitial(TaskList *tlist, Task **heads, Task **tails) {
 	tlist->head = NULL;
 	tlist->priority_heads = heads;
 	tlist->priority_tails = tails;
@@ -20,7 +20,29 @@ void tlistInitial (TaskList *tlist, Task **heads, Task **tails) {
 
 }
 
-int tlistPush (TaskList *tlist, Task *new_task) {
+void tarrayInitial(Task *task_array, char *stacks) {
+	int i;
+	for (i = 0; i < TASK_MAX; i++) {
+		task_array[i].tid = i;
+		task_array[i].generation = 0;
+		task_array[i].init_sp = &(stacks[(i+1) * TASK_STACK_SIZE - 4]);
+	}
+}
+
+void flistInitial(FreeList *flist, Task *task_array) {
+	int i;
+	for (i = 0; i < TASK_MAX - 1; i++) {
+		task_array[i].next = &(task_array[i+1]);
+		task_array[i].state = Empty;
+	}
+	task_array[TASK_MAX - 1].next = NULL;
+	task_array[TASK_MAX - 1].state = Empty;
+
+	flist->head = &task_array[0];
+	flist->tail = &task_array[TASK_MAX - 1];
+}
+
+int pushTask(TaskList *tlist, Task *new_task) {
 	//assert(tlist->list_counter < tlist->list_size, "Exceed tlist size!");
 	//assert(priority >= 0 && priority <= TASK_PRIORITY_MAX, "Invalid priority value!");
 	int i;
@@ -97,28 +119,6 @@ Task* popTask(TaskList *tlist, FreeList *flist) {
 	return ret;
 }
 
-void tarrayInitial(Task *task_array, char *stacks) {
-	int i;
-	for (i = 0; i < TASK_MAX; i++) {
-		task_array[i].tid = i;
-		task_array[i].generation = 0;
-		task_array[i].init_sp = &(stacks[(i+1) * TASK_STACK_SIZE - 4]);
-	}
-}
-
-void flistInitial(FreeList *flist, Task *task_array) {
-	int i;
-	for (i = 0; i < TASK_MAX - 1; i++) {
-		task_array[i].next = &(task_array[i+1]);
-		task_array[i].state = Empty;
-	}
-	task_array[TASK_MAX - 1].next = NULL;
-	task_array[TASK_MAX - 1].state = Empty;
-
-	flist->head = &task_array[0];
-	flist->tail = &task_array[TASK_MAX - 1];
-}
-
 Task *createTask(FreeList *flist, int priority, void * context()) {
 	//assert(flist->head != NULL, "Task array is already full!");
 	Task *ret;
@@ -128,6 +128,7 @@ Task *createTask(FreeList *flist, int priority, void * context()) {
 	ret->generation += 1;
 	ret->priority = priority;
 	flist->head = flist->head->next;
+	ret->current_sp = ret->init_sp;
 	initTrap(ret->init_sp, context);
 
 	return ret;
