@@ -3,11 +3,15 @@
 #include <syscall_handler.h>
 #include <stdlib.h>
 
+void sysCreate() {
+	DEBUG(DB_SYSCALL, "I WANNA CREATE!!!!!\n");
+}
+
 void sysExit() {
 	DEBUG(DB_SYSCALL, "I WANNA EXIT!!!!!\n");
 }
 
-void syscallHandler() {
+int syscallHandler() {
 	int callno = -1;
 	asm("ldr %0, [r0, #-4]"
 		:"=r"(callno)
@@ -22,12 +26,13 @@ void syscallHandler() {
 		case SYS_exit:
 			sysExit();
 			break;
+		case SYS_create:
+			sysCreate();
+			break;
 		default:
 			break;
 	}
 
-	// asm("sub	sp, fp, #16");
-	// asm("ldmfd	sp, {sl, fp, sp}");
-	// kernelExit(DATA_REGION_BASE + Exit);
+	return callno;
 }
 
