@@ -62,7 +62,7 @@ kernelExit:
 	orr 	r12, r12, #0x13
 	msr 	CPSR_c, r12
 
-	@ Go back to user_program entry point
+	@ Switch to user mode and go back to user_program entry point
 	movs	pc, r3
 
 	.size	kernelExit, .-kernelExit
