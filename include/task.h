@@ -17,10 +17,14 @@ typedef struct task_descriptor {
 	void		*current_sp;				// stack current position
 	struct		task_descriptor *next;		// next task
 	int			parent_tid;					// parent
+	// SPSR
+	void		*resume_point;				// pc addr to resume task
+	// Return value
 } Task;
 
 typedef struct task_list {
-	Task 		*head;						// Task pointer to the head of list
+	Task 		*curtask;					// Task pointer to the current task/swi caller
+	Task 		*head;						// Task pointer to the first highest priority task
 	Task 		**priority_heads;			// Task pointers to the head of each priority
 	Task 		**priority_tails;			// Task pointers to the tail of each priority
 } TaskList;
