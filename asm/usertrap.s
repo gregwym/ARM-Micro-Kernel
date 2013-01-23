@@ -17,8 +17,8 @@ kernelEntry:
 	mov		ip, sp
 	stmfd	sp!, {r0, r1, r2, r3, r4, r5, r6, r7, r8, sb, sl, fp, ip, lr}
 
-	@ Save sp to r5 for syscallHandler
-	mov		r5, sp
+	@ Save sp to r1, so can be saved in task_descriptor
+	mov		r1, sp
 
 	@ Switch back to svc mode
 	mrs		r12, cpsr
@@ -99,6 +99,27 @@ initTrap:
 	mov		r3, #0x33
 	mov		ip, sp
 	stmfd	sp!, {r0, r1, r2, r3, r4, r5, r6, r7, r8, sb, sl, fp, ip, lr}
+
+	@ Switch back to svc mode
+	mrs		r12, cpsr
+	bic 	r12, r12, #0x1f
+	orr 	r12, r12, #0x13
+	msr 	CPSR_c, r12
+
+	mov		pc, lr
+
+	.align	2
+	.global	activateStack
+	.type	activateStack, %function
+activateStack:
+	@ Switch to system mode
+	mrs		r12, cpsr
+	bic 	r12, r12, #0x1f
+	orr 	r12, r12, #0x1f
+	msr 	CPSR_c, r12
+
+	@ activate given stack pointer
+	mov		sp, r0
 
 	@ Switch back to svc mode
 	mrs		r12, cpsr
