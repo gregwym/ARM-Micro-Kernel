@@ -25,10 +25,21 @@ void user_program() {
 	printCPSR();
 	bwprintf(COM2, "In user program\n");
 
-	// Create(0, DATA_REGION_BASE + user_program2);
+	Create(0, DATA_REGION_BASE + user_program2);
 
 	bwprintf(COM2, "Back to user program\n");
 	printCPSR();
+}
+
+void rescheduleCurrentTask(TaskList *tlist, void *sp, int callno) {
+	return;
+}
+
+int scheduleNextTask(TaskList *tlist) {
+	Task *task = tlist->head;
+	if(task == NULL) return 0;
+	activateStack(task->current_sp);
+	return 1;
 }
 
 int main() {
@@ -66,16 +77,25 @@ int main() {
 
 	/* Create first task */
 	Task *first_task = createTask(&flist, 0, DATA_REGION_BASE + user_program);
+	// pushTask(&tlist, first_task);
 	DEBUG(DB_SYSCALL, "First task created, init_sp: 0x%x\n", first_task->init_sp);
-
-	// tlistPush(&tlist, first_task);
 
 	/* Main syscall handling loop */
 	while(1){
+		// scheduleNextTask(&tlist);
+
 		// Exit kernel to let user program to execute
 		kernelExit(DATA_REGION_BASE + Exit);
+		// Obtain last user task's sp
+		// void *user_sp = 0;
+		// asm("mov %0, r1"
+		// 	:"=r"(user_sp)
+		// 	:
+		// );
 		// Return to this point after swi
+		// int callno =
 		syscallHandler();
+		// rescheduleCurrentTask(&tlist, user_sp, callno);
 		DEBUG(DB_SYSCALL, "Syscall Handler returned normally, exiting kernel\n");
 	}
 
