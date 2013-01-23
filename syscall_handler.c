@@ -1,35 +1,31 @@
 #include <bwio.h>
+#include <syscall.h>
 #include <syscall_handler.h>
 #include <stdlib.h>
 
-void sysExit() {
-
+void sysCreate() {
+	DEBUG(DB_SYSCALL, "I WANNA CREATE!!!!!\n");
 }
 
-void syscallHandler() {
-	int callno = -1;
-	int *lr = 0;
-	asm("mov %0, r4"
-		:"=r"(lr)
-		:
-	);
+void sysExit() {
+	DEBUG(DB_SYSCALL, "I WANNA EXIT!!!!!\n");
+}
 
-	asm("ldr r3, [r4, #-4]");
-	asm("mov %0, r3"
-		:"=r"(callno)
-		:
-	);
-	callno = callno & 0xffffff;
+int syscallHandler(int callno, void **parameters, void *user_sp, void *user_resume_point) {
 
-	bwprintf(COM2, "lr: 0x%x Call number: %d\n", lr, callno);
+	DEBUG(DB_SYSCALL, "Call number: %d\n", callno);
 
 	switch(callno) {
-		case: SYS_exit:
+		case SYS_exit:
 			sysExit();
+			break;
+		case SYS_create:
+			sysCreate();
 			break;
 		default:
 			break;
 	}
 
+	return callno;
 }
 

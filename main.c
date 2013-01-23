@@ -1,7 +1,9 @@
 #include <bwio.h>
 #include <stdlib.h>
 #include <syscall.h>
+#include <syscall_handler.h>
 #include <usertrap.h>
+#include <global_ref.h>
 
 void printCPSR(){
 	int cpsr;
@@ -29,6 +31,17 @@ void user_program() {
 	printCPSR();
 }
 
+void rescheduleCurrentTask(TaskList *tlist, void *sp, int callno) {
+	return;
+}
+
+int scheduleNextTask(TaskList *tlist) {
+	Task *task = tlist->head;
+	if(task == NULL) return 0;
+	activateStack(task->current_sp);
+	return 1;
+}
+
 int main() {
 	bwsetfifo(COM2, OFF);
 	printCPSR();
@@ -40,55 +53,43 @@ int main() {
 	// );
 	// DEBUG(DB_SYSCALL, "KERNEL: FP 0x%x\n", fp);
 
-	// Initialize Kernel Global vairable's storage
-	// KernelGlobal kernel_global;
+	/* Initialize TaskList */
+	TaskList tlist;
+	FreeList flist;
+	Task task_array[TASK_MAX];
+	char stacks[TASK_MAX * TASK_STACK_SIZE];
+	Task *priority_head[TASK_PRIORITY_MAX];
+	Task *priority_tail[TASK_PRIORITY_MAX];
 
-	// Initialize TaskList
-	// TaskList task_list;
-	// Task tasks[TASK_MAX];
-	// Task *priority_head[TASK_PRIORITY_MAX];
-	// Task *priority_tail[TASK_PRIORITY_MAX];
-	char stack[TASK_MAX * TASK_STACK_SIZE];
-	// tlistInitial(&task_list, tasks, priority_head, priority_tail, stack);
-	// kernel_global.task_list = &task_list;
+	tarrayInitial(task_array, stacks);
+	flistInitial(&flist, task_array);
+	tlistInitial(&tlist, priority_head, priority_tail);
 
-	// bwprintf(COM2, "Task list at 0x%x\n", kernel_global.task_list);
-
-	// Save kernel_global address on the top of stack
-	// asm("str %0, [sp, #-4]"
-	// 	:
-	// 	:"r"(&kernel_global));
-	// asm("sub sp, sp, #4");
-
-	// Setup global kernel entry
+	/* Setup global kernel entry */
 	int *swi_entry = (int *) SWI_ENTRY_POINT;
-	*swi_entry = (int) DATA_REGION_BASE + kernelEntry;
+	*swi_entry = (int) (DATA_REGION_BASE + kernelEntry);
 
-	// Allocate user_sp for the first user_program
-	char *user_sp = &(stack[TASK_STACK_SIZE - 4]);
+	/* Set spsr to usermode */
+	asm("mrs	r12, spsr");
+	asm("bic 	r12, r12, #0x1f");
+	asm("orr 	r12, r12, #0x10");
+	asm("msr 	SPSR_c, r12");
 
-	// switch to system mode
-	switchCpuMode(CPU_MODE_SYS);
+	/* Create first task */
+	Task *first_task = createTask(&flist, 0, DATA_REGION_BASE + user_program);
+	// pushTask(&tlist, first_task);
+	DEBUG(DB_SYSCALL, "First task created, init_sp: 0x%x\n", first_task->init_sp);
 
-	// write sp
-	asm("mov sp, %0"
-		:
-		:"r"(user_sp)
-	);
+	/* Main syscall handling loop */
+	while(1){
+		// scheduleNextTask(&tlist);
 
-	bwprintf(COM2, "In system mode, initialize user_sp to 0x%x\n", user_sp);
+		// Exit kernel to let user program to execute
+		kernelExit(first_task->resume_point);
+		asm("bl	syscallHandler(PLT)");
 
-	// back to svc mode
-	switchCpuMode(CPU_MODE_SVC);
-
-	bwprintf(COM2, "In svc mode\n");
-
-	// Switch to USER mode and start user_program()
-	switchCpuMode(CPU_MODE_USER);
-	user_program();
-
-	// Cannot switch back since USER mode does not has the privilege
-	// switchCpuMode(CPU_MODE_SVC);
+		DEBUG(DB_SYSCALL, "Syscall Handler returned normally, exiting kernel\n");
+	}
 
 	printCPSR();
 	bwprintf(COM2, "Came back to main\n");

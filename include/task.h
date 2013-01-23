@@ -1,25 +1,30 @@
 #ifndef __TASK_H__
 #define __TASK_H__
 
-typedef enum TaskState { 
+typedef enum TaskState {
 	Active,
 	Ready,
-	Zombie, 
+	Zombie,
 	Empty
 } TaskState;
 
-typedef struct task_descripter {
-	int 		tid;						//id
-	int			generation;					//generation
-	TaskState 	state;						//task state
-	int 		priority;					//priority
-	void 		*init_sp;					//poistion in the stack
-	struct 		task_descripter *next;		//next task
-	int 		parent_tid;					//parent
+typedef struct task_descriptor {
+	int			tid;						// id
+	int			generation;					// generation
+	TaskState	state;						// task state
+	int			priority;					// priority
+	void		*init_sp;					// stack initial position
+	void		*current_sp;				// stack current position
+	struct		task_descriptor *next;		// next task
+	int			parent_tid;					// parent
+	// SPSR
+	void		*resume_point;				// pc addr to resume task
+	// Return value
 } Task;
 
 typedef struct task_list {
-	Task 		*head;						// Task pointer to the head of list
+	Task 		*curtask;					// Task pointer to the current task/swi caller
+	Task 		*head;						// Task pointer to the first highest priority task
 	Task 		**priority_heads;			// Task pointers to the head of each priority
 	Task 		**priority_tails;			// Task pointers to the tail of each priority
 } TaskList;
@@ -32,17 +37,15 @@ typedef struct free_list {
 
 void tlistInitial (TaskList *tlist, Task **heads, Task **tails);
 
-int tlistPush (TaskList *tlist, Task *new_task);
-
 void tarrayInitial(Task *task_array, char *stacks);
 
 void flistInitial(FreeList *flist, Task *task_array);
 
+int pushTask(TaskList *tlist, Task *new_task);
+
 Task *createTask(FreeList *flist, int priority, void * context());
 
-Task* popTask(TaskList *tlist, FreeList *flist);
-
-
+Task *popTask(TaskList *tlist, FreeList *flist);
 
 
 #endif //__TASK_H__
