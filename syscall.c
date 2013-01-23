@@ -40,5 +40,6 @@ void Pass() {
 }
 
 void Exit() {
+	asm("mov r0, #0");
 	asm("swi 0");
 }

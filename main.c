@@ -85,17 +85,9 @@ int main() {
 		// scheduleNextTask(&tlist);
 
 		// Exit kernel to let user program to execute
-		kernelExit(DATA_REGION_BASE + Exit);
-		// Obtain last user task's sp
-		// void *user_sp = 0;
-		// asm("mov %0, r1"
-		// 	:"=r"(user_sp)
-		// 	:
-		// );
-		// Return to this point after swi
-		// int callno =
-		syscallHandler();
-		// rescheduleCurrentTask(&tlist, user_sp, callno);
+		kernelExit(first_task->resume_point);
+		asm("bl	syscallHandler(PLT)");
+
 		DEBUG(DB_SYSCALL, "Syscall Handler returned normally, exiting kernel\n");
 	}
 

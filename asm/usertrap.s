@@ -17,8 +17,8 @@ kernelEntry:
 	mov		ip, sp
 	stmfd	sp!, {r0, r1, r2, r3, r4, r5, r6, r7, r8, sb, sl, fp, ip, lr}
 
-	@ Save sp to r1, so can be saved in task_descriptor
-	mov		r1, sp
+	@ Save user_sp to r2, so can be saved in task_descriptor
+	mov		r2, sp
 
 	@ Switch back to svc mode
 	mrs		r12, cpsr
@@ -26,8 +26,10 @@ kernelEntry:
 	orr 	r12, r12, #0x13
 	msr 	CPSR_c, r12
 
+	@ Save user_resume_point to r3, so can be saved in task_descriptor
+	mov		r3, lr
+
 	@ Restore kernel trapframe (side effect: jump back to original lr)
-	mov		r0, lr
 	ldmfd	sp, {r4, r5, r6, r7, r8, sb, sl, fp, sp, pc}
 
 	.align	2
@@ -46,15 +48,14 @@ kernelExit:
 	orr 	r12, r12, #0x1f
 	msr 	CPSR_c, r12
 
-	@ Copy exit_syscall to r12 for later use
+	@ Copy user_program resume point to r12 for later use
 	mov		r12, r0
 
 	@ Save user trapframe
 	ldmfd	sp, {r0, r1, r2, r3, r4, r5, r6, r7, r8, sb, sl, fp, sp, lr}
 
-	@ Copy user_program entry point to r3; assign Exit to user lr
-	mov		r3, lr
-	mov		lr, r12
+	@ Copy user_program resume point to r3
+	mov		r3, r12
 
 	@ Switch back to svc mode
 	mrs		r12, cpsr
