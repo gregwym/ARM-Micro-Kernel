@@ -107,9 +107,12 @@ Task* removeCurrentTask(TaskList *tlist, FreeList *flist) {
 	} else {
 		tlist->priority_heads[top_priority] = tlist->priority_heads[top_priority]->next;
 	}
-
+	
 	ret = tlist->head;
-	tlist->head = tlist->head->next;
+	
+	if (tlist->head == tlist->curtask) {
+		tlist->head = tlist->head->next;
+	}
 
 	if (flist->head == NULL) {
 		flist->head = ret;
@@ -153,7 +156,7 @@ void moveCurrentTaskToEnd(TaskList *tlist) {
 	int priority = tlist->curtask->priority;
 	
 	if (tlist->priority_heads[priority] != tlist->priority_tails[priority]) {
-		if (tlist->head->priority < tlist->curtask->priority) {
+		if (tlist->head->priority < priority) {
 			tlist->head->next = tlist->curtask->next;
 		} else {
 			tlist->head = tlist->curtask->next;
