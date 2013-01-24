@@ -4,6 +4,7 @@
 #include <bwio.h>
 #include <usertrap.h>
 #include <syscall.h>
+#include <stdlib.h>
 
 void tlistInitial(TaskList *tlist, Task **heads, Task **tails) {
 	tlist->curtask = NULL;
@@ -44,8 +45,6 @@ void flistInitial(FreeList *flist, Task *task_array) {
 }
 
 int insertTask(TaskList *tlist, Task *new_task) {
-	//assert(tlist->list_counter < tlist->list_size, "Exceed tlist size!");
-	//assert(priority >= 0 && priority <= TASK_PRIORITY_MAX, "Invalid priority value!");
 	int i;
 	int priority = new_task->priority;
 
@@ -109,7 +108,7 @@ Task* removeCurrentTask(TaskList *tlist, FreeList *flist) {
 	}
 
 	ret = tlist->head;
-
+	
 	if (tlist->head == tlist->curtask) {
 		tlist->head = tlist->head->next;
 	}
@@ -125,16 +124,17 @@ Task* removeCurrentTask(TaskList *tlist, FreeList *flist) {
 		flist->tail->next = NULL;
 		flist->tail->state = Empty;
 	}
-
+	tlist->curtask = NULL;
 	return ret;
 }
 
 Task *createTask(FreeList *flist, int priority, void (*code) ()) {
+	assert(priority >= 0 && priority <= TASK_PRIORITY_MAX, "Invalid priority value!");
 	Task *ret = NULL;
 	ret = flist->head;
 	if(ret == NULL) return ret;
 
-	//assert(ret->state == Empty, "Invalid task space to use!");
+	// assert(ret->state == Empty, "Invalid task space to use!");
 	ret->tid = ret->tid + TASK_MAX;
 	ret->state = Ready;
 	ret->priority = priority;

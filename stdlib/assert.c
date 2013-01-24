@@ -2,7 +2,7 @@
 #include <stdlib.h>
 
 void assert(int boolean, char * msg) {
-	if (boolean) {
+	if (!boolean) {
 		bwprintf(COM2, "\e[31;mError: %s \e[m\n", msg);
 	}
 }
