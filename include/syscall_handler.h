@@ -5,7 +5,7 @@
 #define SYS_create		1
 #define SYS_pass		2
 
-int syscallHandler();
+void syscallHandler();
 
 
 #endif // __SYSCALL_HANDLER_H__

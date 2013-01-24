@@ -18,16 +18,16 @@ void printCPSR(){
 
 void user_program2() {
 	printCPSR();
-	bwprintf(COM2, "In user program2\n");
+	bwprintf(COM2, "In user program 2\n");
 }
 
 void user_program() {
 	printCPSR();
-	bwprintf(COM2, "In user program\n");
+	bwprintf(COM2, "In user program 1\n");
 
-	Create(0, DATA_REGION_BASE + user_program2);
+	Create(9, DATA_REGION_BASE + user_program2);
 
-	bwprintf(COM2, "Back to user program\n");
+	bwprintf(COM2, "Back to user program 1\n");
 	printCPSR();
 }
 
@@ -36,9 +36,15 @@ void rescheduleCurrentTask(TaskList *tlist, void *sp, int callno) {
 }
 
 int scheduleNextTask(TaskList *tlist) {
-	Task *task = tlist->head;
-	if(task == NULL) return 0;
-	activateStack(task->current_sp);
+	if(tlist->curtask != NULL) {
+		moveCurrentTaskToEnd(tlist);
+	}
+	refreshCurtask(tlist);
+	if (tlist->curtask == NULL) {
+		return 0;
+	}
+	activateStack(tlist->curtask->current_sp);
+	DEBUG(DB_SYSCALL, "User task activated, sp: 0x%x\n", tlist->curtask->current_sp);
 	return 1;
 }
 
@@ -82,16 +88,14 @@ int main() {
 
 	/* Create first task */
 	Task *first_task = createTask(&flist, 0, DATA_REGION_BASE + user_program);
-	// pushTask(&tlist, first_task);
-	tlist.curtask = first_task;
+	insertTask(&tlist, first_task);
 	DEBUG(DB_SYSCALL, "First task created, init_sp: 0x%x\n", first_task->init_sp);
 	DEBUG(DB_SYSCALL, "Global addr: 0x%x\n", &global);
 
 	/* Main syscall handling loop */
 	while(1){
-		// scheduleNextTask(&tlist);
-		activateStack(tlist.curtask->current_sp);
-		DEBUG(DB_SYSCALL, "User task activated, sp: 0x%x\n", tlist.curtask->current_sp);
+		// If no more task to run, break
+		if(!scheduleNextTask(&tlist)) break;
 		// Exit kernel to let user program to execute
 		kernelExit(tlist.curtask->resume_point);
 		asm("mov r1, %0"
@@ -100,11 +104,6 @@ int main() {
 		    :"r0", "r2", "r3"
 		    );
 		asm("bl	syscallHandler(PLT)");
-		int callno = -1;
-		asm("mov %0, r0"
-		    :"=r"(callno)
-		    :);
-		if(callno == SYS_exit) break;
 
 		DEBUG(DB_SYSCALL, "Syscall Handler returned normally, exiting kernel\n");
 	}
