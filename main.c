@@ -5,15 +5,18 @@
 #include <usertrap.h>
 
 void user_program_low() {
-	bwprintf(COM2, "In user program low before\n");
+	int mytid = MyTid();
+	bwprintf(COM2, "Low Before Pass, myTid: %d\n", mytid);
 	Pass();
-	bwprintf(COM2, "In user program low after\n");
+	mytid = MyTid();
+	bwprintf(COM2, "Low After Pass, myTid: %d\n", mytid);
 }
 
 void user_program_high() {
-	bwprintf(COM2, "In user program high before\n");
-	Pass();
-	bwprintf(COM2, "In user program high after\n");
+	int mytid = MyTid();
+	bwprintf(COM2, "High Before Pass, myTid: %d\n", mytid);
+	mytid = MyTid();
+	bwprintf(COM2, "High After Pass, myTid: %d\n", mytid);
 }
 
 void user_program() {
