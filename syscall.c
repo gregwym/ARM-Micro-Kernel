@@ -11,9 +11,9 @@ int Create(int priority, void (*code) ()) {
 	}
 
 	// Setup parameters and callno
-	void *parameters[3] = {(&priority), (&code), NULL};
-	asm("mov r0, #1");
-	asm("mov r1, %0"
+	int callno = 1;
+	void *parameters[4] = {(&callno), (&priority), (&code), NULL};
+	asm("mov r0, %0"
 	    :
 	    :"r"(parameters));
 
@@ -40,6 +40,10 @@ void Pass() {
 }
 
 void Exit() {
-	asm("mov r0, #0");
+	int callno = 0;
+	void *parameters[2] = {(&callno), NULL};
+	asm("mov r0, %0"
+	    :
+	    :"r"(parameters));
 	asm("swi 0");
 }

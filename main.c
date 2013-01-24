@@ -13,7 +13,7 @@ void printCPSR(){
 		:
 	);
 	cpsr = cpsr & 0x1f;
-	DEBUG(DB_SYSCALL, "USER: CPSR 0x%x\n", cpsr);
+	DEBUG(DB_SYSCALL, "CPSR 0x%x\n", cpsr);
 }
 
 void user_program2() {
@@ -69,6 +69,11 @@ int main() {
 	int *swi_entry = (int *) SWI_ENTRY_POINT;
 	*swi_entry = (int) (DATA_REGION_BASE + kernelEntry);
 
+	/* Setup kernel global variable structure */
+	KernelGlobal global;
+	global.tlist = &tlist;
+	global.flist = &flist;
+
 	/* Set spsr to usermode */
 	asm("mrs	r12, spsr");
 	asm("bic 	r12, r12, #0x1f");
@@ -78,15 +83,28 @@ int main() {
 	/* Create first task */
 	Task *first_task = createTask(&flist, 0, DATA_REGION_BASE + user_program);
 	// pushTask(&tlist, first_task);
+	tlist.curtask = first_task;
 	DEBUG(DB_SYSCALL, "First task created, init_sp: 0x%x\n", first_task->init_sp);
+	DEBUG(DB_SYSCALL, "Global addr: 0x%x\n", &global);
 
 	/* Main syscall handling loop */
 	while(1){
 		// scheduleNextTask(&tlist);
-
+		activateStack(tlist.curtask->current_sp);
+		DEBUG(DB_SYSCALL, "User task activated, sp: 0x%x\n", tlist.curtask->current_sp);
 		// Exit kernel to let user program to execute
-		kernelExit(first_task->resume_point);
+		kernelExit(tlist.curtask->resume_point);
+		asm("mov r1, %0"
+		    :
+		    :"r"(&global)
+		    :"r0", "r2", "r3"
+		    );
 		asm("bl	syscallHandler(PLT)");
+		int callno = -1;
+		asm("mov %0, r0"
+		    :"=r"(callno)
+		    :);
+		if(callno == SYS_exit) break;
 
 		DEBUG(DB_SYSCALL, "Syscall Handler returned normally, exiting kernel\n");
 	}
