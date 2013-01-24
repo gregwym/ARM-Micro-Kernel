@@ -3,21 +3,40 @@
 #include <syscall_handler.h>
 #include <stdlib.h>
 
-void sysCreate(TaskList *tlist, FreeList *flist, int priority, void (*code) ()) {
+int sysCreate(TaskList *tlist, FreeList *flist, int priority, void (*code) (), int *rtn) {
 	Task *task = createTask(flist, priority, code);
+	if(task == NULL) return -1;
+
+	task->parent_tid = tlist->curtask->tid;
 	insertTask(tlist, task);
+	*rtn = task->tid;
+	return 0;
 }
 
-void sysExit(TaskList *tlist, FreeList *flist) {
+int sysExit(TaskList *tlist, FreeList *flist) {
 	removeCurrentTask(tlist, flist);
+	return 0;
+}
+
+int sysMyTid(TaskList *tlist, int *rtn) {
+	*rtn = tlist->curtask->tid;
+	return 0;
+}
+
+int sysMyParentTid(TaskList *tlist, int *rtn) {
+	*rtn = tlist->curtask->parent_tid;
+	return 0;
 }
 
 void syscallHandler(void **parameters, KernelGlobal *global, void *user_sp, void *user_resume_point) {
 	int callno = *((int*)(parameters[0]));
+	int err = 0;
+	int rtn = 0;
+
 	DEBUG(DB_SYSCALL, "| SYSCALL:\tCall number: %d\n", callno);
-	DEBUG(DB_SYSCALL, "| SYSCALL:\tglobal: 0x%x\n", global);
-	DEBUG(DB_SYSCALL, "| SYSCALL:\tuser_sp: 0x%x\n", user_sp);
-	DEBUG(DB_SYSCALL, "| SYSCALL:\tuser_resume_point: 0x%x\n", user_resume_point);
+	// DEBUG(DB_SYSCALL, "| SYSCALL:\tglobal: 0x%x\n", global);
+	// DEBUG(DB_SYSCALL, "| SYSCALL:\tuser_sp: 0x%x\n", user_sp);
+	// DEBUG(DB_SYSCALL, "| SYSCALL:\tuser_resume_point: 0x%x\n", user_resume_point);
 
 	TaskList *tlist = global->tlist;
 	FreeList *flist = global->flist;
@@ -27,14 +46,23 @@ void syscallHandler(void **parameters, KernelGlobal *global, void *user_sp, void
 
 	switch(callno) {
 		case SYS_exit:
-			sysExit(tlist, flist);
+			err = sysExit(tlist, flist);
 			break;
 		case SYS_create:
-			sysCreate(tlist, flist, *((int*)(parameters[1])), *((void **)(parameters[2])));
+			err = sysCreate(tlist, flist, *((int*)(parameters[1])), *((void **)(parameters[2])), &rtn);
 			break;
+		case SYS_myTid:
+			err = sysMyTid(tlist, &rtn);
+			break;
+		case SYS_myParentTid:
+			err = sysMyParentTid(tlist, &rtn);
+			break;
+		case SYS_pass:
 		default:
 			break;
 	}
+
+	*((int *)user_sp) = (err == 0 ? rtn : err);
 
 	return;
 }

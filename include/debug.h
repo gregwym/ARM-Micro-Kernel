@@ -17,7 +17,7 @@
 // #define DB_NETFS       0x400
 // #define DB_KMALLOC     0x800
 
-#define dbflags DB_SYSCALL | DB_TASK
+#define dbflags 0 // DB_SYSCALL | DB_TASK
 
 #define DEBUG(d, fmt, args...) (((dbflags) & (d)) ? bwprintf(COM2, fmt, ##args) : 0)
 
