@@ -4,11 +4,12 @@
 #include <task.h>
 
 typedef struct kernel_global {
-	TaskList *task_list;
+	TaskList *tlist;
+	FreeList *flist;
 } KernelGlobal;
 
 #define TASK_MAX 30
-#define TASK_STACK_SIZE 1000
+#define TASK_STACK_SIZE 512
 #define TASK_PRIORITY_MAX 10
 
 #define SWI_ENTRY_POINT 0x28
