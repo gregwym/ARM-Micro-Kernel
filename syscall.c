@@ -11,9 +11,9 @@ int Create(int priority, void (*code) ()) {
 	}
 
 	// Setup parameters and callno
-	void *parameters[3] = {(&priority), (&code), NULL};
-	asm("mov r0, #1");
-	asm("mov r1, %0"
+	int callno = SYS_create;
+	void *parameters[4] = {(&callno), (&priority), (&code), NULL};
+	asm("mov r0, %0"
 	    :
 	    :"r"(parameters));
 
@@ -36,10 +36,19 @@ int MyParentTid() {
 }
 
 void Pass() {
-
+	int callno = SYS_pass;
+	void *parameters[2] = {(&callno), NULL};
+	asm("mov r0, %0"
+	    :
+	    :"r"(parameters));
+	asm("swi 2");
 }
 
 void Exit() {
-	asm("mov r0, #0");
+	int callno = SYS_exit;
+	void *parameters[2] = {(&callno), NULL};
+	asm("mov r0, %0"
+	    :
+	    :"r"(parameters));
 	asm("swi 0");
 }

@@ -107,9 +107,9 @@ Task* removeCurrentTask(TaskList *tlist, FreeList *flist) {
 	} else {
 		tlist->priority_heads[top_priority] = tlist->priority_heads[top_priority]->next;
 	}
-	
+
 	ret = tlist->head;
-	
+
 	if (tlist->head == tlist->curtask) {
 		tlist->head = tlist->head->next;
 	}
@@ -129,16 +129,14 @@ Task* removeCurrentTask(TaskList *tlist, FreeList *flist) {
 	return ret;
 }
 
-Task *createTask(FreeList *flist, int priority, void * context()) {
+Task *createTask(FreeList *flist, int priority, void (*code) ()) {
 	//assert(flist->head != NULL, "Task array is already full!");
 	Task *ret;
 	ret = flist->head;
 	//assert(ret->state == Empty, "Invalid task space to use!");
 	ret->tid = ret->tid + TASK_MAX;
-	ret->generation += 1;
 	ret->state = Ready;
 	ret->priority = priority;
-	ret->current_sp = ret->init_sp;
 
 	flist->head = flist->head->next;
 
@@ -146,15 +144,15 @@ Task *createTask(FreeList *flist, int priority, void * context()) {
 	ret->next = NULL;
 	ret->parent_tid = -1;
 
-	ret->resume_point = context;
-	initTrap(ret->init_sp, DATA_REGION_BASE + Exit);
+	ret->resume_point = code;
+	ret->current_sp = initTrap(ret->init_sp, DATA_REGION_BASE + Exit);
 
 	return ret;
 }
 
 void moveCurrentTaskToEnd(TaskList *tlist) {
 	int priority = tlist->curtask->priority;
-	
+
 	if (tlist->priority_heads[priority] != tlist->priority_tails[priority]) {
 		if (tlist->head->priority < priority) {
 			tlist->head->next = tlist->curtask->next;

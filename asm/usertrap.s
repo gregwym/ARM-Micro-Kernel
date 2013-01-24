@@ -51,7 +51,7 @@ kernelExit:
 	@ Copy user_program resume point to r12 for later use
 	mov		r12, r0
 
-	@ Save user trapframe
+	@ Restore user trapframe
 	ldmfd	sp, {r0, r1, r2, r3, r4, r5, r6, r7, r8, sb, sl, fp, sp, lr}
 
 	@ Copy user_program resume point to r3
@@ -100,6 +100,9 @@ initTrap:
 	mov		r3, #0x33
 	mov		ip, sp
 	stmfd	sp!, {r0, r1, r2, r3, r4, r5, r6, r7, r8, sb, sl, fp, ip, lr}
+
+	@ Return new sp to caller
+	mov		r0, sp
 
 	@ Switch back to svc mode
 	mrs		r12, cpsr
