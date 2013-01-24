@@ -138,7 +138,6 @@ Task *createTask(FreeList *flist, int priority, void * context()) {
 	ret->generation += 1;
 	ret->state = Ready;
 	ret->priority = priority;
-	ret->current_sp = ret->init_sp;
 
 	flist->head = flist->head->next;
 
@@ -147,7 +146,7 @@ Task *createTask(FreeList *flist, int priority, void * context()) {
 	ret->parent_tid = -1;
 
 	ret->resume_point = context;
-	initTrap(ret->init_sp, DATA_REGION_BASE + Exit);
+	ret->current_sp = initTrap(ret->init_sp, DATA_REGION_BASE + Exit);
 
 	return ret;
 }
