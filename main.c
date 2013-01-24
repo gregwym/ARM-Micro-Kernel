@@ -14,12 +14,12 @@ void user_program_iner() {
 void user_program() {
 	int tid = -1;
 
-	tid = Create(6, DATA_REGION_BASE + user_program_iner);
+	tid = Create(7, DATA_REGION_BASE + user_program_iner);
 	bwprintf(COM2, "Created: %d\n", tid);
 	tid = Create(7, DATA_REGION_BASE + user_program_iner);
 	bwprintf(COM2, "Created: %d\n", tid);
 
-	tid = Create(4, DATA_REGION_BASE + user_program_iner);
+	tid = Create(3, DATA_REGION_BASE + user_program_iner);
 	bwprintf(COM2, "Created: %d\n", tid);
 	tid = Create(3, DATA_REGION_BASE + user_program_iner);
 	bwprintf(COM2, "Created: %d\n", tid);
