@@ -107,9 +107,9 @@ Task* removeCurrentTask(TaskList *tlist, FreeList *flist) {
 	} else {
 		tlist->priority_heads[top_priority] = tlist->priority_heads[top_priority]->next;
 	}
-	
+
 	ret = tlist->head;
-	
+
 	if (tlist->head == tlist->curtask) {
 		tlist->head = tlist->head->next;
 	}
@@ -135,7 +135,6 @@ Task *createTask(FreeList *flist, int priority, void * context()) {
 	ret = flist->head;
 	//assert(ret->state == Empty, "Invalid task space to use!");
 	ret->tid = ret->tid + TASK_MAX;
-	ret->generation += 1;
 	ret->state = Ready;
 	ret->priority = priority;
 
@@ -153,7 +152,7 @@ Task *createTask(FreeList *flist, int priority, void * context()) {
 
 void moveCurrentTaskToEnd(TaskList *tlist) {
 	int priority = tlist->curtask->priority;
-	
+
 	if (tlist->priority_heads[priority] != tlist->priority_tails[priority]) {
 		if (tlist->head->priority < priority) {
 			tlist->head->next = tlist->curtask->next;
