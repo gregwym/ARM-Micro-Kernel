@@ -5,34 +5,32 @@
 #include <usertrap.h>
 #include <global_ref.h>
 
-void printCPSR(){
-	int cpsr;
-	asm("mrs r3, CPSR");
-	asm("mov %0, R3"
-		:"=r"(cpsr)
-		:
-	);
-	cpsr = cpsr & 0x1f;
-	DEBUG(DB_SYSCALL, "CPSR 0x%x\n", cpsr);
+void user_program_low() {
+	bwprintf(COM2, "In user program low before\n");
+	Pass();
+	bwprintf(COM2, "In user program low after\n");
 }
 
-void user_program2() {
-	printCPSR();
-	bwprintf(COM2, "In user program 2\n");
+void user_program_high() {
+	bwprintf(COM2, "In user program high before\n");
+	Pass();
+	bwprintf(COM2, "In user program high after\n");
 }
 
 void user_program() {
-	printCPSR();
-	bwprintf(COM2, "In user program 1\n");
+	bwprintf(COM2, "In main user program\n");
 
-	Create(9, DATA_REGION_BASE + user_program2);
+	Create(6, DATA_REGION_BASE + user_program_low);
+	bwprintf(COM2, "Created low 1\n");
+	Create(7, DATA_REGION_BASE + user_program_low);
+	bwprintf(COM2, "Created low 2\n");
 
-	bwprintf(COM2, "Back to user program 1\n");
-	printCPSR();
-}
+	Create(4, DATA_REGION_BASE + user_program_high);
+	bwprintf(COM2, "Created high 1\n");
+	Create(3, DATA_REGION_BASE + user_program_high);
+	bwprintf(COM2, "Created high 2\n");
 
-void rescheduleCurrentTask(TaskList *tlist, void *sp, int callno) {
-	return;
+	bwprintf(COM2, "First: exiting\n");
 }
 
 int scheduleNextTask(TaskList *tlist) {
@@ -44,20 +42,12 @@ int scheduleNextTask(TaskList *tlist) {
 		return 0;
 	}
 	activateStack(tlist->curtask->current_sp);
-	DEBUG(DB_SYSCALL, "User task activated, sp: 0x%x\n", tlist->curtask->current_sp);
+	DEBUG(DB_SYSCALL, "| SYSCALL:\tUser task activated, sp: 0x%x\n", tlist->curtask->current_sp);
 	return 1;
 }
 
 int main() {
 	bwsetfifo(COM2, OFF);
-	printCPSR();
-
-	// int fp;
-	// asm("mov %0, FP"
-	// 	:"=r"(fp)
-	// 	:
-	// );
-	// DEBUG(DB_SYSCALL, "KERNEL: FP 0x%x\n", fp);
 
 	/* Initialize TaskList */
 	TaskList tlist;
@@ -87,10 +77,10 @@ int main() {
 	asm("msr 	SPSR_c, r12");
 
 	/* Create first task */
-	Task *first_task = createTask(&flist, 0, DATA_REGION_BASE + user_program);
+	Task *first_task = createTask(&flist, 5, DATA_REGION_BASE + user_program);
 	insertTask(&tlist, first_task);
-	DEBUG(DB_SYSCALL, "First task created, init_sp: 0x%x\n", first_task->init_sp);
-	DEBUG(DB_SYSCALL, "Global addr: 0x%x\n", &global);
+	DEBUG(DB_SYSCALL, "| SYSCALL:\tFirst task created, init_sp: 0x%x\n", first_task->init_sp);
+	DEBUG(DB_SYSCALL, "| SYSCALL:\tGlobal addr: 0x%x\n", &global);
 
 	/* Main syscall handling loop */
 	while(1){
@@ -105,17 +95,8 @@ int main() {
 		    );
 		asm("bl	syscallHandler(PLT)");
 
-		DEBUG(DB_SYSCALL, "Syscall Handler returned normally, exiting kernel\n");
+		DEBUG(DB_SYSCALL, "| SYSCALL:\tSyscall Handler returned normally, exiting kernel\n");
 	}
-
-	printCPSR();
-	bwprintf(COM2, "Came back to main\n");
-
-	// asm("mov %0, FP"
-	// 	:"=r"(fp)
-	// 	:
-	// );
-	// DEBUG(DB_SYSCALL, "KERNEL: FP 0x%x\n", fp);
 
 	return 0;
 }

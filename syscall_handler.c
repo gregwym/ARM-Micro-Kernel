@@ -4,22 +4,20 @@
 #include <stdlib.h>
 
 void sysCreate(TaskList *tlist, FreeList *flist, int priority, void * context()) {
-	DEBUG(DB_SYSCALL, "I WANNA CREATE!!!!!\n");
 	Task *task = createTask(flist, priority, context);
 	insertTask(tlist, task);
 }
 
 void sysExit(TaskList *tlist, FreeList *flist) {
-	DEBUG(DB_SYSCALL, "I WANNA EXIT!!!!!\n");
 	removeCurrentTask(tlist, flist);
 }
 
 void syscallHandler(void **parameters, KernelGlobal *global, void *user_sp, void *user_resume_point) {
 	int callno = *((int*)(parameters[0]));
-	DEBUG(DB_SYSCALL, "Call number: %d\n", callno);
-	DEBUG(DB_SYSCALL, "global: 0x%x\n", global);
-	DEBUG(DB_SYSCALL, "user_sp: 0x%x\n", user_sp);
-	DEBUG(DB_SYSCALL, "user_resume_point: 0x%x\n", user_resume_point);
+	DEBUG(DB_SYSCALL, "| SYSCALL:\tCall number: %d\n", callno);
+	DEBUG(DB_SYSCALL, "| SYSCALL:\tglobal: 0x%x\n", global);
+	DEBUG(DB_SYSCALL, "| SYSCALL:\tuser_sp: 0x%x\n", user_sp);
+	DEBUG(DB_SYSCALL, "| SYSCALL:\tuser_resume_point: 0x%x\n", user_resume_point);
 
 	TaskList *tlist = global->tlist;
 	FreeList *flist = global->flist;
@@ -38,6 +36,6 @@ void syscallHandler(void **parameters, KernelGlobal *global, void *user_sp, void
 			break;
 	}
 
-	return callno;
+	return;
 }
 
