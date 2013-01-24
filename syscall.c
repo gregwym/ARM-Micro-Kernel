@@ -44,7 +44,19 @@ int MyTid() {
 }
 
 int MyParentTid() {
+	int rtn = -1;
+	int callno = SYS_myParentTid;
+	void *parameters[2] = {(&callno), NULL};
+	asm("mov r0, %0"
+	    :
+	    :"r"(parameters));
+	asm("swi 0");
 
+	// Return the return value from kernel
+	asm("mov %0, r0"
+	    :"=r"(rtn)
+	    :);
+	return rtn;
 }
 
 void Pass() {
