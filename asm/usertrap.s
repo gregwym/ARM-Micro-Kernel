@@ -40,6 +40,7 @@ kernelExit:
 	@ frame_needed = 1, uses_anonymous_args = 0
 
 	@ Save kernel trapframe
+	mov		ip, sp
 	stmfd	sp!, {r4, r5, r6, r7, r8, sb, sl, fp, ip, lr}
 
 	@ Switch to system mode
