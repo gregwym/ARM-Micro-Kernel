@@ -3,7 +3,6 @@
 #include <syscall.h>
 #include <syscall_handler.h>
 #include <usertrap.h>
-#include <global_ref.h>
 
 void user_program_low() {
 	bwprintf(COM2, "In user program low before\n");
