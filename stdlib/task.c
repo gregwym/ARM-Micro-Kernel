@@ -2,7 +2,6 @@
 #include <task.h>
 #include <kernel.h>
 #include <bwio.h>
-#include <usertrap.h>
 #include <syscall.h>
 
 void tlistInitial(TaskList *tlist, Task **heads, Task **tails) {
@@ -25,8 +24,7 @@ void tlistInitial(TaskList *tlist, Task **heads, Task **tails) {
 void tarrayInitial(Task *task_array, char *stacks) {
 	int i;
 	for (i = 0; i < TASK_MAX; i++) {
-		task_array[i].tid = i;
-		task_array[i].generation = 0;
+		task_array[i].tid = i - TASK_MAX;
 		task_array[i].init_sp = &(stacks[(i+1) * TASK_STACK_SIZE - 4]);
 	}
 }
@@ -44,7 +42,7 @@ void flistInitial(FreeList *flist, Task *task_array) {
 	flist->tail = &task_array[TASK_MAX - 1];
 }
 
-int pushTask(TaskList *tlist, Task *new_task) {
+int insertTask(TaskList *tlist, Task *new_task) {
 	//assert(tlist->list_counter < tlist->list_size, "Exceed tlist size!");
 	//assert(priority >= 0 && priority <= TASK_PRIORITY_MAX, "Invalid priority value!");
 	int i;
@@ -96,7 +94,7 @@ int pushTask(TaskList *tlist, Task *new_task) {
 	return 1;
 }
 
-Task* popTask(TaskList *tlist, FreeList *flist) {
+Task* removeCurrentTask(TaskList *tlist, FreeList *flist) {
 	// assert(tlist->head != NULL, "TaskList: list is empty");
 	int top_priority = tlist->head->priority;
 	Task *ret = NULL;
@@ -110,6 +108,7 @@ Task* popTask(TaskList *tlist, FreeList *flist) {
 	}
 
 	ret = tlist->head;
+	tlist->head = tlist->head->next;
 
 	if (flist->head == NULL) {
 		flist->head = ret;
@@ -131,7 +130,7 @@ Task *createTask(FreeList *flist, int priority, void * context()) {
 	Task *ret;
 	ret = flist->head;
 	//assert(ret->state == Empty, "Invalid task space to use!");
-	ret->tid = ret->tid + TASK_MAX * ret->generation;
+	ret->tid = ret->tid + TASK_MAX;
 	ret->generation += 1;
 	ret->state = Ready;
 	ret->priority = priority;
@@ -149,3 +148,22 @@ Task *createTask(FreeList *flist, int priority, void * context()) {
 	return ret;
 }
 
+void moveCurtaskToEnd(TaskList *tlist) {
+	int priority = tlist->curtask->priority;
+	
+	if (tlist->priority_heads[priority] != tlist->priority_tails[priority]) {
+		if (tlist->head->priority < tlist->curtask->priority) {
+			tlist->head->next = tlist->curtask->next;
+		} else {
+			tlist->head = tlist->curtask->next;
+		}
+		tlist->priority_heads[priority] = tlist->curtask->next;
+		tlist->curtask->next = tlist->priority_tails[priority]->next;
+		tlist->priority_tails[priority]->next = tlist->curtask;
+		tlist->priority_tails[priority] = tlist->curtask;
+	}
+}
+
+void refreshCurtask(TaskList *tlist) {
+	tlist->curtask = tlist->head;
+}

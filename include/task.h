@@ -10,7 +10,6 @@ typedef enum TaskState {
 
 typedef struct task_descriptor {
 	int			tid;						// id
-	int			generation;					// generation
 	TaskState	state;						// task state
 	int			priority;					// priority
 	void		*init_sp;					// stack initial position
@@ -41,11 +40,15 @@ void tarrayInitial(Task *task_array, char *stacks);
 
 void flistInitial(FreeList *flist, Task *task_array);
 
-int pushTask(TaskList *tlist, Task *new_task);
+int insertTask(TaskList *tlist, Task *new_task);
 
 Task *createTask(FreeList *flist, int priority, void * context());
 
-Task *popTask(TaskList *tlist, FreeList *flist);
+Task *removeCurrentTask(TaskList *tlist, FreeList *flist);
+
+void moveTaskToEnd(TaskList *tlist, Task *task);
+
+void refreshCurtask(TaskList *tlist);
 
 
 #endif //__TASK_H__
