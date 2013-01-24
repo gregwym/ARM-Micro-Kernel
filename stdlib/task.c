@@ -129,7 +129,7 @@ Task* removeCurrentTask(TaskList *tlist, FreeList *flist) {
 	return ret;
 }
 
-Task *createTask(FreeList *flist, int priority, void * context()) {
+Task *createTask(FreeList *flist, int priority, void (*code) ()) {
 	//assert(flist->head != NULL, "Task array is already full!");
 	Task *ret;
 	ret = flist->head;
@@ -144,7 +144,7 @@ Task *createTask(FreeList *flist, int priority, void * context()) {
 	ret->next = NULL;
 	ret->parent_tid = -1;
 
-	ret->resume_point = context;
+	ret->resume_point = code;
 	ret->current_sp = initTrap(ret->init_sp, DATA_REGION_BASE + Exit);
 
 	return ret;

@@ -3,8 +3,8 @@
 #include <syscall_handler.h>
 #include <stdlib.h>
 
-void sysCreate(TaskList *tlist, FreeList *flist, int priority, void * context()) {
-	Task *task = createTask(flist, priority, context);
+void sysCreate(TaskList *tlist, FreeList *flist, int priority, void (*code) ()) {
+	Task *task = createTask(flist, priority, code);
 	insertTask(tlist, task);
 }
 

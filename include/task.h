@@ -42,7 +42,7 @@ void flistInitial(FreeList *flist, Task *task_array);
 
 int insertTask(TaskList *tlist, Task *new_task);
 
-Task *createTask(FreeList *flist, int priority, void * context());
+Task *createTask(FreeList *flist, int priority, void (*code) ());
 
 Task *removeCurrentTask(TaskList *tlist, FreeList *flist);
 
