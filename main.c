@@ -4,33 +4,28 @@
 #include <syscall_handler.h>
 #include <usertrap.h>
 
-void user_program_low() {
-	bwprintf(COM2, "Low Before Pass, myTid: %d myParentTid: %d\n", MyTid(), MyParentTid());
+void user_program_iner() {
+	bwprintf(COM2, "myTid: %d myParentTid: %d\n", MyTid(), MyParentTid());
 	Pass();
-	bwprintf(COM2, "Low After Pass, myTid: %d myParentTid: %d\n", MyTid(), MyParentTid());
-}
-
-void user_program_high() {
-	bwprintf(COM2, "High Before Pass, myTid: %d myParentTid: %d\n", MyTid(), MyParentTid());
-	Pass();
-	bwprintf(COM2, "High After Pass, myTid: %d myParentTid: %d\n", MyTid(), MyParentTid());
+	bwprintf(COM2, "myTid: %d myParentTid: %d\n", MyTid(), MyParentTid());
+	Exit();
 }
 
 void user_program() {
 	int tid = -1;
-	bwprintf(COM2, "In main user program\n");
 
-	tid = Create(6, DATA_REGION_BASE + user_program_low);
-	bwprintf(COM2, "Created low with tid %d\n", tid);
-	tid = Create(7, DATA_REGION_BASE + user_program_low);
-	bwprintf(COM2, "Created low with tid %d\n", tid);
+	tid = Create(6, DATA_REGION_BASE + user_program_iner);
+	bwprintf(COM2, "Created: %d\n", tid);
+	tid = Create(7, DATA_REGION_BASE + user_program_iner);
+	bwprintf(COM2, "Created: %d\n", tid);
 
-	tid = Create(4, DATA_REGION_BASE + user_program_high);
-	bwprintf(COM2, "Created high with tid %d\n", tid);
-	tid = Create(3, DATA_REGION_BASE + user_program_high);
-	bwprintf(COM2, "Created high with tid %d\n", tid);
+	tid = Create(4, DATA_REGION_BASE + user_program_iner);
+	bwprintf(COM2, "Created: %d\n", tid);
+	tid = Create(3, DATA_REGION_BASE + user_program_iner);
+	bwprintf(COM2, "Created: %d\n", tid);
 
 	bwprintf(COM2, "First: exiting\n");
+	Exit();
 }
 
 int scheduleNextTask(TaskList *tlist) {
