@@ -130,9 +130,10 @@ Task* removeCurrentTask(TaskList *tlist, FreeList *flist) {
 }
 
 Task *createTask(FreeList *flist, int priority, void (*code) ()) {
-	//assert(flist->head != NULL, "Task array is already full!");
-	Task *ret;
+	Task *ret = NULL;
 	ret = flist->head;
+	if(ret == NULL) return ret;
+
 	//assert(ret->state == Empty, "Invalid task space to use!");
 	ret->tid = ret->tid + TASK_MAX;
 	ret->state = Ready;

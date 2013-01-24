@@ -17,17 +17,18 @@ void user_program_high() {
 }
 
 void user_program() {
+	int tid = -1;
 	bwprintf(COM2, "In main user program\n");
 
-	Create(6, DATA_REGION_BASE + user_program_low);
-	bwprintf(COM2, "Created low 1\n");
-	Create(7, DATA_REGION_BASE + user_program_low);
-	bwprintf(COM2, "Created low 2\n");
+	tid = Create(6, DATA_REGION_BASE + user_program_low);
+	bwprintf(COM2, "Created low with tid %d\n", tid);
+	tid = Create(7, DATA_REGION_BASE + user_program_low);
+	bwprintf(COM2, "Created low with tid %d\n", tid);
 
-	Create(4, DATA_REGION_BASE + user_program_high);
-	bwprintf(COM2, "Created high 1\n");
-	Create(3, DATA_REGION_BASE + user_program_high);
-	bwprintf(COM2, "Created high 2\n");
+	tid = Create(4, DATA_REGION_BASE + user_program_high);
+	bwprintf(COM2, "Created high with tid %d\n", tid);
+	tid = Create(3, DATA_REGION_BASE + user_program_high);
+	bwprintf(COM2, "Created high with tid %d\n", tid);
 
 	bwprintf(COM2, "First: exiting\n");
 }

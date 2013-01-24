@@ -3,17 +3,25 @@
 #include <syscall_handler.h>
 #include <stdlib.h>
 
-void sysCreate(TaskList *tlist, FreeList *flist, int priority, void (*code) ()) {
+int sysCreate(TaskList *tlist, FreeList *flist, int priority, void (*code) (), int *rtn) {
 	Task *task = createTask(flist, priority, code);
+	if(task == NULL) return -1;
+
 	insertTask(tlist, task);
+	*rtn = task->tid;
+	return 0;
 }
 
-void sysExit(TaskList *tlist, FreeList *flist) {
+int sysExit(TaskList *tlist, FreeList *flist) {
 	removeCurrentTask(tlist, flist);
+	return 0;
 }
 
 void syscallHandler(void **parameters, KernelGlobal *global, void *user_sp, void *user_resume_point) {
 	int callno = *((int*)(parameters[0]));
+	int err = 0;
+	int rtn = 0;
+
 	DEBUG(DB_SYSCALL, "| SYSCALL:\tCall number: %d\n", callno);
 	DEBUG(DB_SYSCALL, "| SYSCALL:\tglobal: 0x%x\n", global);
 	DEBUG(DB_SYSCALL, "| SYSCALL:\tuser_sp: 0x%x\n", user_sp);
@@ -27,14 +35,16 @@ void syscallHandler(void **parameters, KernelGlobal *global, void *user_sp, void
 
 	switch(callno) {
 		case SYS_exit:
-			sysExit(tlist, flist);
+			err = sysExit(tlist, flist);
 			break;
 		case SYS_create:
-			sysCreate(tlist, flist, *((int*)(parameters[1])), *((void **)(parameters[2])));
+			err = sysCreate(tlist, flist, *((int*)(parameters[1])), *((void **)(parameters[2])), &rtn);
 			break;
 		default:
 			break;
 	}
+
+	*((int *)user_sp) = (err == 0 ? rtn : err);
 
 	return;
 }
