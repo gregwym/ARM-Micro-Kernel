@@ -46,7 +46,7 @@ Task *createTask(FreeList *flist, int priority, void * context());
 
 Task *removeCurrentTask(TaskList *tlist, FreeList *flist);
 
-void moveTaskToEnd(TaskList *tlist, Task *task);
+void moveCurrentTaskToEnd(TaskList *tlist);
 
 void refreshCurtask(TaskList *tlist);
 

@@ -2,6 +2,7 @@
 #include <task.h>
 #include <kernel.h>
 #include <bwio.h>
+#include <usertrap.h>
 #include <syscall.h>
 
 void tlistInitial(TaskList *tlist, Task **heads, Task **tails) {
@@ -148,7 +149,7 @@ Task *createTask(FreeList *flist, int priority, void * context()) {
 	return ret;
 }
 
-void moveCurtaskToEnd(TaskList *tlist) {
+void moveCurrentTaskToEnd(TaskList *tlist) {
 	int priority = tlist->curtask->priority;
 	
 	if (tlist->priority_heads[priority] != tlist->priority_tails[priority]) {
