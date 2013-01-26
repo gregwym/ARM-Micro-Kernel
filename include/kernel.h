@@ -4,8 +4,10 @@
 #include <task.h>
 
 typedef struct kernel_global {
-	TaskList *tlist;
-	FreeList *flist;
+	TaskList *task_list;
+	FreeList *free_list;
+	Task	 **blocked_array;
+	char	 **msg_array;
 } KernelGlobal;
 
 #define TASK_MAX 30

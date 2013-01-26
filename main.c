@@ -51,19 +51,25 @@ int main() {
 	char stacks[TASK_MAX * TASK_STACK_SIZE];
 	Task *priority_head[TASK_PRIORITY_MAX];
 	Task *priority_tail[TASK_PRIORITY_MAX];
-
+	Task *blocked_array[TASK_MAX];
+	char *msg_array[4];
+	
 	tarrayInitial(task_array, stacks);
 	flistInitial(&flist, task_array);
 	tlistInitial(&tlist, priority_head, priority_tail);
-
+	blockedArrayInitial (blocked_array);
+	msgArrayInitial (msg_array);
+	
 	/* Setup global kernel entry */
 	int *swi_entry = (int *) SWI_ENTRY_POINT;
 	*swi_entry = (int) (DATA_REGION_BASE + kernelEntry);
 
 	/* Setup kernel global variable structure */
 	KernelGlobal global;
-	global.tlist = &tlist;
-	global.flist = &flist;
+	global.tasklist = &tlist;
+	global.freelist = &flist;
+	global.blocked_array = blocked_array;
+	global.msg_array = msg_array;
 
 	/* Set spsr to usermode */
 	asm("mrs	r12, spsr");

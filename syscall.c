@@ -76,3 +76,30 @@ void Exit() {
 	    :"r"(parameters));
 	asm("swi 0");
 }
+
+int Send( int tid, char *msg, int msglen, char *reply, int replylen ) {
+	int callno = SYS_send;
+	void *parameters[7] = {(&callno), tid, *msg, int msglen, char *reply, int replylen, NULL};
+	
+	
+	
+// int RegisterAs( char *name ) {
+
+// int WhoIs( char *name ) {
+
+
+	
+
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	

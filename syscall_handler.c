@@ -23,10 +23,26 @@ int sysMyTid(TaskList *tlist, int *rtn) {
 	return 0;
 }
 
-int sysMyParentTid(TaskList *tlist, int *rtn) {
-	*rtn = tlist->curtask->parent_tid;
-	return 0;
-}
+int sysSend(TaskList *tlist, Task **blocked_array, char **msg_array, int tid, char *msg, int *msglen, char *reply, int *replylen, int *rtn) {
+	int cur_tid = tlist->curtask->tid;
+	
+	if 
+	// linked sender's msg to msg_array
+	(msg_array[cur_tid])[0] = msglen;
+	(msg_array[cur_tid])[1] = msg;
+	(msg_array[cur_tid])[2] = replylen;
+	(msg_array[cur_tid])[3] = reply;
+	
+	// if the task that it send to is "send blocked", unblock it
+	if (blocked_array[tid]->state == SendBlock) {
+		blocked_array[tid]->state = Ready;
+		insertTask(tlist, blocked_array[tid]);
+	}
+	
+	// block current task
+	blockCurrentTask(tlist, ReceiveBlock);
+	
+	
 
 void syscallHandler(void **parameters, KernelGlobal *global, void *user_sp, void *user_resume_point) {
 	int callno = *((int*)(parameters[0]));
@@ -38,9 +54,11 @@ void syscallHandler(void **parameters, KernelGlobal *global, void *user_sp, void
 	// DEBUG(DB_SYSCALL, "| SYSCALL:\tuser_sp: 0x%x\n", user_sp);
 	// DEBUG(DB_SYSCALL, "| SYSCALL:\tuser_resume_point: 0x%x\n", user_resume_point);
 
-	TaskList *tlist = global->tlist;
-	FreeList *flist = global->flist;
-
+	TaskList *tlist = global->task_list;
+	FreeList *flist = global->free_list;
+	Task 	 **blocked_array = global->blocked_array;
+	char	 **msg_array = global->msg_array;
+	
 	global->tlist->curtask->current_sp = user_sp;
 	global->tlist->curtask->resume_point = user_resume_point;
 
@@ -57,7 +75,6 @@ void syscallHandler(void **parameters, KernelGlobal *global, void *user_sp, void
 		case SYS_myParentTid:
 			err = sysMyParentTid(tlist, &rtn);
 			break;
-		case SYS_pass:
 		default:
 			break;
 	}
