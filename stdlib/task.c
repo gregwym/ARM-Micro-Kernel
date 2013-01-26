@@ -170,3 +170,36 @@ void moveCurrentTaskToEnd(TaskList *tlist) {
 void refreshCurtask(TaskList *tlist) {
 	tlist->curtask = tlist->head;
 }
+
+void blockCurrentTask(TaskList *tlist, TaskState state) {
+	int top_priority = tlist->head->priority;
+	assert(tlist->head == tlist->curtask, "Blocking syscall invalid");
+	Task *ret = NULL;
+
+	// Adjust top_priority head and tails
+	if (tlist->priority_heads[top_priority] == tlist->priority_tails[top_priority]) {
+		tlist->priority_heads[top_priority] = NULL;
+		tlist->priority_tails[top_priority] = NULL;
+	} else {
+		tlist->priority_heads[top_priority] = tlist->priority_heads[top_priority]->next;
+	}
+	
+	tlist->head = tlist->head->next;
+	
+	tlist->curtask = state;
+	tlist->curtask = NULL;
+}
+
+void blockedArrayInitial (Task **barray) {
+	int i = -1;
+	for (i = 0; i < TASK_MAX; i++) {
+		barray[i] = NULL;
+	}
+}
+
+void msgArrayInitial (char **msg_array) {
+	int i = -1;
+	for (i = 0; i < TASK_MAX; i++) {
+		msg_array[0] = NULL;
+	}
+}

@@ -5,7 +5,10 @@ typedef enum TaskState {
 	Active,
 	Ready,
 	Zombie,
-	Empty
+	Empty,
+	SendBlock,
+	ReceiveBlock,
+	ReplyBlock
 } TaskState;
 
 typedef struct task_descriptor {
@@ -50,5 +53,8 @@ void moveCurrentTaskToEnd(TaskList *tlist);
 
 void refreshCurtask(TaskList *tlist);
 
+void blockCurrentTask(TaskList *tlist, TaskState state);
+
+void blockedArrayInitial (Task *barray);
 
 #endif //__TASK_H__
