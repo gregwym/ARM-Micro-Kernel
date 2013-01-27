@@ -15,11 +15,11 @@ void user_program_iner() {
 void sender() {
 	int ret = -1;
 	char msg[9];
-	msg[0] = 'h'; 
-	msg[1] = 'e'; 
-	msg[2] = 'l'; 
-	msg[3] = 'l'; 
-	msg[4] = 'o'; 
+	msg[0] = 'h';
+	msg[1] = 'e';
+	msg[2] = 'l';
+	msg[3] = 'l';
+	msg[4] = 'o';
 	msg[5] = NULL;
 	char reply[9];
 	bwprintf(COM2, "Sender call send\n");
@@ -38,15 +38,15 @@ void sr() {
 	replymsg[1] = 'i';
 	replymsg[2] = 'd';
 	replymsg[3] = NULL;
-	
+
 	char msg[9];
-	msg[0] = 'm'; 
-	msg[1] = 'i'; 
-	msg[2] = 'd'; 
-	msg[3] = 's'; 
-	msg[4] = 'e'; 
-	msg[5] = 'n'; 
-	msg[6] = 'd'; 
+	msg[0] = 'm';
+	msg[1] = 'i';
+	msg[2] = 'd';
+	msg[3] = 's';
+	msg[4] = 'e';
+	msg[5] = 'n';
+	msg[6] = 'd';
 	msg[7] = NULL;
 	char reply[9];
 	while (1) {
@@ -59,7 +59,7 @@ void sr() {
 			bwprintf(COM2, "sr ret value: %d\n", ret2);
 			ret = Send(1, msg, 9, reply, 2);
 			bwprintf(COM2, "sr receive reply: %s with origin %d char\n", reply, ret);
-			
+
 		}
 	}
 }
@@ -139,13 +139,13 @@ int main() {
 	Task *priority_tail[TASK_PRIORITY_MAX];
 	BlockedList blocked_list[TASK_MAX];
 	MsgBuffer msg_array[TASK_MAX];
-	
+
 	tarrayInitial(task_array, stacks);
 	flistInitial(&flist, task_array);
 	tlistInitial(&tlist, priority_head, priority_tail);
 	blockedListInitial (blocked_list);
 	msgArrayInitial (msg_array);
-	
+
 	/* Setup global kernel entry */
 	int *swi_entry = (int *) SWI_ENTRY_POINT;
 	*swi_entry = (int) (DATA_REGION_BASE + kernelEntry);

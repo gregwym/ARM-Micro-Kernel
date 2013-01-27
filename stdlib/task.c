@@ -108,7 +108,7 @@ Task* removeCurrentTask(TaskList *task_list, FreeList *free_list) {
 	}
 
 	ret = task_list->head;
-	
+
 	if (task_list->head == task_list->curtask) {
 		task_list->head = task_list->head->next;
 	}
@@ -182,7 +182,7 @@ void addToBlockedList (BlockedList *blocked_list, TaskList *task_list, int recei
 		blocked_list[index].tail->next = cur_task;
 		blocked_list[index].tail = cur_task;
 	}
-	
+
 	// notice: current task->next is set to NULL in blockCurrentTask function
 	blockCurrentTask(task_list, ReceiveBlocked);
 }
@@ -201,7 +201,7 @@ int getFromBlockedList (BlockedList *blocked_list, Task *cur_task) {
 	}
 	return ret;
 }
-		
+
 
 void blockCurrentTask(TaskList *task_list, TaskState state) {
 	int top_priority = task_list->head->priority;
@@ -237,17 +237,3 @@ void msgArrayInitial (MsgBuffer *msg_array) {
 		msg_array[i].reply = NULL;
 	}
 }
-
-	
-	
-	
-
-	
-	
-	
-	
-	
-	
-	
-	
-	

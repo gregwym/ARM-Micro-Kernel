@@ -47,7 +47,7 @@ typedef struct msg_buffer {
 	char *reply;
 	int replylen;
 } MsgBuffer;
-	
+
 
 
 void tlistInitial (TaskList *tlist, Task **heads, Task **tails);

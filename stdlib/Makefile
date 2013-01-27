@@ -20,7 +20,7 @@ ARFLAGS = rcs
 OBJECTS = assert.o task.o kernel.o string.o
 
 all:  stdlib.a
-	
+
 %.s: %.c
 	$(XCC) -S $(CFLAGS) $<
 

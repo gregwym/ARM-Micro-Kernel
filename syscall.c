@@ -118,24 +118,7 @@ int Reply( int tid, char *reply, int replylen ) {
 	    :);
 	return rtn;
 }
-	
+
 // int RegisterAs( char *name ) {
 
 // int WhoIs( char *name ) {
-
-
-	
-
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
