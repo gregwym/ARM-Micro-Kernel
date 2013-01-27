@@ -57,10 +57,8 @@ int sysSend(KernelGlobal *global, int tid, char *msg, int msglen, char *reply, i
 	(msg_array[cur_tid]).reply = reply;
 	(msg_array[cur_tid]).replylen = replylen;
 	
-	// add current task to blocklist
-	addToBlockedList(blocked_list, task_list->curtask, tid);
-	// block current task
-	blockCurrentTask(task_list, ReceiveBlocked);
+	// block current task and add it to blocklist
+	addToBlockedList(blocked_list, task_list, tid);
 	
 	// unblock the receiver task
 	if (task_array[tid % TASK_MAX].state == SendBlocked) {
@@ -84,16 +82,19 @@ int sysReceive(KernelGlobal *global, int *tid, char *msg, int msglen, int *rtn) 
 	
 	// pull a sender's tid
 	sender_tid = getFromBlockedList(blocked_list, task_list->curtask);
+	// bwprintf(COM2, "Receiver get sender: %d\n", sender_tid);
 	
 	if (sender_tid == -1) {
 		// no one send current task msg
 		blockCurrentTask(task_list, SendBlocked);
 		*rtn = 0;
+		// bwprintf(COM2, "Receiver block itself\n");
 		return 0;
 	} 
 	
 	// sender has sent msg to current task
 	sender_task = &task_array[sender_tid % TASK_MAX];
+	// bwprintf(COM2, "Receiver get state: %d\n", sender_task->state);
 	assert(sender_task->state == ReceiveBlocked, "Receiver got an invalid sender");
 	
 	// unblock the sender and make it replyblocked
@@ -102,6 +103,7 @@ int sysReceive(KernelGlobal *global, int *tid, char *msg, int msglen, int *rtn) 
 	assert(msg_array[sender_tid % TASK_MAX].msg != NULL, "Receiver got an NULL msg");
 	
 	*tid = sender_tid;
+	// bwprintf(COM2, "Receiver set tid to %d\n", sender_tid);
 	*rtn = msg_array[sender_tid % TASK_MAX].msglen;
 	
 	// copy msg to receive msg buffer
@@ -118,20 +120,24 @@ int sysReply(KernelGlobal *global, int tid, char *reply, int replylen, int *rtn)
 	TaskList 	*task_list = global->task_list;
 	MsgBuffer 	*msg_array = global->msg_array;
 	Task	 	*task_array = global->task_array;
+	// bwprintf(COM2, "Start reply!\n");
 	
 	// not a possible task id
 	if (tid < 0) {
+		// bwprintf(COM2, "Start reply1!\n");
 		*rtn = -1;
 		return 0;
 	}
 	
 	// not an existing task
 	if (task_array[tid % TASK_MAX].tid != tid) {
+		// bwprintf(COM2, "Start reply2!\n");
 		*rtn = -2;
 		return 0;
 	}
 	
 	if (task_array[tid % TASK_MAX].state != ReplyBlocked) {
+		// bwprintf(COM2, "Start reply3!\n");
 		*rtn = -3;
 		return 0;
 	}
@@ -183,6 +189,17 @@ void syscallHandler(void **parameters, KernelGlobal *global, void *user_sp, void
 		case SYS_myParentTid:
 			err = sysMyParentTid(task_list, &rtn);
 			break;
+		case SYS_send:
+			err = sysSend(global, *((int*)(parameters[1])), (char*)parameters[2], *((int*)(parameters[3])), 
+						(char*)parameters[4], *((int*)(parameters[5])), &rtn);
+			break;
+		case SYS_receive:
+			err = sysReceive(global, (int*)parameters[1], (char*)parameters[2], *((int*)(parameters[3])), &rtn);
+			break;
+		case SYS_reply:
+			err = sysReply(global, *((int*)(parameters[1])), (char*)parameters[2], *((int*)(parameters[3])), &rtn);
+			break;
+		case SYS_pass:
 		default:
 			break;
 	}

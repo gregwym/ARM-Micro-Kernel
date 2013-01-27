@@ -9,15 +9,16 @@ int strcmp(const char *src, const char *dst) {
 }
 
 char *strcpy(char *dst, const char *src) {
-  char *cp = dst;
-  while (*cp++ = *src++);
-  return dst;
+	char *cp = dst;
+	while (*cp++ = *src++);
+	return dst;
 }
 
 char *strncpy(char *dst, const char *src, int n) {
-  char *start = dst;
-
-  while (n && (*dst++ = *src++)) n--;
-  if (n) while (--n) *dst++ = '\0';
-  return start;
+	char *start = dst;
+	n--;
+	while (n && (*dst++ = *src++)) n--;
+	if (n) while (--n) *dst++ = '\0';
+	else *dst = '\0';
+	return start;
 }

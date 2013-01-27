@@ -12,20 +12,69 @@ void user_program_iner() {
 	Exit();
 }
 
+void sender() {
+	int ret = -1;
+	char msg[9];
+	msg[0] = 'h'; 
+	msg[1] = 'e'; 
+	msg[2] = 'l'; 
+	msg[3] = 'l'; 
+	msg[4] = 'o'; 
+	msg[5] = NULL;
+	char reply[2];
+	bwprintf(COM2, "Sender call send\n");
+	ret = Send(1, msg, 9, reply, 2);
+	bwprintf(COM2, "Sender receive reply: %s with origin %d char\n", reply, ret);
+	Exit();
+}
+
+void receiver() {
+	int ret = -1;
+	int ret2;
+	int tid;
+	char msg[2];
+	char replymsg[5];
+	replymsg[0] = 'c';
+	replymsg[1] = 'a';
+	replymsg[2] = 'o';
+	replymsg[3] = NULL;
+	while (1) {
+		bwprintf(COM2, "Receiver call receive\n");
+		ret = Receive(&tid, msg, 2);
+		if (ret > 0) {
+			bwprintf(COM2, "Receive msg: %s with origin %d char\n", msg, ret);
+			bwprintf(COM2, "Receiver reply to %d\n", tid);
+			ret2 = Reply(tid, replymsg, 5);
+			bwprintf(COM2, "Reply ret value: %d\n", ret2);
+		}
+	}
+}
+
 void user_program() {
 	int tid = -1;
 
-	tid = Create(7, DATA_REGION_BASE + user_program_iner);
+	tid = Create(7, DATA_REGION_BASE + receiver);
 	bwprintf(COM2, "Created: %d\n", tid);
-	tid = Create(7, DATA_REGION_BASE + user_program_iner);
+	tid = Create(3, DATA_REGION_BASE + sender);
 	bwprintf(COM2, "Created: %d\n", tid);
+	tid = Create(3, DATA_REGION_BASE + sender);
+	bwprintf(COM2, "Created: %d\n", tid);
+	// tid = Create(7, DATA_REGION_BASE + sender);
+	// bwprintf(COM2, "Created: %d\n", tid);
+	// tid = Create(7, DATA_REGION_BASE + sender);
+	// bwprintf(COM2, "Created: %d\n", tid);
+	// tid = Create(7, DATA_REGION_BASE + sender);
+	// bwprintf(COM2, "Created: %d\n", tid);
 
-	tid = Create(3, DATA_REGION_BASE + user_program_iner);
-	bwprintf(COM2, "Created: %d\n", tid);
-	tid = Create(3, DATA_REGION_BASE + user_program_iner);
-	bwprintf(COM2, "Created: %d\n", tid);
+	// tid = Create(3, DATA_REGION_BASE + user_program_iner);
+	// bwprintf(COM2, "Created: %d\n", tid);
+	// tid = Create(3, DATA_REGION_BASE + user_program_iner);
+	// bwprintf(COM2, "Created: %d\n", tid);
 
 	bwprintf(COM2, "First: exiting\n");
+	// while (1) {
+		// Pass();
+	// }
 	Exit();
 }
 
@@ -89,6 +138,12 @@ int main() {
 	while(1){
 		// If no more task to run, break
 		if(!scheduleNextTask(&tlist)) break;
+		Task *tmp = tlist.curtask;
+		while (tmp != NULL) {
+			// bwprintf(COM2, "%d -> ", tmp->tid);
+			tmp = tmp->next;
+		}
+		bwprintf(COM2, "\n");
 		// Exit kernel to let user program to execute
 		kernelExit(tlist.curtask->resume_point);
 		asm("mov r1, %0"

@@ -42,5 +42,5 @@ clean:
 	$(MAKE) -C ./stdlib clean
 
 install:
-	cp *.elf ~/cs452/tftp/ARM/tonyzx
-	chmod a+r ~/cs452/tftp/ARM/tonyzx
+	cp *.elf ~/cs452/tftp
+	chmod a+r ~/cs452/tftp/*

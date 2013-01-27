@@ -54,6 +54,7 @@ int insertTask(TaskList *task_list, Task *new_task) {
 		task_list->head = new_task;
 		task_list->priority_heads[priority] = new_task;
 		task_list->priority_tails[priority] = new_task;
+		// bwprintf(COM2, "new_task pushed in1\n");
 	}
 	// If it is the new highest priority
 	else if (task_list->head->priority > priority) {
@@ -68,6 +69,7 @@ int insertTask(TaskList *task_list, Task *new_task) {
 				break;
 			}
 		}
+		// bwprintf(COM2, "new_task pushed in2\n");
 	}
 	// If it is not new highest, but new priority
 	else if (task_list->priority_tails[priority] == NULL) {
@@ -82,15 +84,19 @@ int insertTask(TaskList *task_list, Task *new_task) {
 			}
 		}
 		// assert(i >= 0, "TaskList: Failed to find higher priority task");
+		// bwprintf(COM2, "new_task pushed in3\n");
 	}
 	// If not new priority
 	else {
 		new_task->next = task_list->priority_tails[priority]->next;
 		task_list->priority_tails[priority]->next = new_task;
 		task_list->priority_tails[priority] = new_task;
+		// bwprintf(COM2, "new_task pushed in4\n");
 	}
+	
+	// bwprintf(COM2, "insert tid: %d to tlist\n", new_task->tid);
 
-	DEBUG(DB_TASK, "Task(tid: %d) is created, stack at %x\n", new_task->tid, new_task->init_sp);
+	DEBUG(DB_TASK, "Task(tid: %d) is pushed, stack at %x\n", new_task->tid, new_task->init_sp);
 	return 1;
 }
 
@@ -109,7 +115,9 @@ Task* removeCurrentTask(TaskList *task_list, FreeList *free_list) {
 
 	ret = task_list->head;
 	
+	// bwprintf(COM2, "remove task %d\n", ret->tid);
 	if (task_list->head == task_list->curtask) {
+		// bwprintf(COM2, "remove++ task %d\n", ret->tid);
 		task_list->head = task_list->head->next;
 	}
 
@@ -171,9 +179,10 @@ void refreshCurtask(TaskList *task_list) {
 	task_list->curtask = task_list->head;
 }
 
-void addToBlockedList (BlockedList *blocked_list, Task *cur_task, int receiver_tid) {
+
+void addToBlockedList (BlockedList *blocked_list, TaskList *task_list, int receiver_tid) {
 	int index = receiver_tid % TASK_MAX;
-	cur_task->next = NULL;
+	Task* cur_task = task_list->curtask;
 	if (blocked_list[index].head == NULL) {
 		blocked_list[index].head = cur_task;
 		blocked_list[index].tail = cur_task;
@@ -181,6 +190,7 @@ void addToBlockedList (BlockedList *blocked_list, Task *cur_task, int receiver_t
 		blocked_list[index].tail->next = cur_task;
 		blocked_list[index].tail = cur_task;
 	}
+	blockCurrentTask(task_list, ReceiveBlocked);
 }
 
 int getFromBlockedList (BlockedList *blocked_list, Task *cur_task) {
@@ -189,7 +199,6 @@ int getFromBlockedList (BlockedList *blocked_list, Task *cur_task) {
 	Task *read_task = NULL;
 	if (blocked_list[index].head != NULL) {
 		read_task = blocked_list[index].head;
-		read_task->state = ReplyBlocked;
 		ret = read_task->tid;
 		blocked_list[index].head = blocked_list[index].head->next;
 		if (blocked_list[index].head == NULL) {
@@ -211,10 +220,12 @@ void blockCurrentTask(TaskList *task_list, TaskState state) {
 	} else {
 		task_list->priority_heads[top_priority] = task_list->priority_heads[top_priority]->next;
 	}
-	
 	task_list->head = task_list->head->next;
-	
+	if (task_list->head == NULL) {
+		// bwprintf(COM2, "end here\n");
+	}
 	task_list->curtask->state = state;
+	task_list->curtask->next = NULL;
 	task_list->curtask = NULL;
 }
 
