@@ -54,7 +54,6 @@ int insertTask(TaskList *task_list, Task *new_task) {
 		task_list->head = new_task;
 		task_list->priority_heads[priority] = new_task;
 		task_list->priority_tails[priority] = new_task;
-		// bwprintf(COM2, "new_task pushed in1\n");
 	}
 	// If it is the new highest priority
 	else if (task_list->head->priority > priority) {
@@ -69,7 +68,6 @@ int insertTask(TaskList *task_list, Task *new_task) {
 				break;
 			}
 		}
-		// bwprintf(COM2, "new_task pushed in2\n");
 	}
 	// If it is not new highest, but new priority
 	else if (task_list->priority_tails[priority] == NULL) {
@@ -84,17 +82,13 @@ int insertTask(TaskList *task_list, Task *new_task) {
 			}
 		}
 		// assert(i >= 0, "TaskList: Failed to find higher priority task");
-		// bwprintf(COM2, "new_task pushed in3\n");
 	}
 	// If not new priority
 	else {
 		new_task->next = task_list->priority_tails[priority]->next;
 		task_list->priority_tails[priority]->next = new_task;
 		task_list->priority_tails[priority] = new_task;
-		// bwprintf(COM2, "new_task pushed in4\n");
 	}
-	
-	// bwprintf(COM2, "insert tid: %d to tlist\n", new_task->tid);
 
 	DEBUG(DB_TASK, "Task(tid: %d) is pushed, stack at %x\n", new_task->tid, new_task->init_sp);
 	return 1;
@@ -115,9 +109,7 @@ Task* removeCurrentTask(TaskList *task_list, FreeList *free_list) {
 
 	ret = task_list->head;
 	
-	// bwprintf(COM2, "remove task %d\n", ret->tid);
 	if (task_list->head == task_list->curtask) {
-		// bwprintf(COM2, "remove++ task %d\n", ret->tid);
 		task_list->head = task_list->head->next;
 	}
 
@@ -190,6 +182,8 @@ void addToBlockedList (BlockedList *blocked_list, TaskList *task_list, int recei
 		blocked_list[index].tail->next = cur_task;
 		blocked_list[index].tail = cur_task;
 	}
+	
+	// notice: current task->next is set to NULL in blockCurrentTask function
 	blockCurrentTask(task_list, ReceiveBlocked);
 }
 
@@ -221,9 +215,6 @@ void blockCurrentTask(TaskList *task_list, TaskState state) {
 		task_list->priority_heads[top_priority] = task_list->priority_heads[top_priority]->next;
 	}
 	task_list->head = task_list->head->next;
-	if (task_list->head == NULL) {
-		// bwprintf(COM2, "end here\n");
-	}
 	task_list->curtask->state = state;
 	task_list->curtask->next = NULL;
 	task_list->curtask = NULL;

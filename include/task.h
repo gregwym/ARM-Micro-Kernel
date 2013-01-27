@@ -62,18 +62,25 @@ Task *createTask(FreeList *flist, int priority, void (*code) ());
 
 Task *removeCurrentTask(TaskList *tlist, FreeList *flist);
 
+// move current task to the end of its priority queue
 void moveCurrentTaskToEnd(TaskList *tlist);
 
+// set current task to head
 void refreshCurtask(TaskList *tlist);
 
+// add current task to block list and block current task
 void addToBlockedList (BlockedList *blocked_list, TaskList *task_list, int receiver_tid);
 
+// receiver call this to get a sender's tid that has sent to the receiver
 int getFromBlockedList (BlockedList *blocked_list, Task *cur_task);
 
+// block current task with "state"
 void blockCurrentTask(TaskList *tlist, TaskState state);
 
+// block list initialization
 void blockedListInitial (BlockedList *block_list);
 
+// msg array initialization
 void msgArrayInitial (MsgBuffer *msg_array);
 
 #endif //__TASK_H__

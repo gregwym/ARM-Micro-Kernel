@@ -82,7 +82,6 @@ int sysReceive(KernelGlobal *global, int *tid, char *msg, int msglen, int *rtn) 
 	
 	// pull a sender's tid
 	sender_tid = getFromBlockedList(blocked_list, task_list->curtask);
-	// bwprintf(COM2, "Receiver get sender: %d\n", sender_tid);
 	
 	if (sender_tid == -1) {
 		// no one send current task msg
@@ -94,7 +93,6 @@ int sysReceive(KernelGlobal *global, int *tid, char *msg, int msglen, int *rtn) 
 	
 	// sender has sent msg to current task
 	sender_task = &task_array[sender_tid % TASK_MAX];
-	// bwprintf(COM2, "Receiver get state: %d\n", sender_task->state);
 	assert(sender_task->state == ReceiveBlocked, "Receiver got an invalid sender");
 	
 	// unblock the sender and make it replyblocked
@@ -102,8 +100,10 @@ int sysReceive(KernelGlobal *global, int *tid, char *msg, int msglen, int *rtn) 
 	
 	assert(msg_array[sender_tid % TASK_MAX].msg != NULL, "Receiver got an NULL msg");
 	
+	// set tid to sender's tid
 	*tid = sender_tid;
-	// bwprintf(COM2, "Receiver set tid to %d\n", sender_tid);
+	
+	// set return value to sender's msg length
 	*rtn = msg_array[sender_tid % TASK_MAX].msglen;
 	
 	// copy msg to receive msg buffer
@@ -124,20 +124,18 @@ int sysReply(KernelGlobal *global, int tid, char *reply, int replylen, int *rtn)
 	
 	// not a possible task id
 	if (tid < 0) {
-		// bwprintf(COM2, "Start reply1!\n");
 		*rtn = -1;
 		return 0;
 	}
 	
 	// not an existing task
 	if (task_array[tid % TASK_MAX].tid != tid) {
-		// bwprintf(COM2, "Start reply2!\n");
 		*rtn = -2;
 		return 0;
 	}
 	
+	// sender is no reply blocked
 	if (task_array[tid % TASK_MAX].state != ReplyBlocked) {
-		// bwprintf(COM2, "Start reply3!\n");
 		*rtn = -3;
 		return 0;
 	}
