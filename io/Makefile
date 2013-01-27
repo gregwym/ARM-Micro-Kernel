@@ -20,7 +20,7 @@ ARFLAGS = rcs
 OBJECTS = bwio.o
 
 all:  bwio.a
-	
+
 %.s: %.c
 	$(XCC) -S $(CFLAGS) $<
 

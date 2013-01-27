@@ -17,10 +17,10 @@ ASFLAGS	= -mcpu=arm920t -mapcs-32
 
 ARFLAGS = rcs
 
-OBJECTS = assert.o task.o kernel.o
+OBJECTS = assert.o task.o kernel.o string.o
 
 all:  stdlib.a
-	
+
 %.s: %.c
 	$(XCC) -S $(CFLAGS) $<
 
