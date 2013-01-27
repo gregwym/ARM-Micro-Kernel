@@ -6,7 +6,7 @@
 #include <syscall.h>
 #include <stdlib.h>
 
-void task_listInitial(TaskList *task_list, Task **heads, Task **tails) {
+void tlistInitial(TaskList *task_list, Task **heads, Task **tails) {
 	task_list->curtask = NULL;
 	task_list->head = NULL;
 	task_list->priority_heads = heads;
@@ -31,7 +31,7 @@ void tarrayInitial(Task *task_array, char *stacks) {
 	}
 }
 
-void free_listInitial(FreeList *free_list, Task *task_array) {
+void flistInitial(FreeList *free_list, Task *task_array) {
 	int i;
 	for (i = 0; i < TASK_MAX - 1; i++) {
 		task_array[i].next = &(task_array[i+1]);
@@ -171,7 +171,7 @@ void refreshCurtask(TaskList *task_list) {
 	task_list->curtask = task_list->head;
 }
 
-void addToBlockedList (BlockList *blocked_list, Task *cur_task, int receiver_tid) {
+void addToBlockedList (BlockedList *blocked_list, Task *cur_task, int receiver_tid) {
 	int index = receiver_tid % TASK_MAX;
 	cur_task->next = NULL;
 	if (blocked_list[index].head == NULL) {
@@ -183,7 +183,7 @@ void addToBlockedList (BlockList *blocked_list, Task *cur_task, int receiver_tid
 	}
 }
 
-int getFromBlockedList (BlockList *blocked_list, Task *cur_task) {
+int getFromBlockedList (BlockedList *blocked_list, Task *cur_task) {
 	int index = cur_task->tid % TASK_MAX;
 	int ret = -1;
 	Task *read_task = NULL;
@@ -220,11 +220,11 @@ void blockCurrentTask(TaskList *task_list, TaskState state) {
 
 
 
-void blockedListInitial (BlockList *block_list) {
+void blockedListInitial (BlockedList *blocked_list) {
 	int i = -1;
 	for (i = 0; i < TASK_MAX; i++) {
-		block_list[i].head = NULL;
-		block_list[i].tail = NULL;
+		blocked_list[i].head = NULL;
+		blocked_list[i].tail = NULL;
 	}
 }
 

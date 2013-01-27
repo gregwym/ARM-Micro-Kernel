@@ -23,14 +23,19 @@ int sysMyTid(TaskList *task_list, int *rtn) {
 	return 0;
 }
 
+int sysMyParentTid(TaskList *tlist, int *rtn) {
+	*rtn = tlist->curtask->parent_tid;
+	return 0;
+}
+
 int sysSend(KernelGlobal *global, int tid, char *msg, int msglen, char *reply, int replylen, int *rtn) {
-	int cur_tid = task_list->curtask->tid;
 	
-	TaskList *task_list = global->task_list;
-	FreeList *free_list = global->free_list;
-	Task 	 **blocked_list = global->blocked_list;
-	char	 **msg_array = global->msg_array;
-	Task	 *task_array = global->task_array;
+	TaskList 	*task_list = global->task_list;
+	BlockedList *blocked_list = global->blocked_list;
+	MsgBuffer 	*msg_array = global->msg_array;
+	Task	 	*task_array = global->task_array;
+	
+	int cur_tid = task_list->curtask->tid;
 	
 	// not a possible task id.
 	if (tid < 0) {
@@ -68,22 +73,21 @@ int sysSend(KernelGlobal *global, int tid, char *msg, int msglen, char *reply, i
 }
 
 int sysReceive(KernelGlobal *global, int *tid, char *msg, int msglen, int *rtn) {
-	int cur_tid = task_list->curtask->tid;
+	
+	TaskList 	*task_list = global->task_list;
+	BlockedList *blocked_list = global->blocked_list;
+	MsgBuffer 	*msg_array = global->msg_array;
+	Task	 	*task_array = global->task_array;
+	
 	int sender_tid = -1;
 	Task *sender_task = NULL;
-	
-	TaskList *task_list = global->task_list;
-	FreeList *free_list = global->free_list;
-	Task 	 **blocked_list = global->blocked_list;
-	char	 **msg_array = global->msg_array;
-	Task	 *task_array = global->task_array;
 	
 	// pull a sender's tid
 	sender_tid = getFromBlockedList(blocked_list, task_list->curtask);
 	
 	if (sender_tid == -1) {
 		// no one send current task msg
-		blockCurrentTask(task_list->curtask, SendBlocked);
+		blockCurrentTask(task_list, SendBlocked);
 		*rtn = 0;
 		return 0;
 	} 
@@ -111,6 +115,10 @@ int sysReply(KernelGlobal *global, int tid, char *reply, int replylen, int *rtn)
 
 	// assert(task_array[tid % TASK_MAX].tid == tid, "Reply to an unexisting task");
 	
+	TaskList 	*task_list = global->task_list;
+	MsgBuffer 	*msg_array = global->msg_array;
+	Task	 	*task_array = global->task_array;
+	
 	// not a possible task id
 	if (tid < 0) {
 		*rtn = -1;
@@ -128,18 +136,12 @@ int sysReply(KernelGlobal *global, int tid, char *reply, int replylen, int *rtn)
 		return 0;
 	}
 	
-	Task *sender_task = &task_array[sender_tid % TASK_MAX]
-	
-	TaskList *task_list = global->task_list;
-	FreeList *free_list = global->free_list;
-	Task 	 **blocked_list = global->blocked_list;
-	char	 **msg_array = global->msg_array;
-	Task	 *task_array = global->task_array;
+	Task *sender_task = &task_array[tid % TASK_MAX];
 	
 	
 	// put sender back to ready queue
 	sender_task->state = Ready;
-	insertTask(sender_task, task_array[tid % TASK_MAX]);
+	insertTask(task_list, sender_task);
 	
 	// copy reply msg to reply buffer
 	msg_array[tid % TASK_MAX].reply = strncpy(msg_array[tid % TASK_MAX].reply, reply, msg_array[tid % TASK_MAX].replylen);
@@ -164,8 +166,6 @@ void syscallHandler(void **parameters, KernelGlobal *global, void *user_sp, void
 
 	TaskList *task_list = global->task_list;
 	FreeList *free_list = global->free_list;
-	Task 	 **blocked_array = global->blocked_array;
-	char	 **msg_array = global->msg_array;
 	
 	global->task_list->curtask->current_sp = user_sp;
 	global->task_list->curtask->resume_point = user_resume_point;

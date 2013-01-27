@@ -3,6 +3,7 @@
 #include <syscall.h>
 #include <syscall_handler.h>
 #include <usertrap.h>
+#include <task.h>
 
 void user_program_iner() {
 	bwprintf(COM2, "myTid: %d myParentTid: %d\n", MyTid(), MyParentTid());
@@ -51,14 +52,14 @@ int main() {
 	char stacks[TASK_MAX * TASK_STACK_SIZE];
 	Task *priority_head[TASK_PRIORITY_MAX];
 	Task *priority_tail[TASK_PRIORITY_MAX];
-	BlockList block_list[TASK_MAX]
+	BlockedList blocked_list[TASK_MAX];
 	MsgBuffer msg_array[TASK_MAX];
 	
 	tarrayInitial(task_array, stacks);
 	flistInitial(&flist, task_array);
 	tlistInitial(&tlist, priority_head, priority_tail);
-	blockedListInitial (&block_list);
-	msgArrayInitial (&msg_array);
+	blockedListInitial (blocked_list);
+	msgArrayInitial (msg_array);
 	
 	/* Setup global kernel entry */
 	int *swi_entry = (int *) SWI_ENTRY_POINT;
@@ -66,11 +67,11 @@ int main() {
 
 	/* Setup kernel global variable structure */
 	KernelGlobal global;
-	global.tasklist = &tlist;
-	global.freelist = &flist;
-	global.blocked_list = &block_list;
-	global.msg_array = &msg_array;
-	global.task_array = &task_array;
+	global.task_list = &tlist;
+	global.free_list = &flist;
+	global.blocked_list = blocked_list;
+	global.msg_array = msg_array;
+	global.task_array = task_array;
 
 	/* Set spsr to usermode */
 	asm("mrs	r12, spsr");

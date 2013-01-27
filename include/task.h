@@ -66,9 +66,9 @@ void moveCurrentTaskToEnd(TaskList *tlist);
 
 void refreshCurtask(TaskList *tlist);
 
-void addToBlockedList (BlockList *blocked_list, Task *cur_task, int receiver_tid);
+void addToBlockedList (BlockedList *blocked_list, Task *cur_task, int receiver_tid);
 
-int getFromBlockedList (BlockList *blocked_list, Task *cur_task);
+int getFromBlockedList (BlockedList *blocked_list, Task *cur_task);
 
 void blockCurrentTask(TaskList *tlist, TaskState state);
 
