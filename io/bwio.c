@@ -169,7 +169,7 @@ void bwui2a( unsigned int num, unsigned int base, char *bf ) {
 	int n = 0;
 	int dgt;
 	unsigned int d = 1;
-	
+
 	while( (num / d) >= base ) d *= base;
 	while( d != 0 ) {
 		dgt = num / d;
@@ -196,7 +196,7 @@ void bwformat ( int channel, char *fmt, va_list va ) {
 	char ch, lz;
 	int w;
 
-	
+
 	while ( ( ch = *(fmt++) ) ) {
 		if ( ch != '%' )
 			bwputc( channel, ch );
