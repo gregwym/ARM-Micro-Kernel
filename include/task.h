@@ -6,9 +6,9 @@ typedef enum TaskState {
 	Ready,
 	Zombie,
 	Empty,
-	SendBlock,
-	ReceiveBlock,
-	ReplyBlock
+	SendBlocked,
+	ReceiveBlocked,
+	ReplyBlocked
 } TaskState;
 
 typedef struct task_descriptor {
@@ -36,6 +36,19 @@ typedef struct free_list {
 	Task		*tail;
 } FreeList;
 
+typedef struct block_list {
+	Task		*head;
+	Task		*tail;
+} BlockedList;
+
+typedef struct msg_buffer {
+	char *msg;
+	int msglen;
+	char *reply;
+	int replylen;
+} MsgBuffer;
+	
+
 
 void tlistInitial (TaskList *tlist, Task **heads, Task **tails);
 
@@ -53,8 +66,14 @@ void moveCurrentTaskToEnd(TaskList *tlist);
 
 void refreshCurtask(TaskList *tlist);
 
+void addToBlockedList (BlockList *blocked_list, Task *cur_task, int receiver_tid);
+
+int getFromBlockedList (BlockList *blocked_list, Task *cur_task);
+
 void blockCurrentTask(TaskList *tlist, TaskState state);
 
-void blockedArrayInitial (Task *barray);
+void blockedListInitial (BlockedList *block_list);
+
+void msgArrayInitial (MsgBuffer *msg_array);
 
 #endif //__TASK_H__

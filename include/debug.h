@@ -6,7 +6,7 @@
  */
 #define DB_SYSCALL     0x001
 #define DB_TASK        0x002
-// #define DB_USER_INPUT  0x004
+#define DB_MSG_PASSING 0x004
 // #define DB_TRAIN_CTRL  0x008
 // #define DB_THREADS     0x010
 // #define DB_VM          0x020
