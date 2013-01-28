@@ -1,9 +1,8 @@
-#include <bwio.h>
-#include <stdlib.h>
-#include <syscall.h>
-#include <syscall_handler.h>
-#include <usertrap.h>
-#include <task.h>
+#include <klib.h>
+#include <unistd.h>
+#include <intern/trapframe.h>
+#include <kern/types.h>
+#include <kern/md_const.h>
 
 void user_program_iner() {
 	bwprintf(COM2, "myTid: %d myParentTid: %d\n", MyTid(), MyParentTid());
@@ -20,7 +19,7 @@ void sender() {
 	msg[2] = 'l';
 	msg[3] = 'l';
 	msg[4] = 'o';
-	msg[5] = NULL;
+	msg[5] = '\0';
 	char reply[9];
 	bwprintf(COM2, "Sender call send\n");
 	ret = Send(2, msg, 9, reply, 5);
@@ -37,7 +36,7 @@ void sr() {
 	replymsg[0] = 'm';
 	replymsg[1] = 'i';
 	replymsg[2] = 'd';
-	replymsg[3] = NULL;
+	replymsg[3] = '\0';
 
 	char msg[9];
 	msg[0] = 'm';
@@ -47,7 +46,7 @@ void sr() {
 	msg[4] = 'e';
 	msg[5] = 'n';
 	msg[6] = 'd';
-	msg[7] = NULL;
+	msg[7] = '\0';
 	char reply[9];
 	while (1) {
 		bwprintf(COM2, "sr call receive\n");
@@ -73,7 +72,7 @@ void receiver() {
 	replymsg[0] = 'c';
 	replymsg[1] = 'a';
 	replymsg[2] = 'o';
-	replymsg[3] = NULL;
+	replymsg[3] = '\0';
 	while (1) {
 		bwprintf(COM2, "Receiver call receive\n");
 		ret = Receive(&tid, msg, 5);
