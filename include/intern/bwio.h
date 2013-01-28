@@ -5,7 +5,7 @@
 #ifndef __BWIO_H__
 #define __BWIO_H__
 
-#include <ts7200.h>
+#include <kern/ts7200.h>
 
 #define ON	1
 #define	OFF	0

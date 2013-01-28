@@ -13,7 +13,8 @@ char *strcpy(char *dst, const char *src);
 char *strncpy(char *dst, const char *src, int n);
 
 /* Print */
-#include <bwio.h>
+#include <intern/bwio.h>
+#include <intern/debug.h>
 
 
 #endif // __KLIB_H__
