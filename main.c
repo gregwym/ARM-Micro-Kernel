@@ -50,7 +50,7 @@ int main() {
 	asm("msr 	SPSR_c, r12");
 
 	/* Create first task */
-	Task *first_task = createTask(&flist, 5, DATA_REGION_BASE + umain);
+	Task *first_task = createTask(&flist, 5, umain);
 	insertTask(&tlist, first_task);
 	DEBUG(DB_SYSCALL, "| SYSCALL:\tFirst task created, init_sp: 0x%x\n", first_task->init_sp);
 	DEBUG(DB_SYSCALL, "| SYSCALL:\tGlobal addr: 0x%x\n", &global);
