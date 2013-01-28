@@ -17,8 +17,16 @@ char *strcpy(char *dst, const char *src) {
 char *strncpy(char *dst, const char *src, int n) {
 	char *start = dst;
 	n--;
-	while (n && (*dst++ = *src++)) n--;
-	if (n) while (--n) *dst++ = '\0';
-	else *dst = '\0';
+	while (n){
+		n--;
+		*dst++ = *src++;
+	}
+	*dst = '\0';
 	return start;
+}
+
+int strlen(const char *s) {
+  const char *eos = s;
+  while (*eos++);
+  return (int) (eos - s);
 }
