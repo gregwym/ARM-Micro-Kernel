@@ -1,9 +1,7 @@
 #include <klib.h>
 #include <unistd.h>
 #include <intern/trapframe.h>
-#include <kern/types.h>
 #include <kern/md_const.h>
-#include <nameserver.h>
 
 // Prototype for the user program main function
 void umain();
