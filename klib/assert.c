@@ -1,5 +1,4 @@
-#include <bwio.h>
-#include <stdlib.h>
+#include <klib.h>
 
 void assert(int boolean, char * msg) {
 	if (!boolean) {
