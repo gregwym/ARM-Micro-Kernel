@@ -1,5 +1,32 @@
 #include <klib.h>
 
+void *memcpy(void *dst, const void *src, size_t len)
+{
+	size_t i;
+
+	if ((uintptr_t)dst % sizeof(long) == 0 &&
+	    (uintptr_t)src % sizeof(long) == 0 &&
+	    len % sizeof(long) == 0) {
+
+		long *d = dst;
+		const long *s = src;
+
+		for (i=0; i<len/sizeof(long); i++) {
+			d[i] = s[i];
+		}
+	}
+	else {
+		char *d = dst;
+		const char *s = src;
+
+		for (i=0; i<len; i++) {
+			d[i] = s[i];
+		}
+	}
+
+	return dst;
+}
+
 int strcmp(const char *src, const char *dst) {
 	int ret = 0;
 	while( ! (ret = *(unsigned char *)src - *(unsigned char *)dst) && *dst) ++src, ++dst;
@@ -8,16 +35,10 @@ int strcmp(const char *src, const char *dst) {
 	return( ret );
 }
 
-char *strcpy(char *dst, const char *src) {
-	char *cp = dst;
-	while (*cp++ = *src++);
-	return dst;
-}
-
-char *strncpy(char *dst, const char *src, int n) {
+char *strncpy(char *dst, const char *src, size_t n) {
 	char *start = dst;
 	n--;
-	while (n){
+	while (n && *src){
 		n--;
 		*dst++ = *src++;
 	}
@@ -25,15 +46,8 @@ char *strncpy(char *dst, const char *src, int n) {
 	return start;
 }
 
-int strlen(const char *s) {
+size_t strlen(const char *s) {
   const char *eos = s;
   while (*eos++);
-  return (int) (eos - s - 1);
-}
-
-void copyBytes(char *dst, const char *src) {
-	dst[0] = src[0];
-	dst[1] = src[1];
-	dst[2] = src[2];
-	dst[3] = src[3];
+  return (size_t) (eos - s - 1);
 }
