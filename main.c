@@ -15,29 +15,27 @@ void user_program_iner() {
 void client() {
 	int ret = -1;
 	char msg[9];
-	msg[0] = 'R';
-	msg[1] = 'f';
-	msg[2] = 'i';
-	msg[3] = 'r';
-	msg[4] = 's';
-	msg[5] = 't';
-	msg[6] = '\0';
+	msg[0] = 'f';
+	msg[1] = 'i';
+	msg[2] = 'r';
+	msg[3] = 's';
+	msg[4] = 't';
+	msg[5] = '\0';
 	bwprintf(COM2, "Sender call send\n");
 	ret = RegisterAs(msg);
 	switch (ret) {
 		case 0:
-			bwprintf(COM2, "Register successfully with name %s: \n", &msg[1]);
+			bwprintf(COM2, "Register successfully with name %s: \n", &msg[0]);
 			break;
 		default:
 			bwprintf(COM2, "Register exception\n");
 			break;
 	}
-	msg[0] = 'W';
 	ret = WhoIs(msg);
 	if (ret == -3) {
-		bwprintf(COM2, "%s does exist in name server\n", &msg[1]);
+		bwprintf(COM2, "%s does exist in name server\n", &msg[0]);
 	} else {
-		bwprintf(COM2, "%s is the task with %d\n", &msg[1], ret);
+		bwprintf(COM2, "%s is the task with %d\n", &msg[0], ret);
 	}
 
 	// bwprintf(COM2, "Sender receive reply: %s with origin %d char\n", reply, ret);

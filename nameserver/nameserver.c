@@ -3,14 +3,21 @@
 #include <kern/types.h>
 
 #define NS_TID 1
-#define NS_REG_MAX 10
-#define NS_NAME_LEN_MAX 10
-#define NS_MSG_LEN_MAX 1 + NS_NAME_LEN_MAX
+#define NS_REG_MAX 16
+#define NS_NAME_LEN_MAX 12
+#define NS_QUERY_TYPE_REG 'R'
+#define NS_QUERY_TYPE_WHO 'W'
 
 typedef struct ns_reg {
 	char name[NS_NAME_LEN_MAX];
 	int tid;
 } NSRegEntry;
+
+typedef struct ns_query {
+	char type;
+	char *name;
+	size_t nameLen;
+} NSQuery;
 
 int findTidFor(NSRegEntry *table, char *name, int len) {
 	int i;
@@ -26,46 +33,48 @@ void nameserver() {
 	DEBUG(DB_NS, "Nameserver booting\n");
 	int ret = -1;
 	int tid = 0;
-	char msg[NS_MSG_LEN_MAX];
+	NSQuery query;
 	char replymsg[5];
 	replymsg[4] = '\0';
 
 	NSRegEntry table[NS_REG_MAX];
+	DEBUG(DB_NS, "Size of NSRegEntry is %d", sizeof(NSRegEntry));
 	int i = 0;
 	for (i = 0; i < NS_NAME_LEN_MAX; i++) {
 		table[i].name[0] = '\0';
 	}
-
 	int ns_counter = 0;
 
 	while (1) {
-		DEBUG(DB_NS, "Nameserver call receive\n");
-		ret = Receive(&tid, msg, NS_MSG_LEN_MAX);
+		ret = Receive(&tid, (char *)(&query), sizeof(NSQuery));
 
 		// If failed to receive a request, continue for next request
 		if (ret <= 0) {
+			DEBUG(DB_NS, "| NS:\tReceived bad query\n");
 			continue;
 		}
 
+		// Find the query name first
+		i = findTidFor(table, query.name, ns_counter);
+		DEBUG(DB_NS, "| NS:\tTid found for name %s is %d\n", query.name, table[i].tid);
+
 		// If is a Register
-		if (msg[0] == 'R') {
-			i = findTidFor(table, &(msg[1]), ns_counter);
+		if (query.type == 'R') {
+			DEBUG(DB_NS, "| NS:\tRegistering name %s to tid %d\n", query.name, tid);
 			// If found matchs, it's a duplicate, overwrite it
 			if (i != -1) {
 				table[i].tid = tid;
-				ret = Reply(tid, replymsg, 0);
 			}
 			// Else save as new one
 			else {
 				table[ns_counter].tid = tid;
-				strncpy(table[ns_counter].name, &(msg[1]), 9);
-				ret = Reply(tid, replymsg, 0);
+				strncpy(table[ns_counter].name, query.name, NS_NAME_LEN_MAX);
 				ns_counter++;	// Increament the counter
 			}
+			ret = Reply(tid, replymsg, 0);
 		}
 		// If is a WhoIs
-		else if (msg[0] == 'W') {
-			int i = findTidFor(table, &msg[1], ns_counter);
+		else if (query.type == 'W') {
 			// If found nothing match, reply 'N'
 			if (i == -1) {
 				replymsg[4] = 'N';
@@ -88,11 +97,18 @@ void nameserver() {
 /* Nameserver syscall wrappers */
 int RegisterAs( char *name ) {
 	assert(name != NULL, "RegisterAs: NULL name pointer");
-	assert(name[0] == 'R', "RegisterAs: Name must start with R");
-	int namelen = strlen(name);
+	// assert(name[0] == 'R', "RegisterAs: Name must start with R");
+
+	unsigned int nameLen = strlen(name);
+	assert(nameLen > 0 && nameLen < NS_NAME_LEN_MAX, "RegisterAs: name too long");
+
+	NSQuery query;
+	query.type = NS_QUERY_TYPE_REG;
+	query.name = name;
+	query.nameLen = nameLen;
 	char reply[1];
 
-	if (Send(NS_TID, name, namelen + 1, reply, 1) < 0) {
+	if (Send(NS_TID, (char *)(&query), sizeof(NSQuery), reply, 1) < 0) {
 		return -1;
 	}
 	return 0;
@@ -100,11 +116,19 @@ int RegisterAs( char *name ) {
 
 int WhoIs( char *name ) {
 	assert(name != NULL, "WhoIs: NULL name pointer");
-	assert(name[0] == 'W', "WhoIs: Name must start with W");
-	int namelen = strlen(name);
+	// assert(name[0] == 'W', "WhoIs: Name must start with W");
+
+	unsigned int nameLen = strlen(name);
+	assert(nameLen > 0 && nameLen < NS_NAME_LEN_MAX, "RegisterAs: name too long");
+
+	NSQuery query;
+	query.type = NS_QUERY_TYPE_WHO;
+	query.name = name;
+	query.nameLen = nameLen;
+
 	char reply[6];
 	int retval = -1;
-	if (Send(NS_TID, name, namelen + 1, reply, 6) < 0) {
+	if (Send(NS_TID, (char *)(&query), sizeof(NSQuery), reply, 6) < 0) {
 		return -1;
 	}
 
