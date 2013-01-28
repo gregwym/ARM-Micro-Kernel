@@ -1,8 +1,7 @@
 #include <klib.h>
 
-void assert(int boolean, char * msg) {
-	if (!boolean) {
-		bwprintf(COM2, "\e[31mError: %s \e[m\n", msg);
-	}
+void _assert(char *pos, char *test, char *msg){
+	/* print assertion message and abort */
+	bwprintf(COM2, "\e[31m[%s] %s | \"%s\"\e[m\n", pos, test, msg);
+	// abort();
 }
-

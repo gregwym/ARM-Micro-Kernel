@@ -28,5 +28,12 @@ char *strncpy(char *dst, const char *src, int n) {
 int strlen(const char *s) {
   const char *eos = s;
   while (*eos++);
-  return (int) (eos - s);
+  return (int) (eos - s - 1);
+}
+
+void copyBytes(char *dst, const char *src) {
+	dst[0] = src[0];
+	dst[1] = src[1];
+	dst[2] = src[2];
+	dst[3] = src[3];
 }
