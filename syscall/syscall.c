@@ -93,12 +93,8 @@ int sysReceive(KernelGlobal *global, int *tid, char *msg, int msglen, int *rtn) 
 	}
 
 	// sender has sent msg to current task
-	sender_task = &task_array[sender_tid % TASK_MAX];
+	sender_task = &(task_array[sender_tid % TASK_MAX]);
 	assert(sender_task->state == ReceiveBlocked, "Receiver got an invalid sender");
-
-	// unblock the sender and make it replyblocked
-	sender_task->state = ReplyBlocked;
-
 	assert(msg_array[sender_tid % TASK_MAX].msg != NULL, "Receiver got an NULL msg");
 
 	// set tid to sender's tid
@@ -108,7 +104,10 @@ int sysReceive(KernelGlobal *global, int *tid, char *msg, int msglen, int *rtn) 
 	*rtn = msg_array[sender_tid % TASK_MAX].msglen;
 
 	// copy msg to receive msg buffer
-	msg = strncpy(msg, msg_array[sender_tid % TASK_MAX].msg, msglen);
+	msg = memcpy(msg, msg_array[sender_tid % TASK_MAX].msg, msglen);
+
+	// unblock the sender and make it replyblocked
+	sender_task->state = ReplyBlocked;
 
 	return 0;
 }
@@ -121,7 +120,6 @@ int sysReply(KernelGlobal *global, int tid, char *reply, int replylen, int *rtn)
 	TaskList 	*task_list = global->task_list;
 	MsgBuffer 	*msg_array = global->msg_array;
 	Task	 	*task_array = global->task_array;
-	// bwprintf(COM2, "Start reply!\n");
 
 	// not a possible task id
 	if (tid < 0) {
@@ -143,17 +141,16 @@ int sysReply(KernelGlobal *global, int tid, char *reply, int replylen, int *rtn)
 
 	Task *sender_task = &task_array[tid % TASK_MAX];
 
-
-	// put sender back to ready queue
-	sender_task->state = Ready;
-	insertTask(task_list, sender_task);
-
 	// copy reply msg to reply buffer
-	msg_array[tid % TASK_MAX].reply = strncpy(msg_array[tid % TASK_MAX].reply, reply, msg_array[tid % TASK_MAX].replylen);
+	msg_array[tid % TASK_MAX].reply = memcpy(msg_array[tid % TASK_MAX].reply, reply, msg_array[tid % TASK_MAX].replylen);
 	msg_array[tid % TASK_MAX].msg = NULL;
 
 	// set sender's return value to be the reply msg's length
 	*((int *)sender_task->current_sp) = replylen;
+
+	// put sender back to ready queue
+	sender_task->state = Ready;
+	insertTask(task_list, sender_task);
 
 	*rtn = 0;
 	return 0;

@@ -54,7 +54,7 @@ typedef struct msg_buffer {
 
 
 
-void tlistInitial (TaskList *tlist, Task **heads, Task **tails);
+void tlistInitial(TaskList *tlist, Task **heads, Task **tails);
 
 void tarrayInitial(Task *task_array, char *stacks);
 
@@ -72,19 +72,22 @@ void moveCurrentTaskToEnd(TaskList *tlist);
 // set current task to head
 void refreshCurtask(TaskList *tlist);
 
+// Schedule next task to run, return 0 if no more task
+int scheduleNextTask(TaskList *tlist);
+
 // add current task to block list and block current task
-void addToBlockedList (BlockedList *blocked_list, TaskList *task_list, int receiver_tid);
+void addToBlockedList(BlockedList *blocked_list, TaskList *task_list, int receiver_tid);
 
 // receiver call this to get a sender's tid that has sent to the receiver
-int getFromBlockedList (BlockedList *blocked_list, Task *cur_task);
+int getFromBlockedList(BlockedList *blocked_list, Task *cur_task);
 
 // block current task with "state"
 void blockCurrentTask(TaskList *tlist, TaskState state);
 
 // block list initialization
-void blockedListInitial (BlockedList *block_list);
+void blockedListInitial(BlockedList *block_list);
 
 // msg array initialization
-void msgArrayInitial (MsgBuffer *msg_array);
+void msgArrayInitial(MsgBuffer *msg_array);
 
 #endif //__TASK_H__

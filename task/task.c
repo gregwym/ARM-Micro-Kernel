@@ -170,6 +170,18 @@ void refreshCurtask(TaskList *task_list) {
 	task_list->curtask = task_list->head;
 }
 
+int scheduleNextTask(TaskList *tlist) {
+	if(tlist->curtask != NULL) {
+		moveCurrentTaskToEnd(tlist);
+	}
+	refreshCurtask(tlist);
+	if (tlist->curtask == NULL) {
+		return 0;
+	}
+	activateStack(tlist->curtask->current_sp);
+	DEBUG(DB_SYSCALL, "| SYSCALL:\tUser task activated, sp: 0x%x\n", tlist->curtask->current_sp);
+	return 1;
+}
 
 void addToBlockedList (BlockedList *blocked_list, TaskList *task_list, int receiver_tid) {
 	int index = receiver_tid % TASK_MAX;
@@ -201,7 +213,6 @@ int getFromBlockedList (BlockedList *blocked_list, Task *cur_task) {
 	return ret;
 }
 
-
 void blockCurrentTask(TaskList *task_list, TaskState state) {
 	int top_priority = task_list->head->priority;
 	assert(task_list->head == task_list->curtask, "Blocking syscall invalid");
@@ -218,8 +229,6 @@ void blockCurrentTask(TaskList *task_list, TaskState state) {
 	task_list->curtask->next = NULL;
 	task_list->curtask = NULL;
 }
-
-
 
 void blockedListInitial (BlockedList *blocked_list) {
 	int i = -1;
