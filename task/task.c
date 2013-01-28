@@ -1,10 +1,9 @@
-#include <types.h>
-#include <task.h>
-#include <kernel.h>
-#include <bwio.h>
-#include <usertrap.h>
-#include <syscall.h>
-#include <stdlib.h>
+#include <klib.h>
+
+#include <kern/types.h>
+#include <kern/md_const.h>
+#include <intern/trapframe.h>
+#include <unistd.h>
 
 void tlistInitial(TaskList *task_list, Task **heads, Task **tails) {
 	task_list->curtask = NULL;

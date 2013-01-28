@@ -16,30 +16,30 @@ ASFLAGS	= -mcpu=arm920t -mapcs-32
 
 LDFLAGS = -init main -Map main.map -N  -T orex.ld -L/u/wbcowan/gnuarm-4.0.2/lib/gcc/arm-elf/4.0.2 -L./lib
 
-OBJECTS = main.o syscall.o syscall_handler.o asm/usertrap.o
+OBJECTS = main.o
+LIBS = task.a syscall.a klib.a
+LIBS_CLEAN = $(patsubst %.a,%.clean,$(LIBS))
+LIBS_INCLUDE = $(patsubst %.a,-l%,$(LIBS))
 
 all: main.elf
 
 %.s: %.c
-	$(XCC) -S $(CFLAGS) $<
+	$(XCC) -S $(CFLAGS) -o $@ $<
 
 $(OBJECTS): %.o: %.s
 	$(AS) $(ASFLAGS) -o $@ $<
 
-libbwio.a:
-	$(MAKE) -C ./io all
+%.a: %
+	$(MAKE) -C $< all
 
-libstdlib.a:
-	$(MAKE) -C ./stdlib all
+main.elf: $(LIBS) $(OBJECTS)
+	$(LD) $(LDFLAGS) -o $@ $(OBJECTS) $(LIBS_INCLUDE) -lgcc
 
-main.elf: $(OBJECTS) libbwio.a libstdlib.a
-	$(LD) $(LDFLAGS) -o $@ $(OBJECTS) -lstdlib -lbwio -lgcc
+%.clean: %
+	$(MAKE) -C $< clean
 
-clean:
-	-rm -f *.elf *.s *.o main.map
-	-rm asm/*.o
-	$(MAKE) -C ./io clean
-	$(MAKE) -C ./stdlib clean
+clean: $(LIBS_CLEAN)
+	-rm -f *.elf *.s $(OBJECTS) main.map
 
 install:
 	cp *.elf ~/cs452/tftp

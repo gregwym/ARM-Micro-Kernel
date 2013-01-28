@@ -1,6 +1,10 @@
 #ifndef __TASK_H__
 #define __TASK_H__
 
+#define TASK_MAX 30
+#define TASK_STACK_SIZE 512
+#define TASK_PRIORITY_MAX 10
+
 typedef enum TaskState {
 	Active,
 	Ready,

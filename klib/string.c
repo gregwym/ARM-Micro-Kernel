@@ -1,4 +1,4 @@
-#include <stdlib.h>
+#include <klib.h>
 
 int strcmp(const char *src, const char *dst) {
 	int ret = 0;
