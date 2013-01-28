@@ -17,8 +17,22 @@
 // #define DB_NETFS       0x400
 // #define DB_KMALLOC     0x800
 
-#define dbflags DB_SYSCALL | DB_TASK | DB_NS
+#define dbflags 0 // DB_SYSCALL | DB_TASK | DB_NS
 
-#define DEBUG(d, fmt, args...) (((dbflags) & (d)) ? bwprintf(COM2, fmt, ##args) : 0)
+#ifndef NDEBUG
+	/* assert */
+	#undef assert
+	void _assert(char *, char *, char *);
+	#define _STR(x) _VAL(x)
+	#define _VAL(x) #x
+	#define assert(test, msg)	((test) ? (void)0 \
+		: _assert(__FILE__ ":" _STR(__LINE__), #test, msg))
+
+	/* debug */
+	#define DEBUG(d, fmt, args...) (((dbflags) & (d)) ? bwprintf(COM2, fmt, ##args) : 0)
+#else
+	#define assert(test, msg)		((void)0)
+	#define DEBUG(d, fmt, args...)	((void)0)
+#endif // NDEBUG
 
 #endif // __DEBUG_H__
