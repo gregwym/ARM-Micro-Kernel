@@ -144,7 +144,7 @@ Task *createTask(FreeList *free_list, int priority, void (*code) ()) {
 	ret->next = NULL;
 	ret->parent_tid = -1;
 
-	ret->resume_point = code;
+	ret->resume_point = DATA_REGION_BASE + code;
 	ret->current_sp = initTrap(ret->init_sp, DATA_REGION_BASE + Exit);
 
 	return ret;
