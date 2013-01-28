@@ -4,6 +4,8 @@
 #ifndef __KLIB_H__
 #define __KLIB_H__
 
+#include <task.h>
+
 typedef struct kernel_global {
 	TaskList 	*task_list;
 	FreeList 	*free_list;
