@@ -19,7 +19,7 @@ ARFLAGS = rcs
 
 OBJECTS = assert.o task.o string.o bwio.o
 
-all:  stdlib.a
+all:  klib.a
 
 %.s: %.c
 	$(XCC) -S $(CFLAGS) -o $@ $<
@@ -27,9 +27,9 @@ all:  stdlib.a
 $(OBJECTS): %.o: %.s
 	$(AS) $(ASFLAGS) -o $@ $<
 
-stdlib.a: $(OBJECTS)
+klib.a: $(OBJECTS)
 	$(AR) $(ARFLAGS) $@ $(OBJECTS)
-	cp *.a ../lib/libstdlib.a
+	cp *.a ../lib/libklib.a
 
 clean:
 	-rm -f *.s *.a *.o
