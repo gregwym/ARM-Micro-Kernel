@@ -5,173 +5,14 @@
 #include <kern/md_const.h>
 #include <nameserver.h>
 
-void user_program_iner() {
-	bwprintf(COM2, "myTid: %d myParentTid: %d\n", MyTid(), MyParentTid());
-	Pass();
-	bwprintf(COM2, "myTid: %d myParentTid: %d\n", MyTid(), MyParentTid());
-	Exit();
+// Prototype for the user program main function
+void umain();
+
+#ifndef umain
+void umain() {
+	bwprintf(COM2, "Hello World!\n");
 }
-
-void client() {
-	int ret = -1;
-	char msg[9];
-	msg[0] = 'f';
-	msg[1] = 'i';
-	msg[2] = 'r';
-	msg[3] = 's';
-	msg[4] = 't';
-	msg[5] = '\0';
-	bwprintf(COM2, "Sender call send\n");
-	ret = RegisterAs(msg);
-	switch (ret) {
-		case 0:
-			bwprintf(COM2, "Register successfully with name %s: \n", &msg[0]);
-			break;
-		default:
-			bwprintf(COM2, "Register exception\n");
-			break;
-	}
-	ret = WhoIs(msg);
-	if (ret == -3) {
-		bwprintf(COM2, "%s does exist in name server\n", &msg[0]);
-	} else {
-		bwprintf(COM2, "%s is the task with %d\n", &msg[0], ret);
-	}
-
-	// bwprintf(COM2, "Sender receive reply: %s with origin %d char\n", reply, ret);
-	Exit();
-}
-
-void client2() {
-	int ret = -1;
-	char msg[9];
-	msg[0] = 's';
-	msg[1] = 'f';
-	msg[2] = 'i';
-	msg[3] = 'r';
-	msg[4] = 's';
-	msg[5] = 't';
-	msg[6] = '\0';
-	bwprintf(COM2, "Sender call send\n");
-	ret = RegisterAs(msg);
-	switch (ret) {
-		case 0:
-			bwprintf(COM2, "Register successfully with name %s: \n", &msg[1]);
-			break;
-		case -2:
-			bwprintf(COM2, "Name %s has been registered\n" , &msg[1]);
-			break;
-		case -1:
-			bwprintf(COM2, "Name server tid invalid\n");
-		default:
-			break;
-	}
-
-	// bwprintf(COM2, "Sender receive reply: %s with origin %d char\n", reply, ret);
-	Exit();
-}
-
-void sr() {
-	int ret = -1;
-	int ret2;
-	int tid;
-	char rmsg[5];
-	char replymsg[5];
-	replymsg[0] = 'm';
-	replymsg[1] = 'i';
-	replymsg[2] = 'd';
-	replymsg[3] = '\0';
-
-	char msg[9];
-	msg[0] = 'm';
-	msg[1] = 'i';
-	msg[2] = 'd';
-	msg[3] = 's';
-	msg[4] = 'e';
-	msg[5] = 'n';
-	msg[6] = 'd';
-	msg[7] = '\0';
-	char reply[9];
-	while (1) {
-		bwprintf(COM2, "sr call receive\n");
-		ret = Receive(&tid, rmsg, 5);
-		if (ret > 0) {
-			bwprintf(COM2, "sr receive: %s with origin %d char\n", rmsg, ret);
-			bwprintf(COM2, "sr reply to %d\n", tid);
-			ret2 = Reply(tid, replymsg, 5);
-			bwprintf(COM2, "sr ret value: %d\n", ret2);
-			ret = Send(1, msg, 9, reply, 2);
-			bwprintf(COM2, "sr receive reply: %s with origin %d char\n", reply, ret);
-
-		}
-	}
-}
-
-void receiver() {
-	int ret = -1;
-	int tid;
-	char msg[5];
-	char replymsg[5];
-	replymsg[0] = 'c';
-	replymsg[1] = 'a';
-	replymsg[2] = 'o';
-	replymsg[3] = '\0';
-	while (1) {
-		bwprintf(COM2, "Receiver call receive\n");
-		ret = Receive(&tid, msg, 5);
-		if (ret > 0) {
-			bwprintf(COM2, "Receive msg: %s with origin %d char\n", msg, ret);
-			bwprintf(COM2, "Receiver reply to %d\n", tid);
-			ret = Reply(tid, replymsg, 5);
-			bwprintf(COM2, "Reply ret value: %d\n", ret);
-		}
-	}
-}
-
-void user_program() {
-	int tid = -1;
-
-	tid = Create(1, DATA_REGION_BASE + nameserver);
-	bwprintf(COM2, "Created: %d\n", tid);
-	tid = Create(4, DATA_REGION_BASE + client);
-	bwprintf(COM2, "Created: %d\n", tid);
-	tid = Create(4, DATA_REGION_BASE + client);
-	bwprintf(COM2, "Created: %d\n", tid);
-	tid = Create(4, DATA_REGION_BASE + client2);
-	bwprintf(COM2, "Created: %d\n", tid);
-	// tid = Create(3, DATA_REGION_BASE + sender);
-	// bwprintf(COM2, "Created: %d\n", tid);
-	// tid = Create(7, DATA_REGION_BASE + sender);
-	// bwprintf(COM2, "Created: %d\n", tid);
-	// tid = Create(7, DATA_REGION_BASE + sender);
-	// bwprintf(COM2, "Created: %d\n", tid);
-	// tid = Create(7, DATA_REGION_BASE + sender);
-	// bwprintf(COM2, "Created: %d\n", tid);
-
-	// tid = Create(3, DATA_REGION_BASE + user_program_iner);
-	// bwprintf(COM2, "Created: %d\n", tid);
-	// tid = Create(3, DATA_REGION_BASE + user_program_iner);
-	// bwprintf(COM2, "Created: %d\n", tid);
-
-	bwprintf(COM2, "First: exiting\n");
-	// while (1) {
-		// Pass();
-	// }
-	Exit();
-}
-
-int scheduleNextTask(TaskList *tlist) {
-	if(tlist->curtask != NULL) {
-		moveCurrentTaskToEnd(tlist);
-	}
-	refreshCurtask(tlist);
-	if (tlist->curtask == NULL) {
-		return 0;
-	}
-	activateStack(tlist->curtask->current_sp);
-	DEBUG(DB_SYSCALL, "| SYSCALL:\tUser task activated, sp: 0x%x\n", tlist->curtask->current_sp);
-	return 1;
-}
+#endif
 
 int main() {
 	bwsetfifo(COM2, OFF);
@@ -211,7 +52,7 @@ int main() {
 	asm("msr 	SPSR_c, r12");
 
 	/* Create first task */
-	Task *first_task = createTask(&flist, 5, DATA_REGION_BASE + user_program);
+	Task *first_task = createTask(&flist, 5, DATA_REGION_BASE + umain);
 	insertTask(&tlist, first_task);
 	DEBUG(DB_SYSCALL, "| SYSCALL:\tFirst task created, init_sp: 0x%x\n", first_task->init_sp);
 	DEBUG(DB_SYSCALL, "| SYSCALL:\tGlobal addr: 0x%x\n", &global);
