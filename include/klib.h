@@ -5,6 +5,7 @@
 #define __KLIB_H__
 
 #include <task.h>
+#include <kern/types.h>
 
 typedef struct kernel_global {
 	TaskList 	*task_list;
@@ -15,13 +16,10 @@ typedef struct kernel_global {
 } KernelGlobal;
 
 /* String functions */
+void *memcpy(void *dst, const void *src, size_t len);
 int strcmp(const char *src, const char *dst);
-char *strcpy(char *dst, const char *src);
-char *strncpy(char *dst, const char *src, int n);
-int strlen(const char *s);
-
-/* Memory manipulations */
-void copyBytes(char *dst, const char *src);
+char *strncpy(char *dst, const char *src, size_t n);
+size_t strlen(const char *s);
 
 /* Print */
 #include <intern/bwio.h>
