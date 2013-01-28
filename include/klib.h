@@ -1,15 +1,19 @@
-#ifndef __STDLIB_H__
-#define __STDLIB_H__
+/*
+ * Kernel Library
+ */
+#ifndef __KLIB_H__
+#define __KLIB_H__
 
-#include <kernel.h>
-#include <task.h>
-#include <types.h>
 
 void assert(int boolean, char * msg);
 
+/* String functions */
 int strcmp(const char *src, const char *dst);
-
 char *strcpy(char *dst, const char *src);
-
 char *strncpy(char *dst, const char *src, int n);
-#endif // __STDLIB_H__
+
+/* Print */
+#include <bwio.h>
+
+
+#endif // __KLIB_H__
