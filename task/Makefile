@@ -19,7 +19,7 @@ ARFLAGS = rcs
 
 OBJECTS = task.o
 
-all:  ktask.a
+all:  task.a
 
 %.s: %.c
 	$(XCC) -S $(CFLAGS) -o $@ $<
@@ -27,9 +27,9 @@ all:  ktask.a
 $(OBJECTS): %.o: %.s
 	$(AS) $(ASFLAGS) -o $@ $<
 
-ktask.a: $(OBJECTS)
+task.a: $(OBJECTS)
 	$(AR) $(ARFLAGS) $@ $(OBJECTS)
-	cp *.a ../lib/libktask.a
+	cp *.a ../lib/libtask.a
 
 clean:
 	-rm -f *.s *.a *.o
