@@ -12,19 +12,64 @@ void user_program_iner() {
 	Exit();
 }
 
-void sender() {
+void client() {
 	int ret = -1;
 	char msg[9];
-	msg[0] = 'h';
-	msg[1] = 'e';
-	msg[2] = 'l';
-	msg[3] = 'l';
-	msg[4] = 'o';
-	msg[5] = NULL;
-	char reply[9];
+	msg[0] = 'R';
+	msg[1] = 'f';
+	msg[2] = 'i';
+	msg[3] = 'r';
+	msg[4] = 's';
+	msg[5] = 't';
+	msg[6] = NULL;
 	bwprintf(COM2, "Sender call send\n");
-	ret = Send(2, msg, 9, reply, 5);
-	bwprintf(COM2, "Sender receive reply: %s with origin %d char\n", reply, ret);
+	ret = RegisterAs(msg);
+	switch (ret) {
+		case 0:
+			bwprintf(COM2, "Register successfully with name %s: \n", &msg[1]);
+			break;
+		default:
+			bwprintf(COM2, "Register exception\n");
+			break;
+	}
+	msg[0] = 'W';
+	ret = WhoIs(msg);
+	if (ret == 0) {
+		bwprintf(COM2, "%s does exist in name server\n", &msg[1]);
+	} else {
+		bwprintf(COM2, "%s is the task with %d\n", &msg[1], ret);
+	}
+			
+	// bwprintf(COM2, "Sender receive reply: %s with origin %d char\n", reply, ret);
+	Exit();
+}
+
+void client2() {
+	int ret = -1;
+	char msg[9];
+	msg[0] = 's';
+	msg[1] = 'f';
+	msg[2] = 'i';
+	msg[3] = 'r';
+	msg[4] = 's';
+	msg[5] = 't';
+	msg[6] = NULL;
+	bwprintf(COM2, "Sender call send\n");
+	ret = RegisterAs(msg);
+	switch (ret) {
+		case 0:
+			bwprintf(COM2, "Register successfully with name %s: \n", &msg[1]);
+			break;
+		case -2:
+			bwprintf(COM2, "Name %s has been registered\n" , &msg[1]);
+			break;
+		case -1:
+			bwprintf(COM2, "Name server tid invalid\n");
+		default:
+			break;
+	}
+			
+	// bwprintf(COM2, "Sender receive reply: %s with origin %d char\n", reply, ret);
 	Exit();
 }
 
@@ -66,7 +111,6 @@ void sr() {
 
 void receiver() {
 	int ret = -1;
-	int ret2;
 	int tid;
 	char msg[5];
 	char replymsg[5];
@@ -80,21 +124,112 @@ void receiver() {
 		if (ret > 0) {
 			bwprintf(COM2, "Receive msg: %s with origin %d char\n", msg, ret);
 			bwprintf(COM2, "Receiver reply to %d\n", tid);
-			ret2 = Reply(tid, replymsg, 5);
-			bwprintf(COM2, "Reply ret value: %d\n", ret2);
+			ret = Reply(tid, replymsg, 5);
+			bwprintf(COM2, "Reply ret value: %d\n", ret);
 		}
 	}
 }
 
+typedef struct ns {
+	char name[10];
+	int tid;
+} Name_Server;
+
+int search_table(Name_Server *table, char *msg, int len) {
+	int i;
+	for (i = 0; i < len; i++) {
+		if (strcmp(msg, table[i].name) == 0) {
+			bwprintf(COM2, "hit\n");
+			return i;
+		}
+	}
+	return -1;
+}
+
+void name_server() {
+	int ret = -1;
+	int tid;
+	char msg[10];
+	char replymsg[5];
+	char replymsg_y[5];
+	replymsg_y[4] = NULL;
+	
+	char replymsg_n[5];
+	*(int *)replymsg_y = 0;
+	replymsg_n[4] = NULL;
+	
+	// U: invalid input format
+	char replymsg_u[5];
+	*(int *)replymsg_u[0] = -1;
+	replymsg_u[4] = NULL;
+	
+	
+	Name_Server table[10];
+	int i;
+	for (i = 0; i < 10; i++) {
+		table[i].name[0] = NULL;
+	}
+	
+	int ns_counter = 0;
+	
+	while (1) {
+		bwprintf(COM2, "Nameserver call receive\n");
+		ret = Receive(&tid, msg, 10);
+		if (ret > 0) {
+			if (msg[0] == 'R') {
+				if (search_table(table, &msg[1], ns_counter) != -1) {
+					table[i].tid = tid;
+					strncpy(table[i].name, &msg[1], 10);
+					*(int *)replymsg_y = 1;
+					ret = Reply(tid, replymsg_y, 5);
+				} else {
+					table[ns_counter].tid = tid;
+					strncpy(table[ns_counter].name, &msg[1], 10);
+					*((int *)replymsg_y) = 1;
+					ret = Reply(tid, replymsg_y, 5);
+					bwprintf(COM2, "NS: reply num: %d\n", *((int *)replymsg_y));
+					bwprintf(COM2, "NS: reply num[0]: %d\n", replymsg_y[0]);
+					bwprintf(COM2, "NS: reply num[1]: %d\n", replymsg_y[1]);
+					bwprintf(COM2, "NS: reply num[2]: %d\n", replymsg_y[2]);
+					bwprintf(COM2, "NS: reply num[3]: %d\n", replymsg_y[3]);
+					
+					
+					bwprintf(COM2, "NS: reply msg size: %d\n", strlen(replymsg_y));
+					ns_counter++;
+				}
+			}
+			else if (msg[0] == 'W') {
+				int i = search_table(table, &msg[1], ns_counter);
+				if (i == -1) {
+					ret = Reply(tid, replymsg_n, 5);
+				} else {
+					*(int *)replymsg_y = table[i].tid;
+					ret = Reply(tid, replymsg_y, 5);
+				}
+			}
+			else {
+				ret = Reply(tid, replymsg_u, 5);
+			}
+		}
+	}
+}
+		
+	
+	
+
 void user_program() {
 	int tid = -1;
 
-	tid = Create(7, DATA_REGION_BASE + receiver);
+	tid = Create(1, DATA_REGION_BASE + name_server);
 	bwprintf(COM2, "Created: %d\n", tid);
-	tid = Create(4, DATA_REGION_BASE + sr);
+	tid = Create(4, DATA_REGION_BASE + client);
 	bwprintf(COM2, "Created: %d\n", tid);
-	tid = Create(3, DATA_REGION_BASE + sender);
+	tid = Create(4, DATA_REGION_BASE + client);
 	bwprintf(COM2, "Created: %d\n", tid);
+	tid = Create(4, DATA_REGION_BASE + client2);
+	bwprintf(COM2, "Created: %d\n", tid);
+	// tid = Create(3, DATA_REGION_BASE + sender);
+	// bwprintf(COM2, "Created: %d\n", tid);
 	// tid = Create(7, DATA_REGION_BASE + sender);
 	// bwprintf(COM2, "Created: %d\n", tid);
 	// tid = Create(7, DATA_REGION_BASE + sender);
