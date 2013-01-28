@@ -20,7 +20,7 @@ void client() {
 	msg[3] = 'r';
 	msg[4] = 's';
 	msg[5] = 't';
-	msg[6] = NULL;
+	msg[6] = '\0';
 	bwprintf(COM2, "Sender call send\n");
 	ret = RegisterAs(msg);
 	switch (ret) {
@@ -52,7 +52,7 @@ void client2() {
 	msg[3] = 'r';
 	msg[4] = 's';
 	msg[5] = 't';
-	msg[6] = NULL;
+	msg[6] = '\0';
 	bwprintf(COM2, "Sender call send\n");
 	ret = RegisterAs(msg);
 	switch (ret) {
@@ -146,27 +146,27 @@ int search_table(Name_Server *table, char *msg, int len) {
 }
 
 void name_server() {
+	DEBUG(DB_NS, "Nameserver booting\n");
 	int ret = -1;
 	int tid;
 	char msg[10];
-	char replymsg[5];
 	char replymsg_y[5];
-	replymsg_y[4] = NULL;
+	replymsg_y[4] = '\0';
 
 	char replymsg_n[5];
-	*(int *)replymsg_y = 0;
-	replymsg_n[4] = NULL;
+	*((int *)replymsg_n) = 0;
+	replymsg_n[4] = '\0';
 
 	// U: invalid input format
 	char replymsg_u[5];
-	*(int *)replymsg_u[0] = -1;
-	replymsg_u[4] = NULL;
+	*((int *)replymsg_u) = -1;
+	replymsg_u[4] = '\0';
 
 
 	Name_Server table[10];
 	int i;
 	for (i = 0; i < 10; i++) {
-		table[i].name[0] = NULL;
+		table[i].name[0] = '\0';
 	}
 
 	int ns_counter = 0;

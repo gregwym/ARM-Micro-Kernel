@@ -1,8 +1,5 @@
-#include <stdlib.h>
-#include <syscall_handler.h>
-#include <bwio.h>
-#include <usertrap.h>
-#include <syscall.h>
+#include <klib.h>
+#include <unistd.h>
 
 #define NAME_SERVER_TID 1
 
@@ -12,9 +9,9 @@ int RegisterAs( char *name ) {
 	char reply[6];
 	int retval = -1;
 	if (Send(NAME_SERVER_TID, name, msglen, reply, 6) >= 0) {
-		
+
 		// bwprintf(COM2, "reply msg size: %d\n", strlen(reply));
-		char *val = &retval;
+		char *val = (char *) &retval;
 		val[0] = reply[0];
 		val[1] = reply[1];
 		val[2] = reply[2];
@@ -28,14 +25,14 @@ int RegisterAs( char *name ) {
 	} else {
 		return -1;
 	}
-}	
+}
 
 int WhoIs( char *name ) {
 	int msglen = strlen(name);
 	char reply[5];
 	int retval = -1;
 	if (Send(NAME_SERVER_TID, name, msglen, reply, 5) >= 0) {
-		char *val = &retval;
+		char *val = (char *) &retval;
 		val[0] = reply[0];
 		val[1] = reply[1];
 		val[2] = reply[2];
