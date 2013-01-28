@@ -5,8 +5,8 @@
  *
  */
 
-#ifndef __TS7200_H__
-#define __TS7200_H__
+#ifndef _TS7200_H_
+#define _TS7200_H_
 
 #define	TIMER1_BASE	0x80810000
 #define	TIMER2_BASE	0x80810020
@@ -84,4 +84,4 @@
 #define UART_HDLCRIB_OFFSET	0x218
 #define UART_HDLCSTS_OFFSET	0x21c
 
-#endif // __TS7200_H__
+#endif // _TS7200_H_

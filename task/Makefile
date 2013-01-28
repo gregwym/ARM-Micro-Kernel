@@ -17,19 +17,19 @@ ASFLAGS	= -mcpu=arm920t -mapcs-32
 
 ARFLAGS = rcs
 
-OBJECTS = assert.o task.o kernel.o string.o
+OBJECTS = task.o
 
-all:  stdlib.a
+all:  task.a
 
 %.s: %.c
-	$(XCC) -S $(CFLAGS) $<
+	$(XCC) -S $(CFLAGS) -o $@ $<
 
 $(OBJECTS): %.o: %.s
 	$(AS) $(ASFLAGS) -o $@ $<
 
-stdlib.a: $(OBJECTS)
+task.a: $(OBJECTS)
 	$(AR) $(ARFLAGS) $@ $(OBJECTS)
-	cp *.a ../lib/libstdlib.a
+	cp *.a ../lib/libtask.a
 
 clean:
 	-rm -f *.s *.a *.o
