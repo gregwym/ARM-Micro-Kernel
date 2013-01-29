@@ -2,22 +2,6 @@
 #include <unistd.h>
 #include <nameserver.h>
 
-void rpsprint(int i, int player_id, int round) {
-	switch (i) {
-		case 1:
-			bwprintf(COM2, "player%d chooses ROCK in round %d\n", player_id, round);
-			break;
-		case 2:
-			bwprintf(COM2, "player%d chooses PAPER in round %d\n", player_id, round);
-			break;
-		case 3:
-			bwprintf(COM2, "player%d chooses SCISSORS in round %d\n", player_id, round);
-			break;
-		default:
-			break;
-	}
-}
-
 void player() {
 	int result = -1;
 	int server_tid = -1;
@@ -26,7 +10,10 @@ void player() {
 	server_name[0] = 's';
 	server_name[1] = 'r';
 	server_name[2] = '\0';
-	char **names = {"ROCK", "PAPER", "SCISSORS"};
+	char rock[] = "ROCK";
+	char paper[] = "PAPER";
+	char scissors[] = "SCISSORS";
+	char *names[3] = {rock, paper, scissors};
 
 	char msg[2];
 	msg[0] = 'S';
@@ -35,6 +22,7 @@ void player() {
 	char replymsg[2];
 
 	int myTid = MyTid();
+	int choice = -1;
 
 	result = WhoIs(server_name);
 	DEBUG(DB_RPS, "Player %d got RPS Server tid %d\n", myTid, result);
@@ -43,8 +31,9 @@ void player() {
 		if (Send(server_tid, msg, 2, replymsg, 2) >= 0) {
 			assert(replymsg[0] == 'G', "server replied wrong msg");
 			while (round < 5) {
-				msg[0] = (char)(1 + ((round + myTid * round) % 3));
-				rpsprint(1 + ((round + myTid * round) % 3), myTid, round);
+				choice = (char)((round + myTid * round) % 3);
+				msg[0] = choice + 1;
+				bwprintf(COM2, "player%d chooses %s in round %d\n", myTid, names[choice], round);
 				assert(Send(server_tid, msg, 2, replymsg, 2) >= 0, "player send returns negative");
 				if (replymsg[0] == 'W') {
 					bwprintf(COM2, "player%d wins round %d\n", myTid, round);
@@ -164,7 +153,7 @@ void server() {
 				Reply(player1, reply, 2);
 				reply[0] = 'W';
 				Reply(player2, reply, 2);
-			} 
+			}
 			else if (player1_c - player2_c == -2) {
 				reply[0] = 'W';
 				Reply(player1, reply, 2);
@@ -185,7 +174,7 @@ void server() {
 			}
 			player1_c = 0;
 			player2_c = 0;
-			
+
 			bwprintf(COM2, "Press anything to continue\n");
 			bwgetc(COM2);
 		}
