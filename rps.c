@@ -2,76 +2,60 @@
 #include <unistd.h>
 #include <nameserver.h>
 
+#define RPS_WAITING_MAX 16
+
 void player() {
 	int result = -1;
 	int server_tid = -1;
 	int round = 1;
-	char server_name[3];
-	server_name[0] = 's';
-	server_name[1] = 'r';
-	server_name[2] = '\0';
+	char server_name[3] = "sr";
 	char rock[] = "ROCK";
 	char paper[] = "PAPER";
 	char scissors[] = "SCISSORS";
 	char *names[3] = {rock, paper, scissors};
 
-	char msg[2];
-	msg[0] = 'S';
-	msg[1] = '\0';
+	char msg[2] = "S";
 
 	char replymsg[2];
 
 	int myTid = MyTid();
-	int choice = -1;
+	char choice = -1;
 
 	result = WhoIs(server_name);
-	DEBUG(DB_RPS, "Player %d got RPS Server tid %d\n", myTid, result);
+	DEBUG(DB_RPS, "| RPS:\tPlayer %d got RPS Server tid %d\n", myTid, result);
 	if (result >= 0) {
 		server_tid = result;
 		if (Send(server_tid, msg, 2, replymsg, 2) >= 0) {
-			assert(replymsg[0] == 'G', "server replied wrong msg");
+			assert(replymsg[0] == 'G', "Server replied wrong msg");
 			while (round < 5) {
 				choice = (char)((round + myTid * round) % 3);
-				msg[0] = choice + 1;
-				bwprintf(COM2, "player%d chooses %s in round %d\n", myTid, names[choice], round);
-				assert(Send(server_tid, msg, 2, replymsg, 2) >= 0, "player send returns negative");
-				if (replymsg[0] == 'W') {
-					bwprintf(COM2, "player%d wins round %d\n", myTid, round);
-				} else if (replymsg[0] == 'L') {
-					bwprintf(COM2, "player%d loses round %d\n", myTid, round);
-				} else {
-					bwprintf(COM2, "player%d draws round %d\n", myTid, round);
-				}
-				Pass();
+				msg[0] = choice;
+				bwprintf(COM2, "Player %d chooses %s in round %d\n", myTid, names[(int)choice], round);
+				assert(Send(server_tid, msg, 2, replymsg, 2) >= 0, "Player sent play but return negative");
 				round++;
 			}
 			msg[0] = 'Q';
-			assert(Send(server_tid, msg, 2, replymsg, 2) >= 0, "player1 send returns negative");
-			bwprintf(COM2, "player%d quits\n", myTid);
+			assert(Send(server_tid, msg, 2, replymsg, 2) >= 0, "Player sent quit but return negative");
 		}
 	}
 }
 
-
 void server() {
-	char server_name[3];
-	server_name[0] = 's';
-	server_name[1] = 'r';
-	server_name[2] = '\0';
+	char server_name[3] = "sr";
 
 	char msg[2];
-	char reply[2];
-	reply[1] = '\0';
+	char reply[2] = " ";
 
-	int waiting_list[10];
+	int waiting_list[RPS_WAITING_MAX];
 	int list_front = 0;
 	int list_back = 0;
 	int tid;
+	int game_result = 0;
 
-	int player1 = 0;
-	int player1_c = 0;
-	int player2 = 0;
-	int player2_c = 0;
+	int player1 = -1;
+	int player1_c = -1;
+	int player2 = -1;
+	int player2_c = -1;
 
 	int list_size = 0;
 	int playing_num = 0;
@@ -81,54 +65,63 @@ void server() {
 	while (1) {
 		DEBUG(DB_RPS, "| RPS:\tServer waiting for query\n");
 		assert(Receive(&tid, msg, 2) > 0, "server gua B le");
+
+		// Is sign up
 		if(msg[0] == 'S') {
 			if (playing_num < 2) {
-				if (player1 == 0) {
+				if (player1 == -1) {
 					player1 = tid;
 					reply[0] = 'G';
-				} else if (player2 == 0) {
+				} else if (player2 == -1) {
 					player2 = tid;
 				}
 				Reply(tid, reply, 2);
 				playing_num++;
 			} else {
-				assert (list_size < 10, "Server bao le");
+				assert (list_size < RPS_WAITING_MAX, "Server overwriting previously queued player");
 				waiting_list[list_back] = tid;
-				list_back = (list_back + 1) % 10;
+				list_back = (list_back + 1) % RPS_WAITING_MAX;
 				list_size++;
 			}
-		} else if (msg[0] == 'Q') {
+		}
+
+		// Is quit
+		else if (msg[0] == 'Q') {
 			if (player1 == tid) {
 				if (list_size > 0) {
 					player1 = waiting_list[list_front];
-					list_front = (list_front + 1) % 10;
+					list_front = (list_front + 1) % RPS_WAITING_MAX;
 					list_size--;
 					reply[0] = 'G';
 					Reply(player1, reply, 2);
 				} else {
-					player1 = 0;
+					player1 = -1;
 					playing_num--;
 				}
 			}
 			else if (player2 == tid) {
 				if (list_size > 0) {
 					player2 = waiting_list[list_front];
-					list_front = (list_front + 1) % 10;
+					list_front = (list_front + 1) % RPS_WAITING_MAX;
 					list_size--;
 					reply[0] = 'G';
 					Reply(player2, reply, 2);
 
 				}
 				else {
-					player2 = 0;
+					player2 = -1;
 					playing_num--;
 				}
 			}
 			else {
-				assert(0, "wtf?");
+				assert(0, "Player not playing sent quit");
 			}
+			bwprintf(COM2, "Player %d quits\n", tid);
 			Reply(tid, reply, 2);
-		} else if (msg[0] == 1 || msg[0] == 2 || msg[0] == 3) {
+		}
+
+		// Is play
+		else {
 			if (tid == player1) {
 				player1_c = msg[0];
 			}
@@ -136,44 +129,24 @@ void server() {
 				player2_c = msg[0];
 			}
 			else {
-				assert(0, "wtf?");
+				assert(0, "Not playing plaer sent play");
 			}
-		} else {
-			assert(0, "cnm");
 		}
-		if (player1_c && player2_c) {
-			if (player1_c - player2_c == 1) {
-				reply[0] = 'W';
-				Reply(player1, reply, 2);
-				reply[0] = 'L';
-				Reply(player2, reply, 2);
-			}
-			else if (player1_c - player2_c == -1) {
-				reply[0] = 'L';
-				Reply(player1, reply, 2);
-				reply[0] = 'W';
-				Reply(player2, reply, 2);
-			}
-			else if (player1_c - player2_c == -2) {
-				reply[0] = 'W';
-				Reply(player1, reply, 2);
-				reply[0] = 'L';
-				Reply(player2, reply, 2);
-			}
-			else if (player1_c - player2_c == 2) {
-				reply[0] = 'L';
-				Reply(player1, reply, 2);
-				reply[0] = 'W';
-				Reply(player2, reply, 2);
+
+		if (player1_c > -1 && player2_c > -1) {
+			game_result = player1_c - player2_c;
+			game_result = (game_result > 1 || game_result < -1) ? game_result * -1 : game_result;
+
+			if(game_result) {
+				bwprintf(COM2, "Player %d won!\n", (game_result > 0 ? player1 : player2));
 			}
 			else {
-				reply[0] = 'D';
-				Reply(player1, reply, 2);
-				reply[0] = 'D';
-				Reply(player2, reply, 2);
+				bwprintf(COM2, "Nobody won\n");
 			}
-			player1_c = 0;
-			player2_c = 0;
+			player1_c = -1;
+			player2_c = -1;
+			Reply(player1, NULL, 0);
+			Reply(player2, NULL, 0);
 
 			bwprintf(COM2, "Press anything to continue\n");
 			bwgetc(COM2);

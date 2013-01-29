@@ -17,7 +17,7 @@
 // #define DB_NETFS       0x400
 // #define DB_KMALLOC     0x800
 
-#define dbflags 0 // DB_SYSCALL | DB_TASK | DB_NS
+#define dbflags 0 // DB_SYSCALL | DB_TASK | DB_NS | DB_RPS
 
 #ifndef NDEBUG
 	/* assert */
