@@ -87,9 +87,7 @@ int sysReceive(KernelGlobal *global, int *tid, char *msg, int msglen, int *rtn) 
 	if (sender_tid == -1) {
 		// no one send current task msg
 		blockCurrentTask(task_list, SendBlocked);
-		*rtn = 0;
-		// bwprintf(COM2, "Receiver block itself\n");
-		return 0;
+		return -1;
 	}
 
 	// sender has sent msg to current task
