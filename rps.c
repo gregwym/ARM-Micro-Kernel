@@ -27,42 +27,6 @@ void player() {
 		server_tid = result;
 		if (Send(server_tid, msg, 2, replymsg, 2) >= 0) {
 			assert(replymsg[0] == 'G', "Server replied wrong msg");
-			while (round < 3) {
-				choice = (char)((round + myTid * round) % 3);
-				msg[0] = choice;
-				bwprintf(COM2, "Player %d chooses %s in round %d\n", myTid, names[(int)choice], round);
-				assert(Send(server_tid, msg, 2, replymsg, 2) >= 0, "Player sent play but return negative");
-				round++;
-			}
-			msg[0] = 'Q';
-			assert(Send(server_tid, msg, 2, replymsg, 2) >= 0, "Player sent quit but return negative");
-		}
-	}
-}
-
-void player2() {
-	int result = -1;
-	int server_tid = -1;
-	int round = 1;
-	char server_name[3] = "sr";
-	char rock[] = "ROCK";
-	char paper[] = "PAPER";
-	char scissors[] = "SCISSORS";
-	char *names[3] = {rock, paper, scissors};
-
-	char msg[2] = "S";
-
-	char replymsg[2];
-
-	int myTid = MyTid();
-	char choice = -1;
-
-	result = WhoIs(server_name);
-	DEBUG(DB_RPS, "| RPS:\tPlayer %d got RPS Server tid %d\n", myTid, result);
-	if (result >= 0) {
-		server_tid = result;
-		if (Send(server_tid, msg, 2, replymsg, 2) >= 0) {
-			assert(replymsg[0] == 'G', "Server replied wrong msg");
 			while (round < 4) {
 				choice = (char)((round + myTid * round) % 3);
 				msg[0] = choice;
@@ -204,18 +168,4 @@ void umain() {
 	bwprintf(COM2, "Created: %d\n", tid);
 	tid = Create(5, player);
 	bwprintf(COM2, "Created: %d\n", tid);
-	// tid = Create(4, player2);
-	// bwprintf(COM2, "Created: %d\n", tid);
-	// tid = Create(4, player2);
-	// bwprintf(COM2, "Created: %d\n", tid);
-	// tid = Create(4, player);
-	// bwprintf(COM2, "Created: %d\n", tid);
-	// tid = Create(4, player);
-	// bwprintf(COM2, "Created: %d\n", tid);
-	// tid = Create(4, player2);
-	// bwprintf(COM2, "Created: %d\n", tid);
-	// tid = Create(4, player);
-	// bwprintf(COM2, "Created: %d\n", tid);
-	// tid = Create(4, player);
-	// bwprintf(COM2, "Created: %d\n", tid);
 }
