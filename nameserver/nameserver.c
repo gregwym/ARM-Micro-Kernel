@@ -73,7 +73,7 @@ void nameserver() {
 			else {
 				table[ns_counter].tid = tid;
 				strncpy(table[ns_counter].name, query.name, NS_NAME_LEN_MAX);
-				ns_counter++;	// Increament the counter
+				ns_counter = (ns_counter + 1) % NS_REG_MAX;	// Increament the counter
 			}
 			ret = Reply(tid, NULL, 0);
 		}
