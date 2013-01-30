@@ -44,7 +44,7 @@ void nameserver() {
 
 	NSRegEntry table[NS_REG_MAX];
 	int i = 0;
-	for (i = 0; i < NS_NAME_LEN_MAX; i++) {
+	for (i = 0; i < NS_REG_MAX; i++) {
 		table[i].name[0] = '\0';
 	}
 	int ns_counter = 0;
@@ -59,7 +59,7 @@ void nameserver() {
 		}
 
 		// Find the query name first
-		i = findTidFor(table, query.name, ns_counter);
+		i = findTidFor(table, query.name, NS_REG_MAX);
 		DEBUG(DB_NS, "| NS:\tTid found for name %s is at index %d\n", query.name, i);
 
 		// If is a Register
