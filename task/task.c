@@ -146,7 +146,7 @@ Task *createTask(FreeList *free_list, int priority, void (*code) ()) {
 
 	ret->resume_point = DATA_REGION_BASE + code;
 	ret->current_sp = initTrap(ret->init_sp, DATA_REGION_BASE + Exit);
-
+	DEBUG(DB_TASK, "| Task:\tNew task current_sp: 0x%x, init_sp: 0x%x\n", ret->current_sp, ret->init_sp);
 	return ret;
 }
 

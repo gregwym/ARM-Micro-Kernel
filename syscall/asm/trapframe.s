@@ -14,8 +14,9 @@ kernelEntry:
 	msr 	CPSR_c, r12
 
 	@ Save all register to user stack
-	mov		ip, sp
-	stmfd	sp!, {r0, r1, r2, r3, r4, r5, r6, r7, r8, sb, sl, fp, ip, lr}
+	@ Inorder to handling irq, save both `ip` and `sp` and manully adjust `sp`
+	stmfd	sp, {r0, r1, r2, r3, r4, r5, r6, r7, r8, sb, sl, fp, ip, sp, lr}
+	sub		sp, sp, #60
 
 	@ Save user_sp to r2, so can be saved in task_descriptor
 	mov		r2, sp
@@ -43,20 +44,17 @@ kernelExit:
 	mov		ip, sp
 	stmfd	sp!, {r4, r5, r6, r7, r8, sb, sl, fp, ip, lr}
 
+	@ Save r0 (user_program resume point) to lr_svc
+	mov		lr, r0
+
 	@ Switch to system mode
 	mrs		r12, cpsr
 	bic 	r12, r12, #0x1f
 	orr 	r12, r12, #0x1f
 	msr 	CPSR_c, r12
 
-	@ Copy user_program resume point to r12 for later use
-	mov		r12, r0
-
-	@ Restore user trapframe
-	ldmfd	sp, {r0, r1, r2, r3, r4, r5, r6, r7, r8, sb, sl, fp, sp, lr}
-
-	@ Copy user_program resume point to r3
-	mov		r3, r12
+	@ Restore user trapframe, include ip to handle irq
+	ldmfd	sp, {r0, r1, r2, r3, r4, r5, r6, r7, r8, sb, sl, fp, ip, sp, lr}
 
 	@ Switch back to svc mode
 	mrs		r12, cpsr
@@ -64,8 +62,8 @@ kernelExit:
 	orr 	r12, r12, #0x13
 	msr 	CPSR_c, r12
 
-	@ Switch to user mode and go back to user_program entry point
-	movs	pc, r3
+	@ Switch to user mode and go back to lr_svc (user_program resume point)
+	movs	pc, lr
 
 	.size	kernelExit, .-kernelExit
 	.ident	"GCC: (GNU) 4.0.2"
@@ -100,7 +98,8 @@ initTrap:
 	mov		r2, #0x22
 	mov		r3, #0x33
 	mov		ip, sp
-	stmfd	sp!, {r0, r1, r2, r3, r4, r5, r6, r7, r8, sb, sl, fp, ip, lr}
+	stmfd	sp, {r0, r1, r2, r3, r4, r5, r6, r7, r8, sb, sl, fp, ip, sp, lr}
+	sub		sp, sp, #60
 
 	@ Return new sp to caller
 	mov		r0, sp
