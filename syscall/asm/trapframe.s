@@ -8,10 +8,7 @@ kernelEntry:
 	@ frame_needed = 1, uses_anonymous_args = 0
 
 	@ Switch to system mode
-	mrs		r12, cpsr
-	bic 	r12, r12, #0x1f
-	orr 	r12, r12, #0x1f
-	msr 	CPSR_c, r12
+	msr		CPSR_c, #0x1f
 
 	@ Save all register to user stack
 	@ Inorder to handling irq, save both `ip` and `sp` and manully adjust `sp`
@@ -22,10 +19,7 @@ kernelEntry:
 	mov		r2, sp
 
 	@ Switch back to svc mode
-	mrs		r12, cpsr
-	bic 	r12, r12, #0x1f
-	orr 	r12, r12, #0x13
-	msr 	CPSR_c, r12
+	msr		CPSR_c, #0x13
 
 	@ Save user_resume_point to r3, so can be saved in task_descriptor
 	mov		r3, lr
@@ -48,25 +42,17 @@ kernelExit:
 	mov		lr, r0
 
 	@ Switch to system mode
-	mrs		r12, cpsr
-	bic 	r12, r12, #0x1f
-	orr 	r12, r12, #0x1f
-	msr 	CPSR_c, r12
+	msr		CPSR_c, #0x1f
 
 	@ Restore user trapframe, include ip to handle irq
 	ldmfd	sp, {r0, r1, r2, r3, r4, r5, r6, r7, r8, sb, sl, fp, ip, sp, lr}
 
 	@ Switch back to svc mode
-	mrs		r12, cpsr
-	bic 	r12, r12, #0x1f
-	orr 	r12, r12, #0x13
-	msr 	CPSR_c, r12
+	msr		CPSR_c, #0x13
 
 	@ Switch to user mode and go back to lr_svc (user_program resume point)
 	movs	pc, lr
 
-	.size	kernelExit, .-kernelExit
-	.ident	"GCC: (GNU) 4.0.2"
 
 	.align	2
 	.global	switchCpuMode
@@ -85,10 +71,7 @@ switchCpuMode:
 	.type	initTrap, %function
 initTrap:
 	@ Switch to system mode
-	mrs		r12, cpsr
-	bic 	r12, r12, #0x1f
-	orr 	r12, r12, #0x1f
-	msr 	CPSR_c, r12
+	msr 	CPSR_c, #0x1f
 
 	@ Save all register to user stack
 	mov		sp, r0
@@ -105,10 +88,7 @@ initTrap:
 	mov		r0, sp
 
 	@ Switch back to svc mode
-	mrs		r12, cpsr
-	bic 	r12, r12, #0x1f
-	orr 	r12, r12, #0x13
-	msr 	CPSR_c, r12
+	msr 	CPSR_c, #0x13
 
 	mov		pc, lr
 
