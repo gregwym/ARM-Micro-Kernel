@@ -144,8 +144,8 @@ Task *createTask(FreeList *free_list, int priority, void (*code) ()) {
 	ret->next = NULL;
 	ret->parent_tid = -1;
 
-	ret->resume_point = DATA_REGION_BASE + code;
-	ret->current_sp = initTrap(ret->init_sp, DATA_REGION_BASE + Exit);
+	ret->resume_point = TEXT_REG_BASE + code;
+	ret->current_sp = initTrap(ret->init_sp, TEXT_REG_BASE + Exit);
 	DEBUG(DB_TASK, "| Task:\tNew task current_sp: 0x%x, init_sp: 0x%x\n", ret->current_sp, ret->init_sp);
 	return ret;
 }

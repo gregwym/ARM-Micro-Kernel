@@ -79,9 +79,17 @@ void irqEntry() {
 
 int main() {
 	/* Initialize hardware */
+	// Turn off interrupt
+	asm("msr 	CPSR_c, #0xd3");
+
+	// Turn off FIFO
 	bwsetfifo(COM2, OFF);
+
+	// Setup timer
 	setTimerLoadValue(TIMER3_BASE, 0x00000fff);
 	setTimerControl(TIMER3_BASE, TRUE, TRUE, FALSE);
+
+	// Setup VIC
 	// setVicEnable(VIC1_BASE);
 	// setVicEnable(VIC2_BASE);
 	unsigned int *vic2_in_en_addr = (unsigned int *) (VIC2_BASE + VIC_IN_EN_OFFSET);
@@ -105,9 +113,9 @@ int main() {
 
 	/* Setup global kernel entry */
 	int *swi_entry = (int *) SWI_ENTRY_POINT;
-	*swi_entry = (int) (DATA_REGION_BASE + swiEntry);
+	*swi_entry = (int) (TEXT_REG_BASE + swiEntry);
 	int *irq_entry = (int *) IRQ_ENTRY_POINT;
-	*irq_entry = (int) (DATA_REGION_BASE + irqEntry);
+	*irq_entry = (int) (TEXT_REG_BASE + irqEntry);
 
 	/* Setup kernel global variable structure */
 	KernelGlobal global;
