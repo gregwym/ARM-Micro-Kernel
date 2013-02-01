@@ -2,6 +2,7 @@
 #define _KERN_MD_CONST_H_
 
 #define SWI_ENTRY_POINT 0x28
+#define IRQ_ENTRY_POINT 0x38
 #define DATA_REGION_BASE 0x218000
 
 #define CPU_MODE_USER 0x10
