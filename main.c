@@ -42,8 +42,15 @@ void umain() {
 	unsigned int i = 1;
 	bwprintf(COM2, "Hello World!\n");
 	while(i++) {
-		unsigned int *vic2_irq_addr = (unsigned int*) VIC2_BASE + VIC_IRQ_ST_OFFSET;
-		if(i % 100000 == 0) bwprintf(COM2, "0x%x irq 0x%x\n", getTimerValue(TIMER3_BASE), *vic2_irq_addr);
+		if(i % 100000 == 0) {
+			unsigned int cpsr;
+			asm("mrs 	%0, CPSR"
+			    :"=r"(cpsr)
+			    :
+			    );
+			unsigned int *vic2_irq_addr = (unsigned int*) VIC2_BASE + VIC_IRQ_ST_OFFSET;
+			bwprintf(COM2, "0x%x irq 0x%x cpsr 0x%x\n", getTimerValue(TIMER3_BASE), *vic2_irq_addr, cpsr);
+		}
 	}
 }
 #endif
@@ -55,19 +62,17 @@ void irqEntry() {
 	    :
 	    );
 	unsigned int i = 1;
-	unsigned int *vic2_irq_addr = (unsigned int*) VIC2_BASE + VIC_IRQ_ST_OFFSET;
+	unsigned int *vic2_irq_addr = (unsigned int*) (VIC2_BASE + VIC_IRQ_ST_OFFSET);
 	unsigned int *timer3_in_en_addr = (unsigned int *) (VIC2_BASE + VIC_IN_EN_OFFSET);
-	unsigned int *timer3_clr_addr = (unsigned int*) TIMER3_BASE + CLR_OFFSET;
-	unsigned int *timer3_in_enc_addr = (unsigned int *) (VIC2_BASE + VIC_IN_ENC_OFFSET);
+	unsigned int *timer3_clr_addr = (unsigned int*) (TIMER3_BASE + CLR_OFFSET);
 
 	bwprintf(COM2, "Catch IRQ with CPSR 0x%x and IRQ flags 0x%x, VIC2EN 0x%x\n", cpsr, *vic2_irq_addr, *timer3_in_en_addr);
 	*timer3_clr_addr = 0xff;
-	*timer3_in_enc_addr = 0x00080000;
-	*timer3_in_en_addr = 0x00000000;
-	*timer3_in_en_addr = 0x00080000;
 	bwprintf(COM2, "IRQ flags 0x%x, VIC2EN 0x%x\n", *vic2_irq_addr, *timer3_in_en_addr);
 	// while(i++ < 100000);
 
+	asm("sub	sp, fp, #16");
+	asm("ldmfd	sp, {sl, fp, sp, lr}");
 	asm("movs pc, lr");
 }
 
@@ -79,8 +84,8 @@ int main() {
 	setTimerControl(TIMER3_BASE, TRUE, TRUE, FALSE);
 	// setVicEnable(VIC1_BASE);
 	// setVicEnable(VIC2_BASE);
-	unsigned int *timer3_in_en_addr = (unsigned int *) (VIC2_BASE + VIC_IN_EN_OFFSET);
-	*timer3_in_en_addr = 0x00080000;
+	unsigned int *vic2_in_en_addr = (unsigned int *) (VIC2_BASE + VIC_IN_EN_OFFSET);
+	*vic2_in_en_addr = VIC_TIMER3_MASK;
 
 	/* Initialize TaskList */
 	TaskList tlist;
@@ -112,7 +117,7 @@ int main() {
 	global.msg_array = msg_array;
 	global.task_array = task_array;
 
-	/* Set spsr to usermode */
+	/* Set spsr to usermode with IRQ and FIQ on */
 	asm("msr 	SPSR_c, #0x10");
 
 	/* Create first task */
