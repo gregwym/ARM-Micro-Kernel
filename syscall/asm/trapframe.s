@@ -71,7 +71,7 @@ switchCpuMode:
 	.type	initTrap, %function
 initTrap:
 	@ Switch to system mode
-	msr 	CPSR_c, #0x1f
+	msr 	CPSR_c, #0xdf
 
 	@ Save all register to user stack
 	mov		sp, r0
@@ -88,7 +88,7 @@ initTrap:
 	mov		r0, sp
 
 	@ Switch back to svc mode
-	msr 	CPSR_c, #0x13
+	msr 	CPSR_c, #0xd3
 
 	mov		pc, lr
 
@@ -97,18 +97,12 @@ initTrap:
 	.type	activateStack, %function
 activateStack:
 	@ Switch to system mode
-	mrs		r12, cpsr
-	bic 	r12, r12, #0x1f
-	orr 	r12, r12, #0x1f
-	msr 	CPSR_c, r12
+	msr 	CPSR_c, #0xdf
 
 	@ activate given stack pointer
 	mov		sp, r0
 
 	@ Switch back to svc mode
-	mrs		r12, cpsr
-	bic 	r12, r12, #0x1f
-	orr 	r12, r12, #0x13
-	msr 	CPSR_c, r12
+	msr 	CPSR_c, #0xd3
 
 	mov		pc, lr
