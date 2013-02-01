@@ -1,9 +1,10 @@
 	.file	"usertrap.c"
 	.text
+
 	.align	2
-	.global	kernelEntry
-	.type	kernelEntry, %function
-kernelEntry:
+	.global	swiEntry
+	.type	swiEntry, %function
+swiEntry:
 	@ args = 0, pretend = 0, frame = 0
 	@ frame_needed = 1, uses_anonymous_args = 0
 
@@ -11,7 +12,7 @@ kernelEntry:
 	msr		CPSR_c, #0xdf
 
 	@ Save all register to user stack
-	@ Inorder to handling irq, save both `ip` and `sp` and manully adjust `sp`
+	@ In order to handling irq, save both `ip` and `sp` and manully adjust `sp`
 	stmfd	sp, {r0, r1, r2, r3, r4, r5, r6, r7, r8, sb, sl, fp, ip, sp, lr}
 	sub		sp, sp, #60
 

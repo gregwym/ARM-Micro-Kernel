@@ -105,7 +105,7 @@ int main() {
 
 	/* Setup global kernel entry */
 	int *swi_entry = (int *) SWI_ENTRY_POINT;
-	*swi_entry = (int) (DATA_REGION_BASE + kernelEntry);
+	*swi_entry = (int) (DATA_REGION_BASE + swiEntry);
 	int *irq_entry = (int *) IRQ_ENTRY_POINT;
 	*irq_entry = (int) (DATA_REGION_BASE + irqEntry);
 
