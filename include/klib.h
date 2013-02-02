@@ -10,7 +10,8 @@
 typedef struct kernel_global {
 	TaskList 	*task_list;
 	FreeList 	*free_list;
-	BlockedList	*blocked_list;
+	BlockedList	*receive_blocked_lists;
+	BlockedList	*event_blocked_lists;
 	MsgBuffer	*msg_array;
 	Task	 	*task_array;
 } KernelGlobal;
