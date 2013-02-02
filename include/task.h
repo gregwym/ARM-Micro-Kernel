@@ -90,7 +90,7 @@ int dequeueBlockedList(BlockedList *blocked_lists, int blocked_list_index);
 void blockCurrentTask(TaskList *tlist, TaskState state);
 
 // block list initialization
-void blockedListsInitial(BlockedList *block_lists, int list_len);
+void blockedListsInitial(BlockedList *block_lists, int list_num);
 
 // msg array initialization
 void msgArrayInitial(MsgBuffer *msg_array);
