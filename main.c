@@ -55,28 +55,6 @@ void umain() {
 }
 #endif
 
-void irqEntry() {
-	unsigned int cpsr;
-	asm("mrs 	%0, CPSR"
-	    :"=r"(cpsr)
-	    :
-	    );
-	unsigned int i = 1;
-	unsigned int *vic2_irq_addr = (unsigned int*) (VIC2_BASE + VIC_IRQ_ST_OFFSET);
-	unsigned int *timer3_in_en_addr = (unsigned int *) (VIC2_BASE + VIC_IN_EN_OFFSET);
-	unsigned int *timer3_clr_addr = (unsigned int*) (TIMER3_BASE + CLR_OFFSET);
-
-	bwprintf(COM2, "Catch IRQ with CPSR 0x%x and IRQ flags 0x%x, VIC2EN 0x%x\n", cpsr, *vic2_irq_addr, *timer3_in_en_addr);
-	*timer3_clr_addr = 0xff;
-	bwprintf(COM2, "IRQ flags 0x%x, VIC2EN 0x%x\n", *vic2_irq_addr, *timer3_in_en_addr);
-	// while(i++ < 100000);
-
-	asm("sub	sp, fp, #16");
-	asm("ldmfd	sp, {sl, fp, sp, lr}");
-	asm("movs pc, lr");
-}
-
-
 int main() {
 	/* Initialize hardware */
 	// Turn off interrupt
@@ -86,14 +64,14 @@ int main() {
 	bwsetfifo(COM2, OFF);
 
 	// Setup timer
-	setTimerLoadValue(TIMER3_BASE, 0x00000fff);
-	setTimerControl(TIMER3_BASE, TRUE, TRUE, FALSE);
+	// setTimerLoadValue(TIMER3_BASE, 0x00000fff);
+	// setTimerControl(TIMER3_BASE, TRUE, TRUE, FALSE);
 
 	// Setup VIC
 	// setVicEnable(VIC1_BASE);
 	// setVicEnable(VIC2_BASE);
-	unsigned int *vic2_in_en_addr = (unsigned int *) (VIC2_BASE + VIC_IN_EN_OFFSET);
-	*vic2_in_en_addr = VIC_TIMER3_MASK;
+	// unsigned int *vic2_in_en_addr = (unsigned int *) (VIC2_BASE + VIC_IN_EN_OFFSET);
+	// *vic2_in_en_addr = VIC_TIMER3_MASK;
 
 	/* Initialize TaskList */
 	TaskList tlist;
@@ -126,33 +104,27 @@ int main() {
 	global.task_array = task_array;
 
 	/* Set spsr to usermode with IRQ and FIQ on */
-	asm("msr 	SPSR_c, #0x10");
+	// asm("msr 	SPSR_c, #0x10");
 
 	/* Create first task */
 	Task *first_task = createTask(&flist, 0, umain);
 	insertTask(&tlist, first_task);
-	DEBUG(DB_SYSCALL, "| SYSCALL:\tFirst task created, init_sp: 0x%x\n", first_task->init_sp);
-	DEBUG(DB_SYSCALL, "| SYSCALL:\tGlobal addr: 0x%x\n", &global);
 
 	/* Main syscall handling loop */
 	while(1){
 		// If no more task to run, break
 		if(!scheduleNextTask(&tlist)) break;
-		Task *tmp = tlist.curtask;
-		while (tmp != NULL) {
-			// bwprintf(COM2, "%d -> ", tmp->tid);
-			tmp = tmp->next;
-		}
+		UserTrapframe* user_sp = (UserTrapframe *)tlist.curtask->current_sp;
+		DEBUG(DB_SYSCALL, "| SYSCALL:\tEXITING SP: 0x%x SPSR: 0x%x ResumePoint: 0x%x\n", user_sp, user_sp->spsr, user_sp->resume_point);
 		// Exit kernel to let user program to execute
-		kernelExit(tlist.curtask->resume_point);
+		kernelExit(tlist.curtask->current_sp);
+
 		asm("mov r1, %0"
 		    :
 		    :"r"(&global)
 		    :"r0", "r2", "r3"
 		    );
 		asm("bl	syscallHandler(PLT)");
-
-		DEBUG(DB_SYSCALL, "| SYSCALL:\tSyscall Handler returned normally, exiting kernel\n");
 	}
 
 	return 0;

@@ -89,7 +89,7 @@ int insertTask(TaskList *task_list, Task *new_task) {
 		task_list->priority_tails[priority] = new_task;
 	}
 
-	DEBUG(DB_TASK, "Task(tid: %d) is pushed, stack at %x\n", new_task->tid, new_task->init_sp);
+	DEBUG(DB_TASK, "| TASK:\t\tPushed\t\tTid: %d SP: 0x%x\n", new_task->tid, new_task->current_sp);
 	return 1;
 }
 
@@ -144,9 +144,8 @@ Task *createTask(FreeList *free_list, int priority, void (*code) ()) {
 	ret->next = NULL;
 	ret->parent_tid = -1;
 
-	ret->resume_point = TEXT_REG_BASE + code;
-	ret->current_sp = initTrap(ret->init_sp, TEXT_REG_BASE + Exit);
-	DEBUG(DB_TASK, "| Task:\tNew task current_sp: 0x%x, init_sp: 0x%x\n", ret->current_sp, ret->init_sp);
+	ret->current_sp = initTrap(ret->init_sp, (TEXT_REG_BASE + Exit), (TEXT_REG_BASE + code));
+	DEBUG(DB_TASK, "| Task:\t\tCreated\t\tTid: 0x%x SP: 0x%x, LR: 0x%x\n", ret->tid, ret->current_sp, (TEXT_REG_BASE + code));
 	return ret;
 }
 
@@ -178,12 +177,11 @@ int scheduleNextTask(TaskList *tlist) {
 	if (tlist->curtask == NULL) {
 		return 0;
 	}
-	activateStack(tlist->curtask->current_sp);
-	DEBUG(DB_SYSCALL, "| SYSCALL:\tUser task activated, sp: 0x%x\n", tlist->curtask->current_sp);
+	DEBUG(DB_TASK, "| TASK:\t\tScheduled\tTid: %d Priority: %d\n", tlist->curtask->tid, tlist->curtask->priority);
 	return 1;
 }
 
-void addToBlockedList (BlockedList *blocked_list, TaskList *task_list, int receiver_tid) {
+void addToBlockedList(BlockedList *blocked_list, TaskList *task_list, int receiver_tid) {
 	int index = receiver_tid % TASK_MAX;
 	Task* cur_task = task_list->curtask;
 	if (blocked_list[index].head == NULL) {
@@ -198,7 +196,7 @@ void addToBlockedList (BlockedList *blocked_list, TaskList *task_list, int recei
 	blockCurrentTask(task_list, ReceiveBlocked);
 }
 
-int getFromBlockedList (BlockedList *blocked_list, Task *cur_task) {
+int getFromBlockedList(BlockedList *blocked_list, Task *cur_task) {
 	int index = cur_task->tid % TASK_MAX;
 	int ret = -1;
 	Task *read_task = NULL;
@@ -230,7 +228,7 @@ void blockCurrentTask(TaskList *task_list, TaskState state) {
 	task_list->curtask = NULL;
 }
 
-void blockedListInitial (BlockedList *blocked_list) {
+void blockedListInitial(BlockedList *blocked_list) {
 	int i = -1;
 	for (i = 0; i < TASK_MAX; i++) {
 		blocked_list[i].head = NULL;
@@ -238,7 +236,7 @@ void blockedListInitial (BlockedList *blocked_list) {
 	}
 }
 
-void msgArrayInitial (MsgBuffer *msg_array) {
+void msgArrayInitial(MsgBuffer *msg_array) {
 	int i = -1;
 	for (i = 0; i < TASK_MAX; i++) {
 		msg_array[i].msg = NULL;
