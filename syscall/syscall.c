@@ -145,6 +145,7 @@ int sysReply(KernelGlobal *global, int tid, char *reply, int replylen, int *rtn)
 	insertTask(task_list, sender_task);
 
 	// Reply succeed
+	*rtn = 0;
 	return 0;
 }
 
