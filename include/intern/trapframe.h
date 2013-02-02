@@ -1,12 +1,31 @@
 #ifndef _KERN_TRAPFRAME_H_
 #define _KERN_TRAPFRAME_H_
 
-void kernelEntry();
-void kernelExit(void *resume_point);
-void switchCpuMode(int flag);
-void *initTrap(void *sp, void *exit_syscall);
-void activateStack(void *sp);
+typedef struct user_trap {
+	int spsr;
+	int resume_point;
+	int r0;
+	int r1;
+	int r2;
+	int r3;
+	int r4;
+	int r5;
+	int r6;
+	int r7;
+	int r8;
+	int sb;
+	int sl;
+	int fp;
+	int ip;
+	int sp;
+	int lr;
+} UserTrapframe;
 
-void syscallHandler();
+void irqEntry();
+void swiEntry();
+void kernelExit(void *user_sp);
+void *initTrap(void *sp, void *exit_syscall, void *user_resume_point);
+
+void syscallHandler(void **parameters, KernelGlobal *global, UserTrapframe *user_sp);
 
 #endif // _KERN_TRAPFRAME_H_

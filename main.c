@@ -2,18 +2,76 @@
 #include <unistd.h>
 #include <intern/trapframe.h>
 #include <kern/md_const.h>
+#include <kern/ts7200.h>
+
+#define TRUE	0xffffffff
+#define FALSE	0x00000000
+
+unsigned int setTimerLoadValue(int timer_base, unsigned int value) {
+	unsigned int* timer_load_addr = (unsigned int*) (timer_base + LDR_OFFSET);
+	*timer_load_addr = value;
+	return *timer_load_addr;
+}
+
+unsigned int setTimerControl(int timer_base, unsigned int enable, unsigned int mode, unsigned int clksel) {
+	unsigned int* timer_control_addr = (unsigned int*) (timer_base + CRTL_OFFSET);
+	unsigned int control_value = (ENABLE_MASK & enable) | (MODE_MASK & mode) | (CLKSEL_MASK & clksel) ;
+	// DEBUG(DB_TIMER, "Timer3 control changing from 0x%x to 0x%x.\n", *timer_control_addr, control_value);
+
+	*timer_control_addr = control_value;
+	return *timer_control_addr;
+}
+
+unsigned int getTimerValue(int timer_base) {
+	unsigned int* timer_value_addr = (unsigned int*) (timer_base + VAL_OFFSET);
+	unsigned int value = *timer_value_addr;
+	return value;
+}
+
+unsigned int setVicEnable(int vic_base) {
+	unsigned int* vic_enable_addr = (unsigned int*) (vic_base + VIC_IN_EN_OFFSET);
+	*vic_enable_addr = vic_base == VIC1_BASE ? 0x7F7FFFF : vic_base == VIC2_BASE ? 0xF97865FB : 0x0;
+	return *vic_enable_addr;
+}
 
 // Prototype for the user program main function
 void umain();
 
-// #ifndef umain
-// void umain() {
-// 	bwprintf(COM2, "Hello World!\n");
-// }
-// #endif
+#ifndef umain
+void umain() {
+	unsigned int i = 1;
+	bwprintf(COM2, "Hello World!\n");
+	while(i++) {
+		if(i % 100000 == 0) {
+			unsigned int cpsr;
+			asm("mrs 	%0, CPSR"
+			    :"=r"(cpsr)
+			    :
+			    );
+			unsigned int *vic2_irq_addr = (unsigned int*) VIC2_BASE + VIC_IRQ_ST_OFFSET;
+			bwprintf(COM2, "0x%x irq 0x%x cpsr 0x%x\n", getTimerValue(TIMER3_BASE), *vic2_irq_addr, cpsr);
+		}
+	}
+}
+#endif
 
 int main() {
+	/* Initialize hardware */
+	// Turn off interrupt
+	asm("msr 	CPSR_c, #0xd3");
+
+	// Turn off FIFO
 	bwsetfifo(COM2, OFF);
+
+	// Setup timer
+	// setTimerLoadValue(TIMER3_BASE, 0x00000fff);
+	// setTimerControl(TIMER3_BASE, TRUE, TRUE, FALSE);
+
+	// Setup VIC
+	// setVicEnable(VIC1_BASE);
+	// setVicEnable(VIC2_BASE);
+	// unsigned int *vic2_in_en_addr = (unsigned int *) (VIC2_BASE + VIC_IN_EN_OFFSET);
+	// *vic2_in_en_addr = VIC_TIMER3_MASK;
 
 	/* Initialize TaskList */
 	TaskList tlist;
@@ -28,12 +86,14 @@ int main() {
 	tarrayInitial(task_array, stacks);
 	flistInitial(&flist, task_array);
 	tlistInitial(&tlist, priority_head, priority_tail);
-	blockedListInitial (blocked_list);
-	msgArrayInitial (msg_array);
+	blockedListInitial(blocked_list);
+	msgArrayInitial(msg_array);
 
 	/* Setup global kernel entry */
 	int *swi_entry = (int *) SWI_ENTRY_POINT;
-	*swi_entry = (int) (DATA_REGION_BASE + kernelEntry);
+	*swi_entry = (int) (TEXT_REG_BASE + swiEntry);
+	int *irq_entry = (int *) IRQ_ENTRY_POINT;
+	*irq_entry = (int) (TEXT_REG_BASE + irqEntry);
 
 	/* Setup kernel global variable structure */
 	KernelGlobal global;
@@ -43,37 +103,28 @@ int main() {
 	global.msg_array = msg_array;
 	global.task_array = task_array;
 
-	/* Set spsr to usermode */
-	asm("mrs	r12, spsr");
-	asm("bic 	r12, r12, #0x1f");
-	asm("orr 	r12, r12, #0x10");
-	asm("msr 	SPSR_c, r12");
+	/* Set spsr to usermode with IRQ and FIQ on */
+	// asm("msr 	SPSR_c, #0x10");
 
 	/* Create first task */
 	Task *first_task = createTask(&flist, 0, umain);
 	insertTask(&tlist, first_task);
-	DEBUG(DB_SYSCALL, "| SYSCALL:\tFirst task created, init_sp: 0x%x\n", first_task->init_sp);
-	DEBUG(DB_SYSCALL, "| SYSCALL:\tGlobal addr: 0x%x\n", &global);
 
 	/* Main syscall handling loop */
 	while(1){
 		// If no more task to run, break
 		if(!scheduleNextTask(&tlist)) break;
-		Task *tmp = tlist.curtask;
-		while (tmp != NULL) {
-			// bwprintf(COM2, "%d -> ", tmp->tid);
-			tmp = tmp->next;
-		}
+		UserTrapframe* user_sp = (UserTrapframe *)tlist.curtask->current_sp;
+		DEBUG(DB_SYSCALL, "| SYSCALL:\tEXITING SP: 0x%x SPSR: 0x%x ResumePoint: 0x%x\n", user_sp, user_sp->spsr, user_sp->resume_point);
 		// Exit kernel to let user program to execute
-		kernelExit(tlist.curtask->resume_point);
+		kernelExit(tlist.curtask->current_sp);
+
 		asm("mov r1, %0"
 		    :
 		    :"r"(&global)
 		    :"r0", "r2", "r3"
 		    );
 		asm("bl	syscallHandler(PLT)");
-
-		DEBUG(DB_SYSCALL, "| SYSCALL:\tSyscall Handler returned normally, exiting kernel\n");
 	}
 
 	return 0;

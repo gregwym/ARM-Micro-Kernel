@@ -1,8 +1,7 @@
 #include <kern/callno.h>
 #include <kern/errno.h>
-#include <kern/types.h>
-#include <task.h>
 #include <klib.h>
+#include <intern/trapframe.h>
 
 int sysCreate(TaskList *task_list, FreeList *free_list, int priority, void (*code) (), int *rtn) {
 	Task *task = createTask(free_list, priority, code);
@@ -112,29 +111,23 @@ int sysReceive(KernelGlobal *global, int *tid, char *msg, int msglen, int *rtn) 
 
 
 int sysReply(KernelGlobal *global, int tid, char *reply, int replylen, int *rtn) {
-
-	// assert(task_array[tid % TASK_MAX].tid == tid, "Reply to an unexisting task");
-
 	TaskList 	*task_list = global->task_list;
 	MsgBuffer 	*msg_array = global->msg_array;
 	Task	 	*task_array = global->task_array;
 
-	// not a possible task id
+	// Not a possible task id
 	if (tid < 0) {
-		*rtn = -1;
-		return 0;
+		return -1;
 	}
 
-	// not an existing task
+	// Not an existing task
 	if (task_array[tid % TASK_MAX].tid != tid) {
-		*rtn = -2;
-		return 0;
+		return -2;
 	}
 
-	// sender is no reply blocked
+	// Sender is no reply blocked
 	if (task_array[tid % TASK_MAX].state != ReplyBlocked) {
-		*rtn = -3;
-		return 0;
+		return -3;
 	}
 
 	Task *sender_task = &task_array[tid % TASK_MAX];
@@ -143,32 +136,30 @@ int sysReply(KernelGlobal *global, int tid, char *reply, int replylen, int *rtn)
 	msg_array[tid % TASK_MAX].reply = memcpy(msg_array[tid % TASK_MAX].reply, reply, msg_array[tid % TASK_MAX].replylen);
 	msg_array[tid % TASK_MAX].msg = NULL;
 
-	// set sender's return value to be the reply msg's length
-	*((int *)sender_task->current_sp) = replylen;
+	// Set sender's return value to be the reply msg's length
+	UserTrapframe *sender_trapframe = (UserTrapframe *)sender_task->current_sp;
+	sender_trapframe->r0 = replylen;
 
-	// put sender back to ready queue
+	// Put sender back to ready queue
 	sender_task->state = Ready;
 	insertTask(task_list, sender_task);
 
+	// Reply succeed
 	*rtn = 0;
 	return 0;
 }
 
-void syscallHandler(void **parameters, KernelGlobal *global, void *user_sp, void *user_resume_point) {
+void syscallHandler(void **parameters, KernelGlobal *global, UserTrapframe *user_sp) {
 	int callno = *((int*)(parameters[0]));
 	int err = 0;
 	int rtn = 0;
 
-	DEBUG(DB_SYSCALL, "| SYSCALL:\tCall number: %d\n", callno);
-	// DEBUG(DB_SYSCALL, "| SYSCALL:\tglobal: 0x%x\n", global);
-	// DEBUG(DB_SYSCALL, "| SYSCALL:\tuser_sp: 0x%x\n", user_sp);
-	// DEBUG(DB_SYSCALL, "| SYSCALL:\tuser_resume_point: 0x%x\n", user_resume_point);
+	DEBUG(DB_SYSCALL, "| SYSCALL:\tCALL: %d SP: 0x%x SPSR: 0x%x ResumePoint: 0x%x\n", callno, user_sp, user_sp->spsr, user_sp->resume_point);
 
 	TaskList *task_list = global->task_list;
 	FreeList *free_list = global->free_list;
 
 	global->task_list->curtask->current_sp = user_sp;
-	global->task_list->curtask->resume_point = user_resume_point;
 
 	switch(callno) {
 		case SYS_exit:
@@ -198,7 +189,7 @@ void syscallHandler(void **parameters, KernelGlobal *global, void *user_sp, void
 			break;
 	}
 
-	*((int *)user_sp) = (err == 0 ? rtn : err);
+	user_sp->r0 = (err == 0 ? rtn : err);
 
 	return;
 }

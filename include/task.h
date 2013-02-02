@@ -23,8 +23,10 @@ typedef struct task_descriptor {
 	void		*current_sp;				// stack current position
 	struct		task_descriptor *next;		// next task
 	int			parent_tid;					// parent
+
+	/* The following value are saved on user stack, within the trapframe */
 	// SPSR
-	void		*resume_point;				// pc addr to resume task
+	// pc addr to resume task
 	// Return value
 } Task;
 
