@@ -40,17 +40,20 @@ void umain();
 #ifndef umain
 void umain() {
 	unsigned int i = 1;
+	int result = -1;
+	unsigned int cpsr;
+	unsigned int *vic2_irq_addr = (unsigned int*) VIC2_BASE + VIC_IRQ_ST_OFFSET;
+
 	bwprintf(COM2, "Hello World!\n");
 	while(i++) {
-		if(i % 100000 == 0) {
-			unsigned int cpsr;
-			asm("mrs 	%0, CPSR"
-			    :"=r"(cpsr)
-			    :
-			    );
-			unsigned int *vic2_irq_addr = (unsigned int*) VIC2_BASE + VIC_IRQ_ST_OFFSET;
-			bwprintf(COM2, "0x%x irq 0x%x cpsr 0x%x\n", getTimerValue(TIMER3_BASE), *vic2_irq_addr, cpsr);
-		}
+		asm("mrs 	%0, CPSR"
+		    :"=r"(cpsr)
+		    :
+		    );
+		DEBUG(DB_SYSCALL, "Timer: 0x%x irq 0x%x cpsr 0x%x\n", getTimerValue(TIMER3_BASE), *vic2_irq_addr, cpsr);
+		char event[10];
+		result = AwaitEvent(EVENT_MS_ELAP, event, 10);
+		DEBUG(DB_SYSCALL, "Come back from AwaitEvent, Result: %d Event: %d\n", result, event[0]);
 	}
 }
 #endif
