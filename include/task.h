@@ -79,11 +79,12 @@ void refreshCurtask(TaskList *tlist);
 // Schedule next task to run, return 0 if no more task
 int scheduleNextTask(TaskList *tlist);
 
-// add current task to block list and block current task
-void enqueueToBlockedList(BlockedList *blocked_lists, int blocked_list_index, TaskList *task_list, TaskState blocked_state);
+// Add current task to specified block list
+// Note: Current task will be removed from the ready queue and its state will be changed to blocked_state
+void enqueueBlockedList(BlockedList *blocked_lists, int blocked_list_index, TaskList *task_list, TaskState blocked_state);
 
 // receiver call this to get a sender's tid that has sent to the receiver
-int dequeueFromBlockedList(BlockedList *blocked_lists, int blocked_list_index);
+int dequeueBlockedList(BlockedList *blocked_lists, int blocked_list_index);
 
 // block current task with "state"
 void blockCurrentTask(TaskList *tlist, TaskState state);

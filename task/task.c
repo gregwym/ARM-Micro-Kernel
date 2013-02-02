@@ -181,7 +181,7 @@ int scheduleNextTask(TaskList *tlist) {
 	return 1;
 }
 
-void enqueueToBlockedList(BlockedList *blocked_lists, int blocked_lists_index, TaskList *task_list, TaskState blocked_state) {
+void enqueueBlockedList(BlockedList *blocked_lists, int blocked_lists_index, TaskList *task_list, TaskState blocked_state) {
 	Task* cur_task = task_list->curtask;
 	if (blocked_lists[blocked_lists_index].head == NULL) {
 		blocked_lists[blocked_lists_index].head = cur_task;
@@ -195,7 +195,7 @@ void enqueueToBlockedList(BlockedList *blocked_lists, int blocked_lists_index, T
 	blockCurrentTask(task_list, blocked_state);
 }
 
-int dequeueFromBlockedList(BlockedList *blocked_lists, int blocked_list_index) {
+int dequeueBlockedList(BlockedList *blocked_lists, int blocked_list_index) {
 	int ret = -1;
 	Task *read_task = NULL;
 	if (blocked_lists[blocked_list_index].head != NULL) {
