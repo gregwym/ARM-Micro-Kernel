@@ -13,6 +13,6 @@ int WhoIs( char *name );
 int Send( int tid, char *msg, int msglen, char *reply, int replylen );
 int Receive( int *tid, char *msg, int msglen );
 int Reply( int tid, char *reply, int replylen );
-int AwaitEvent( int eventid, char *event, int eventln );
+int AwaitEvent( int eventid, char *event, int eventlen );
 
 #endif // __UNISTD_H__

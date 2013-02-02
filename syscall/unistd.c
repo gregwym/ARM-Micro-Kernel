@@ -136,10 +136,10 @@ int Reply( int tid, char *reply, int replylen ) {
 	return rtn;
 }
 
-int AwaitEvent( int eventid, char *event, int eventln ) {
+int AwaitEvent( int eventid, char *event, int eventlen ) {
 	int rtn = -1;
 	int callno = SYS_awaitEvent;
-	void *parameters[5] = {(&callno), &eventid, &event, &eventln,  NULL};
+	void *parameters[5] = {(&callno), &eventid, &event, &eventlen,  NULL};
 	asm("mov r0, %0"
 	    :
 	    :"r"(parameters));
