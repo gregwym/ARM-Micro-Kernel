@@ -23,7 +23,8 @@ irqEntry:
 	msr		CPSR_c, #0xd2
 	mrs		r3, SPSR
 
-	@ Save r3 (SPSR_irq) and lr_irq (user resume point) to user stack
+	@ Save r3 (SPSR_irq) and (lr_irq - 4) (user resume point) to user stack
+	sub		lr, lr, #4
 	stmfd	r2!, {r3, lr}
 
 	@ Switch back to svc mode
