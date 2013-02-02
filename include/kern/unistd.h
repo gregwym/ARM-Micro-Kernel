@@ -14,4 +14,7 @@
 #define RB_HALT       1      /* Halt system and do not reboot */
 #define RB_POWEROFF   2      /* Halt system and power off */
 
+/* System-wide Event ID */
+#define EVENT_MS_ELAP	0	/* More than one millisecond elapsed */
+
 #endif // _KERN_UNISTD_H_

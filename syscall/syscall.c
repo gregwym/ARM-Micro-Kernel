@@ -149,8 +149,22 @@ int sysReply(KernelGlobal *global, int tid, char *reply, int replylen, int *rtn)
 	return 0;
 }
 
-int sysAwaitEvent(KernelGlobal *global, int eventid, int *rtn) {
-	// TODO: WIP, not finished yet
+int sysAwaitEvent(KernelGlobal *global, int eventid, char *event, int eventlen, int *rtn) {
+	TaskList 	*task_list = global->task_list;
+	BlockedList *event_blocked_lists = global->event_blocked_lists;
+	MsgBuffer 	*msg_array = global->msg_array;
+
+	int cur_tid = task_list->curtask->tid;
+	assert((msg_array[cur_tid]).event == NULL, "MsgBuffer.event is not NULL");
+	// Link waiter's event and eventlen to msg_array
+	(msg_array[cur_tid]).event = event;
+	(msg_array[cur_tid]).eventlen = eventlen;
+
+	// Block current task and add it to blocklist
+	enqueueBlockedList(event_blocked_lists, eventid, task_list, EventBlocked);
+
+	*rtn = 0;
+	return 0;
 }
 
 void syscallHandler(void **parameters, KernelGlobal *global, UserTrapframe *user_sp) {
@@ -189,7 +203,7 @@ void syscallHandler(void **parameters, KernelGlobal *global, UserTrapframe *user
 			err = sysReply(global, *((int*)(parameters[1])), (char*)parameters[2], *((int*)(parameters[3])), &rtn);
 			break;
 		case SYS_awaitEvent:
-			err = sysAwaitEvent(global, *((int*)(parameters[1])), &rtn);
+			err = sysAwaitEvent(global, *((int*)(parameters[1])), *((char**)parameters[2]), *((int*)(parameters[3])), &rtn);
 			break;
 		case SYS_pass:
 		default:
