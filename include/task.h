@@ -12,7 +12,8 @@ typedef enum TaskState {
 	Empty,
 	SendBlocked,
 	ReceiveBlocked,
-	ReplyBlocked
+	ReplyBlocked,
+	EventBlocked
 } TaskState;
 
 typedef struct task_descriptor {
