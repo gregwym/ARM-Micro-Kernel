@@ -111,24 +111,21 @@ int sysReceive(KernelGlobal *global, int *tid, char *msg, int msglen, int *rtn) 
 
 
 int sysReply(KernelGlobal *global, int tid, char *reply, int replylen, int *rtn) {
-
-	// assert(task_array[tid % TASK_MAX].tid == tid, "Reply to an unexisting task");
-
 	TaskList 	*task_list = global->task_list;
 	MsgBuffer 	*msg_array = global->msg_array;
 	Task	 	*task_array = global->task_array;
 
-	// not a possible task id
+	// Not a possible task id
 	if (tid < 0) {
 		return -1;
 	}
 
-	// not an existing task
+	// Not an existing task
 	if (task_array[tid % TASK_MAX].tid != tid) {
 		return -2;
 	}
 
-	// sender is no reply blocked
+	// Sender is no reply blocked
 	if (task_array[tid % TASK_MAX].state != ReplyBlocked) {
 		return -3;
 	}
@@ -139,13 +136,15 @@ int sysReply(KernelGlobal *global, int tid, char *reply, int replylen, int *rtn)
 	msg_array[tid % TASK_MAX].reply = memcpy(msg_array[tid % TASK_MAX].reply, reply, msg_array[tid % TASK_MAX].replylen);
 	msg_array[tid % TASK_MAX].msg = NULL;
 
-	// set sender's return value to be the reply msg's length
-	*rtn = replylen;
+	// Set sender's return value to be the reply msg's length
+	UserTrapframe *sender_trapframe = (UserTrapframe *)sender_task->current_sp;
+	sender_trapframe->r0 = replylen;
 
-	// put sender back to ready queue
+	// Put sender back to ready queue
 	sender_task->state = Ready;
 	insertTask(task_list, sender_task);
 
+	// Reply succeed
 	return 0;
 }
 
