@@ -181,31 +181,29 @@ int scheduleNextTask(TaskList *tlist) {
 	return 1;
 }
 
-void addToBlockedList(BlockedList *blocked_list, TaskList *task_list, int receiver_tid) {
-	int index = receiver_tid % TASK_MAX;
+void enqueueToBlockedList(BlockedList *blocked_lists, int blocked_lists_index, TaskList *task_list, TaskState blocked_state) {
 	Task* cur_task = task_list->curtask;
-	if (blocked_list[index].head == NULL) {
-		blocked_list[index].head = cur_task;
-		blocked_list[index].tail = cur_task;
+	if (blocked_lists[blocked_lists_index].head == NULL) {
+		blocked_lists[blocked_lists_index].head = cur_task;
+		blocked_lists[blocked_lists_index].tail = cur_task;
 	} else {
-		blocked_list[index].tail->next = cur_task;
-		blocked_list[index].tail = cur_task;
+		blocked_lists[blocked_lists_index].tail->next = cur_task;
+		blocked_lists[blocked_lists_index].tail = cur_task;
 	}
 
 	// notice: current task->next is set to NULL in blockCurrentTask function
-	blockCurrentTask(task_list, ReceiveBlocked);
+	blockCurrentTask(task_list, blocked_state);
 }
 
-int getFromBlockedList(BlockedList *blocked_list, Task *cur_task) {
-	int index = cur_task->tid % TASK_MAX;
+int dequeueFromBlockedList(BlockedList *blocked_lists, int blocked_list_index) {
 	int ret = -1;
 	Task *read_task = NULL;
-	if (blocked_list[index].head != NULL) {
-		read_task = blocked_list[index].head;
+	if (blocked_lists[blocked_list_index].head != NULL) {
+		read_task = blocked_lists[blocked_list_index].head;
 		ret = read_task->tid;
-		blocked_list[index].head = blocked_list[index].head->next;
-		if (blocked_list[index].head == NULL) {
-			blocked_list[index].tail = NULL;
+		blocked_lists[blocked_list_index].head = blocked_lists[blocked_list_index].head->next;
+		if (blocked_lists[blocked_list_index].head == NULL) {
+			blocked_lists[blocked_list_index].tail = NULL;
 		}
 	}
 	return ret;
@@ -228,11 +226,11 @@ void blockCurrentTask(TaskList *task_list, TaskState state) {
 	task_list->curtask = NULL;
 }
 
-void blockedListInitial(BlockedList *blocked_list) {
+void blockedListsInitial(BlockedList *blocked_lists, int list_num) {
 	int i = -1;
-	for (i = 0; i < TASK_MAX; i++) {
-		blocked_list[i].head = NULL;
-		blocked_list[i].tail = NULL;
+	for (i = 0; i < list_num; i++) {
+		blocked_lists[i].head = NULL;
+		blocked_lists[i].tail = NULL;
 	}
 }
 
