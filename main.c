@@ -80,13 +80,15 @@ int main() {
 	char stacks[TASK_MAX * TASK_STACK_SIZE];
 	Task *priority_head[TASK_PRIORITY_MAX];
 	Task *priority_tail[TASK_PRIORITY_MAX];
-	BlockedList blocked_list[TASK_MAX];
+	BlockedList receive_blocked_lists[TASK_MAX];
+	BlockedList event_blocked_lists[EVENT_MAX];
 	MsgBuffer msg_array[TASK_MAX];
 
 	tarrayInitial(task_array, stacks);
 	flistInitial(&flist, task_array);
 	tlistInitial(&tlist, priority_head, priority_tail);
-	blockedListInitial(blocked_list);
+	blockedListsInitial(receive_blocked_lists, TASK_MAX);
+	blockedListsInitial(event_blocked_lists, EVENT_MAX);
 	msgArrayInitial(msg_array);
 
 	/* Setup global kernel entry */
@@ -99,7 +101,8 @@ int main() {
 	KernelGlobal global;
 	global.task_list = &tlist;
 	global.free_list = &flist;
-	global.blocked_list = blocked_list;
+	global.receive_blocked_lists = receive_blocked_lists;
+	global.event_blocked_lists = event_blocked_lists;
 	global.msg_array = msg_array;
 	global.task_array = task_array;
 

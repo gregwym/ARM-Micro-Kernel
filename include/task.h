@@ -4,6 +4,7 @@
 #define TASK_MAX 30
 #define TASK_STACK_SIZE 512
 #define TASK_PRIORITY_MAX 10
+#define EVENT_MAX 8
 
 typedef enum TaskState {
 	Active,
@@ -78,17 +79,18 @@ void refreshCurtask(TaskList *tlist);
 // Schedule next task to run, return 0 if no more task
 int scheduleNextTask(TaskList *tlist);
 
-// add current task to block list and block current task
-void addToBlockedList(BlockedList *blocked_list, TaskList *task_list, int receiver_tid);
+// Add current task to specified block list
+// Note: Current task will be removed from the ready queue and its state will be changed to blocked_state
+void enqueueBlockedList(BlockedList *blocked_lists, int blocked_list_index, TaskList *task_list, TaskState blocked_state);
 
 // receiver call this to get a sender's tid that has sent to the receiver
-int getFromBlockedList(BlockedList *blocked_list, Task *cur_task);
+int dequeueBlockedList(BlockedList *blocked_lists, int blocked_list_index);
 
 // block current task with "state"
 void blockCurrentTask(TaskList *tlist, TaskState state);
 
 // block list initialization
-void blockedListInitial(BlockedList *block_list);
+void blockedListsInitial(BlockedList *block_lists, int list_num);
 
 // msg array initialization
 void msgArrayInitial(MsgBuffer *msg_array);

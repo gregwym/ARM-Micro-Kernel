@@ -31,7 +31,7 @@ int sysMyParentTid(TaskList *tlist, int *rtn) {
 int sysSend(KernelGlobal *global, int tid, char *msg, int msglen, char *reply, int replylen, int *rtn) {
 
 	TaskList 	*task_list = global->task_list;
-	BlockedList *blocked_list = global->blocked_list;
+	BlockedList *receive_blocked_lists = global->receive_blocked_lists;
 	MsgBuffer 	*msg_array = global->msg_array;
 	Task	 	*task_array = global->task_array;
 
@@ -58,7 +58,7 @@ int sysSend(KernelGlobal *global, int tid, char *msg, int msglen, char *reply, i
 	(msg_array[cur_tid]).replylen = replylen;
 
 	// block current task and add it to blocklist
-	addToBlockedList(blocked_list, task_list, tid);
+	enqueueBlockedList(receive_blocked_lists, tid % TASK_MAX, task_list, ReceiveBlocked);
 
 	// unblock the receiver task
 	if (task_array[tid % TASK_MAX].state == SendBlocked) {
@@ -73,7 +73,7 @@ int sysSend(KernelGlobal *global, int tid, char *msg, int msglen, char *reply, i
 int sysReceive(KernelGlobal *global, int *tid, char *msg, int msglen, int *rtn) {
 
 	TaskList 	*task_list = global->task_list;
-	BlockedList *blocked_list = global->blocked_list;
+	BlockedList *receive_blocked_lists = global->receive_blocked_lists;
 	MsgBuffer 	*msg_array = global->msg_array;
 	Task	 	*task_array = global->task_array;
 
@@ -81,7 +81,7 @@ int sysReceive(KernelGlobal *global, int *tid, char *msg, int msglen, int *rtn) 
 	Task *sender_task = NULL;
 
 	// pull a sender's tid
-	sender_tid = getFromBlockedList(blocked_list, task_list->curtask);
+	sender_tid = dequeueBlockedList(receive_blocked_lists, task_list->curtask->tid % TASK_MAX);
 
 	if (sender_tid == -1) {
 		// no one send current task msg
