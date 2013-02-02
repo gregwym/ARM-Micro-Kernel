@@ -149,6 +149,10 @@ int sysReply(KernelGlobal *global, int tid, char *reply, int replylen, int *rtn)
 	return 0;
 }
 
+int sysAwaitEvent(KernelGlobal *global, int eventid, int *rtn) {
+	// TODO: WIP, not finished yet
+}
+
 void syscallHandler(void **parameters, KernelGlobal *global, UserTrapframe *user_sp) {
 	int callno = *((int*)(parameters[0]));
 	int err = 0;
@@ -183,6 +187,9 @@ void syscallHandler(void **parameters, KernelGlobal *global, UserTrapframe *user
 			break;
 		case SYS_reply:
 			err = sysReply(global, *((int*)(parameters[1])), (char*)parameters[2], *((int*)(parameters[3])), &rtn);
+			break;
+		case SYS_awaitEvent:
+			err = sysAwaitEvent(global, *((int*)(parameters[1])), &rtn);
 			break;
 		case SYS_pass:
 		default:
