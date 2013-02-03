@@ -12,6 +12,6 @@ void handlerRedirection(void **parameters, KernelGlobal *global, UserTrapframe *
 		irqHandler(global);
 	}
 	else {
-		syscallHandler(parameters, global);
+		user_sp->r0 = syscallHandler(parameters, global);
 	}
 }
