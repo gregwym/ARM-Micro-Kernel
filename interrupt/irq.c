@@ -15,12 +15,12 @@ void irqHandler(KernelGlobal *global) {
 	Task	 	*task_array = global->task_array;
 	TaskList	*task_list = global->task_list;
 	MsgBuffer	*msg_array = global->msg_array;
-	int tid = dequeueBlockedList(event_blocked_lists, EVENT_MS_ELAP);
+	int tid = dequeueBlockedList(event_blocked_lists, EVENT_TIME_ELAP);
 
 	while(tid != -1) {
 		msg_array[tid].event = NULL;
 		insertTask(task_list, &(task_array[tid % TASK_MAX]));
 		DEBUG(DB_IRQ, "| IRQ:\tTid %d resumed from EventBlocked\n", tid);
-		tid = dequeueBlockedList(event_blocked_lists, EVENT_MS_ELAP);
+		tid = dequeueBlockedList(event_blocked_lists, EVENT_TIME_ELAP);
 	}
 }

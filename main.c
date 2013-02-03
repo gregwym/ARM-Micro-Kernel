@@ -44,7 +44,7 @@ void umain() {
 
 	bwprintf(COM2, "Hello World!\n");
 	while(1) {
-		AwaitEvent(EVENT_MS_ELAP, NULL, 0);
+		AwaitEvent(EVENT_TIME_ELAP, NULL, 0);
 		time++;
 		bwprintf(COM2, "%ds\n", time);
 	}
