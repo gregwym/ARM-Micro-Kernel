@@ -1,6 +1,6 @@
 #include <klib.h>
 #include <unistd.h>
-#include <intern/trapframe.h>
+#include <interrupt.h>
 #include <kern/md_const.h>
 #include <kern/ts7200.h>
 

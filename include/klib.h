@@ -4,17 +4,7 @@
 #ifndef __KLIB_H__
 #define __KLIB_H__
 
-#include <task.h>
 #include <kern/types.h>
-
-typedef struct kernel_global {
-	TaskList 	*task_list;
-	FreeList 	*free_list;
-	BlockedList	*receive_blocked_lists;
-	BlockedList	*event_blocked_lists;
-	MsgBuffer	*msg_array;
-	Task	 	*task_array;
-} KernelGlobal;
 
 /* String functions */
 void *memcpy(void *dst, const void *src, size_t len);

@@ -1,7 +1,7 @@
+#include <interrupt.h>
+#include <klib.h>
 #include <kern/callno.h>
 #include <kern/errno.h>
-#include <klib.h>
-#include <intern/trapframe.h>
 
 int sysCreate(TaskList *task_list, FreeList *free_list, int priority, void (*code) (), int *rtn) {
 	Task *task = createTask(free_list, priority, code);

@@ -26,8 +26,4 @@ void swiEntry();
 void kernelExit(void *user_sp);
 void *initTrap(void *sp, void *exit_syscall, void *user_resume_point);
 
-void handlerRedirection(void **parameters, KernelGlobal *global, UserTrapframe *user_sp);
-int syscallHandler(void **parameters, KernelGlobal *global);
-void irqHandler(KernelGlobal *global);
-
 #endif // _KERN_TRAPFRAME_H_
