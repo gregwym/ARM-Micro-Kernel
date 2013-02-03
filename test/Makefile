@@ -20,7 +20,7 @@ OBJECTS = main.o heaptest.o
 LIBS = nameserver.a task.a syscall.a klib.a
 LIBS_INCLUDE = $(patsubst %.a,-l%,$(LIBS))
 
-all: heap.elf
+all: test.elf
 
 %.s: %.c
 	$(XCC) -S $(CFLAGS) -o $@ $<
@@ -28,7 +28,7 @@ all: heap.elf
 $(OBJECTS): %.o: %.s
 	$(AS) $(ASFLAGS) -o $@ $<
 
-heap.elf: $(OBJECTS)
+test.elf: $(OBJECTS)
 	$(LD) $(LDFLAGS) -o $@ $(OBJECTS) $(LIBS_INCLUDE) -lgcc
 
 clean:
