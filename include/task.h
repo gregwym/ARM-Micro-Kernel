@@ -96,4 +96,6 @@ void blockedListsInitial(BlockedList *block_lists, int list_num);
 // msg array initialization
 void msgArrayInitial(MsgBuffer *msg_array);
 
+void createIdleTask();
+
 #endif //__TASK_H__

@@ -1,6 +1,6 @@
 #include <klib.h>
 #include <unistd.h>
-#include <intern/trapframe.h>
+#include <interrupt.h>
 #include <kern/md_const.h>
 #include <kern/ts7200.h>
 
@@ -40,6 +40,8 @@ void umain();
 // #define DEV_MAIN
 #ifndef DEV_MAIN
 void umain() {
+	createIdleTask();
+
 	unsigned int time = 0;
 
 	bwprintf(COM2, "Hello World!\n");
@@ -50,10 +52,6 @@ void umain() {
 	}
 }
 #endif
-
-void idleTask() {
-	while(1);
-}
 
 int main() {
 	/* Initialize hardware */
@@ -105,10 +103,6 @@ int main() {
 	global.event_blocked_lists = event_blocked_lists;
 	global.msg_array = msg_array;
 	global.task_array = task_array;
-
-	/* Create idle task with lowest priority */
-	Task *idle_task = createTask(&flist, TASK_PRIORITY_MAX - 1, idleTask);
-	insertTask(&tlist, idle_task);
 
 	/* Create first task with highest priority */
 	Task *first_task = createTask(&flist, 0, umain);

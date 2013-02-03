@@ -17,7 +17,7 @@ ASFLAGS	= -mcpu=arm920t -mapcs-32
 
 ARFLAGS = rcs
 
-OBJECTS = task.o
+OBJECTS = task.o idleTask.o
 
 all:  task.a
 
