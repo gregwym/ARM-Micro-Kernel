@@ -4,7 +4,6 @@
 #define TASK_MAX 30
 #define TASK_STACK_SIZE 512
 #define TASK_PRIORITY_MAX 10
-#define EVENT_MAX 8
 
 typedef enum TaskState {
 	Active,
@@ -54,6 +53,8 @@ typedef struct msg_buffer {
 	int msglen;
 	char *reply;
 	int replylen;
+	char *event;
+	int eventlen;
 } MsgBuffer;
 
 

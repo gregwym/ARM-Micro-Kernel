@@ -27,6 +27,18 @@ void *memcpy(void *dst, const void *src, size_t len)
 	return dst;
 }
 
+void *memset(void *ptr, int ch, size_t len)
+{
+        char *p = ptr;
+        size_t i;
+
+        for (i=0; i<len; i++) {
+                p[i] = ch;
+        }
+
+        return ptr;
+}
+
 int strcmp(const char *src, const char *dst) {
 	int ret = 0;
 	while( ! (ret = *(unsigned char *)src - *(unsigned char *)dst) && *dst) ++src, ++dst;

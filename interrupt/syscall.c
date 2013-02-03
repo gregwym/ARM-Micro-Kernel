@@ -45,7 +45,6 @@ int sysSend(KernelGlobal *global, int tid, char *msg, int msglen, char *reply, i
 
 	// not an existing task
 	if (task_array[tid % TASK_MAX].tid != tid) {
-		DEBUG(DB_MSG_PASSING, "SYSSEND: task id not existing\n");
 		*rtn = -2;
 		return 0;
 	}
@@ -149,17 +148,33 @@ int sysReply(KernelGlobal *global, int tid, char *reply, int replylen, int *rtn)
 	return 0;
 }
 
-void syscallHandler(void **parameters, KernelGlobal *global, UserTrapframe *user_sp) {
+int sysAwaitEvent(KernelGlobal *global, int eventid, char *event, int eventlen, int *rtn) {
+	TaskList 	*task_list = global->task_list;
+	BlockedList *event_blocked_lists = global->event_blocked_lists;
+	MsgBuffer 	*msg_array = global->msg_array;
+
+	int cur_tid = task_list->curtask->tid;
+	assert((msg_array[cur_tid]).event == NULL, "MsgBuffer.event is not NULL");
+	// Link waiter's event and eventlen to msg_array
+	(msg_array[cur_tid]).event = event;
+	(msg_array[cur_tid]).eventlen = eventlen;
+
+	// Block current task and add it to blocklist
+	enqueueBlockedList(event_blocked_lists, eventid, task_list, EventBlocked);
+
+	*rtn = 0;
+	return 0;
+}
+
+int syscallHandler(void **parameters, KernelGlobal *global) {
 	int callno = *((int*)(parameters[0]));
 	int err = 0;
 	int rtn = 0;
 
-	DEBUG(DB_SYSCALL, "| SYSCALL:\tCALL: %d SP: 0x%x SPSR: 0x%x ResumePoint: 0x%x\n", callno, user_sp, user_sp->spsr, user_sp->resume_point);
+	DEBUG(DB_SYSCALL, "| SYSCALL:\tCallno: %d\n", callno);
 
 	TaskList *task_list = global->task_list;
 	FreeList *free_list = global->free_list;
-
-	global->task_list->curtask->current_sp = user_sp;
 
 	switch(callno) {
 		case SYS_exit:
@@ -184,13 +199,14 @@ void syscallHandler(void **parameters, KernelGlobal *global, UserTrapframe *user
 		case SYS_reply:
 			err = sysReply(global, *((int*)(parameters[1])), (char*)parameters[2], *((int*)(parameters[3])), &rtn);
 			break;
+		case SYS_awaitEvent:
+			err = sysAwaitEvent(global, *((int*)(parameters[1])), *((char**)parameters[2]), *((int*)(parameters[3])), &rtn);
+			break;
 		case SYS_pass:
 		default:
 			break;
 	}
 
-	user_sp->r0 = (err == 0 ? rtn : err);
-
-	return;
+	return (err == 0 ? rtn : err);
 }
 
