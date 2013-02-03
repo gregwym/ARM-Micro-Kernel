@@ -119,7 +119,7 @@ int main() {
 		// If no more task to run, break
 		if(!scheduleNextTask(&tlist)) break;
 		UserTrapframe* user_sp = (UserTrapframe *)tlist.curtask->current_sp;
-		DEBUG(DB_TASK, "| TASK:\t\tEXITING SP: 0x%x SPSR: 0x%x ResumePoint: 0x%x\n", user_sp, user_sp->spsr, user_sp->resume_point);
+		DEBUG(DB_TASK, "| TASK:\tEXITING SP: 0x%x SPSR: 0x%x ResumePoint: 0x%x\n", user_sp, user_sp->spsr, user_sp->resume_point);
 		// Exit kernel to let user program to execute
 		kernelExit(tlist.curtask->current_sp);
 

@@ -45,7 +45,6 @@ int sysSend(KernelGlobal *global, int tid, char *msg, int msglen, char *reply, i
 
 	// not an existing task
 	if (task_array[tid % TASK_MAX].tid != tid) {
-		DEBUG(DB_MSG_PASSING, "SYSSEND: task id not existing\n");
 		*rtn = -2;
 		return 0;
 	}
@@ -167,17 +166,15 @@ int sysAwaitEvent(KernelGlobal *global, int eventid, char *event, int eventlen, 
 	return 0;
 }
 
-void syscallHandler(void **parameters, KernelGlobal *global, UserTrapframe *user_sp) {
+int syscallHandler(void **parameters, KernelGlobal *global) {
 	int callno = *((int*)(parameters[0]));
 	int err = 0;
 	int rtn = 0;
 
-	DEBUG(DB_SYSCALL, "| SYSCALL:\tCALL: %d SP: 0x%x SPSR: 0x%x ResumePoint: 0x%x\n", callno, user_sp, user_sp->spsr, user_sp->resume_point);
+	DEBUG(DB_SYSCALL, "| SYSCALL:\tCallno: %d\n", callno);
 
 	TaskList *task_list = global->task_list;
 	FreeList *free_list = global->free_list;
-
-	global->task_list->curtask->current_sp = user_sp;
 
 	switch(callno) {
 		case SYS_exit:
@@ -210,8 +207,6 @@ void syscallHandler(void **parameters, KernelGlobal *global, UserTrapframe *user
 			break;
 	}
 
-	user_sp->r0 = (err == 0 ? rtn : err);
-
-	return;
+	return (err == 0 ? rtn : err);
 }
 
