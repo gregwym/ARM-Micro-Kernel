@@ -38,7 +38,7 @@ void heapNodesInitial(HeapNode *nodes, int nodes_num) {
 }
 
 void minHeapInsert(Heap *heap, HeapNode *node) {
-	// assert(heap->heapsize < heap->maxsize, "heapsize exceed");
+	assert(heap->heapsize < heap->maxsize, "heapsize exceed");
 	int index = heap->heapsize;
 	int parent_index = getParent(index);
 	HeapNode **data = heap->data;
