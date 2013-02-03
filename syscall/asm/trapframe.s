@@ -30,6 +30,9 @@ irqEntry:
 	@ Switch back to svc mode
 	msr		CPSR_c, #0xd3
 
+	@ Clear r0 indicate it is an IRQ instead of SWI
+	mov		r0, #0
+
 	@ Restore kernel trapframe (side effect: jump back to original lr)
 	ldmfd	sp, {r4, r5, r6, r7, r8, sb, sl, fp, sp, pc}
 
