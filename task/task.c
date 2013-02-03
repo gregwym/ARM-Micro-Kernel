@@ -1,7 +1,6 @@
 #include <task.h>
 #include <klib.h>
 #include <unistd.h>
-#include <kern/types.h>
 #include <kern/md_const.h>
 
 void tlistInitial(TaskList *task_list, Task **heads, Task **tails) {
@@ -18,7 +17,6 @@ void tlistInitial(TaskList *task_list, Task **heads, Task **tails) {
 		heads[i] = NULL;
 		tails[i] = NULL;
 	}
-
 }
 
 void tarrayInitial(Task *task_array, char *stacks) {
