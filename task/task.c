@@ -89,7 +89,7 @@ int insertTask(TaskList *task_list, Task *new_task) {
 		task_list->priority_tails[priority] = new_task;
 	}
 
-	DEBUG(DB_TASK, "| TASK:\t\tPushed\t\tTid: %d SP: 0x%x\n", new_task->tid, new_task->current_sp);
+	DEBUG(DB_TASK, "| TASK:\tInserted\tTid: %d SP: 0x%x\n", new_task->tid, new_task->current_sp);
 	return 1;
 }
 
@@ -145,7 +145,7 @@ Task *createTask(FreeList *free_list, int priority, void (*code) ()) {
 	ret->parent_tid = -1;
 
 	ret->current_sp = initTrap(ret->init_sp, (TEXT_REG_BASE + Exit), (TEXT_REG_BASE + code));
-	DEBUG(DB_TASK, "| Task:\t\tCreated\t\tTid: 0x%x SP: 0x%x, LR: 0x%x\n", ret->tid, ret->current_sp, (TEXT_REG_BASE + code));
+	DEBUG(DB_TASK, "| Task:\tCreated\t\tTid: 0x%x SP: 0x%x, LR: 0x%x\n", ret->tid, ret->current_sp, (TEXT_REG_BASE + code));
 	return ret;
 }
 
@@ -177,7 +177,7 @@ int scheduleNextTask(TaskList *tlist) {
 	if (tlist->curtask == NULL) {
 		return 0;
 	}
-	DEBUG(DB_TASK, "| TASK:\t\tScheduled\tTid: %d Priority: %d\n", tlist->curtask->tid, tlist->curtask->priority);
+	DEBUG(DB_TASK, "| TASK:\tScheduled\tTid: %d Priority: %d\n", tlist->curtask->tid, tlist->curtask->priority);
 	return 1;
 }
 
