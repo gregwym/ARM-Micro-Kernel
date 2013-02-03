@@ -22,6 +22,26 @@ int strcmp(const char *src, const char *dst);
 char *strncpy(char *dst, const char *src, size_t n);
 size_t strlen(const char *s);
 
+/* Heap */
+typedef struct heapnode {
+	int key;
+	void *datum;
+} HeapNode;
+
+typedef struct minheap {
+	int maxsize;
+	int heapsize;
+	HeapNode **data;
+} MinHeap;
+
+void MinHeapInitial(MinHeap *heap, HeapNode **data, int heap_max);
+
+void HeapNodesInitial(HeapNode *nodes, int nodes_num);
+
+void heapInsert(MinHeap *heap, HeapNode *node);
+
+HeapNode *popMin(MinHeap *heap);
+
 /* Print */
 #include <intern/bwio.h>
 #include <intern/debug.h>

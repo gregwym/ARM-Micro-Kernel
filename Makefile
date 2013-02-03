@@ -45,6 +45,9 @@ test: $(LIBS)
 clean: $(LIBS_CLEAN)
 	-rm -f *.elf *.s $(OBJECTS) main.map
 
+clean-test: clean
+	$(MAKE) -C ./test clean
+
 install:
 	cp *.elf ~/cs452/tftp
 	chmod a+r ~/cs452/tftp/*
