@@ -37,26 +37,58 @@ unsigned int setVicEnable(int vic_base) {
 // Prototype for the user program main function
 void umain();
 
-#ifndef umain
+// #define DEV_MAIN
+#ifndef DEV_MAIN
 void umain() {
-	unsigned int i = 1;
-	int result = -1;
-	unsigned int cpsr;
-	unsigned int *vic2_irq_addr = (unsigned int*) VIC2_BASE + VIC_IRQ_ST_OFFSET;
+	unsigned int time = 0;
 
 	bwprintf(COM2, "Hello World!\n");
-	while(i++) {
-		asm("mrs 	%0, CPSR"
-		    :"=r"(cpsr)
-		    :
-		    );
-		DEBUG(DB_SYSCALL, "Timer: 0x%x irq 0x%x cpsr 0x%x\n", getTimerValue(TIMER3_BASE), *vic2_irq_addr, cpsr);
-		char event[10];
-		result = AwaitEvent(EVENT_MS_ELAP, event, 10);
-		DEBUG(DB_SYSCALL, "Come back from AwaitEvent, Result: %d Event: %d\n", result, event[0]);
+	while(1) {
+		AwaitEvent(EVENT_MS_ELAP, NULL, 0);
+		time++;
+		bwprintf(COM2, "%ds\n", time);
 	}
 }
 #endif
+
+void idleTask() {
+	while(1);
+}
+
+void irqHandler(KernelGlobal *global) {
+	unsigned int *vic2_irq_addr = (unsigned int*) (VIC2_BASE + VIC_IRQ_ST_OFFSET);
+	unsigned int *timer3_in_en_addr = (unsigned int *) (VIC2_BASE + VIC_IN_EN_OFFSET);
+	unsigned int *timer3_clr_addr = (unsigned int*) (TIMER3_BASE + CLR_OFFSET);
+
+	DEBUG(DB_IRQ, "| IRQ:\tCaught,\tflags: 0x%x, VIC2EN: 0x%x\n", *vic2_irq_addr, *timer3_in_en_addr);
+	*timer3_clr_addr = 0xff;
+	DEBUG(DB_IRQ, "| IRQ:\tCleared,\tflags: 0x%x, VIC2EN: 0x%x\n", *vic2_irq_addr, *timer3_in_en_addr);
+
+	BlockedList *event_blocked_lists = global->event_blocked_lists;
+	Task	 	*task_array = global->task_array;
+	TaskList	*task_list = global->task_list;
+	MsgBuffer	*msg_array = global->msg_array;
+	int tid = dequeueBlockedList(event_blocked_lists, EVENT_MS_ELAP);
+
+	while(tid != -1) {
+		msg_array[tid].event = NULL;
+		insertTask(task_list, &(task_array[tid % TASK_MAX]));
+		DEBUG(DB_IRQ, "| IRQ:\tTid %d resumed from EventBlocked\n", tid);
+		tid = dequeueBlockedList(event_blocked_lists, EVENT_MS_ELAP);
+	}
+}
+
+void handlerRedirection(void **parameters, KernelGlobal *global, UserTrapframe *user_sp) {
+	global->task_list->curtask->current_sp = user_sp;
+
+	// If is an IRQ
+	if (parameters == NULL) {
+		irqHandler(global);
+	}
+	else {
+		syscallHandler(parameters, global, user_sp);
+	}
+}
 
 int main() {
 	/* Initialize hardware */
@@ -67,14 +99,14 @@ int main() {
 	bwsetfifo(COM2, OFF);
 
 	// Setup timer
-	// setTimerLoadValue(TIMER3_BASE, 0x00000fff);
-	// setTimerControl(TIMER3_BASE, TRUE, TRUE, FALSE);
+	setTimerLoadValue(TIMER3_BASE, 2000);
+	setTimerControl(TIMER3_BASE, TRUE, TRUE, FALSE);
 
 	// Setup VIC
 	// setVicEnable(VIC1_BASE);
 	// setVicEnable(VIC2_BASE);
-	// unsigned int *vic2_in_en_addr = (unsigned int *) (VIC2_BASE + VIC_IN_EN_OFFSET);
-	// *vic2_in_en_addr = VIC_TIMER3_MASK;
+	unsigned int *vic2_in_en_addr = (unsigned int *) (VIC2_BASE + VIC_IN_EN_OFFSET);
+	*vic2_in_en_addr = VIC_TIMER3_MASK;
 
 	/* Initialize TaskList */
 	TaskList tlist;
@@ -109,10 +141,11 @@ int main() {
 	global.msg_array = msg_array;
 	global.task_array = task_array;
 
-	/* Set spsr to usermode with IRQ and FIQ on */
-	// asm("msr 	SPSR_c, #0x10");
+	/* Create idle task with lowest priority */
+	Task *idle_task = createTask(&flist, TASK_PRIORITY_MAX - 1, idleTask);
+	insertTask(&tlist, idle_task);
 
-	/* Create first task */
+	/* Create first task with highest priority */
 	Task *first_task = createTask(&flist, 0, umain);
 	insertTask(&tlist, first_task);
 
@@ -121,7 +154,7 @@ int main() {
 		// If no more task to run, break
 		if(!scheduleNextTask(&tlist)) break;
 		UserTrapframe* user_sp = (UserTrapframe *)tlist.curtask->current_sp;
-		DEBUG(DB_SYSCALL, "| SYSCALL:\tEXITING SP: 0x%x SPSR: 0x%x ResumePoint: 0x%x\n", user_sp, user_sp->spsr, user_sp->resume_point);
+		DEBUG(DB_TASK, "| TASK:\t\tEXITING SP: 0x%x SPSR: 0x%x ResumePoint: 0x%x\n", user_sp, user_sp->spsr, user_sp->resume_point);
 		// Exit kernel to let user program to execute
 		kernelExit(tlist.curtask->current_sp);
 
@@ -130,8 +163,11 @@ int main() {
 		    :"r"(&global)
 		    :"r0", "r2", "r3"
 		    );
-		asm("bl	syscallHandler(PLT)");
+		asm("bl	handlerRedirection(PLT)");
 	}
+
+	/* Turm off timer */
+	setTimerControl(TIMER3_BASE, FALSE, FALSE, FALSE);
 
 	return 0;
 }
