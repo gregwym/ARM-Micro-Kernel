@@ -19,7 +19,7 @@ static void swap(HeapNode **a, HeapNode **b) {
 	*b = tmp;
 }
 
-void MinHeapInitial(MinHeap *heap, HeapNode **data, int heap_max) {
+void heapInitial(Heap *heap, HeapNode **data, int heap_max) {
 	heap->maxsize = heap_max;
 	heap->heapsize= 0;
 	heap->data = data;
@@ -29,7 +29,7 @@ void MinHeapInitial(MinHeap *heap, HeapNode **data, int heap_max) {
 	}
 }
 
-void HeapNodesInitial(HeapNode *nodes, int nodes_num) {
+void heapNodesInitial(HeapNode *nodes, int nodes_num) {
 	int i = -1;
 	for (i = 0; i < nodes_num; i++) {
 		nodes[i].key = -1;
@@ -37,23 +37,21 @@ void HeapNodesInitial(HeapNode *nodes, int nodes_num) {
 	}
 }
 
-void heapInsert(MinHeap *heap, HeapNode *node) {
+void minHeapInsert(Heap *heap, HeapNode *node) {
 	// assert(heap->heapsize < heap->maxsize, "heapsize exceed");
 	int index = heap->heapsize;
 	int parent_index = getParent(index);
 	HeapNode **data = heap->data;
 	data[index] = node;
 	while(index > 0 && data[parent_index]->key > data[index]->key) {
-		bwprintf(COM2, "before swap: %d %d\n", data[index]->key, data[parent_index]->key);
 		swap(&(data[parent_index]), &(data[index]));
-		bwprintf(COM2, "after swap: %d %d\n", data[index]->key, data[parent_index]->key);
 		index = parent_index;
 		parent_index = getParent(index);
 	}
 	heap->heapsize++;
 }
 
-HeapNode *popMin(MinHeap *heap) {
+HeapNode *minHeapPop(Heap *heap) {
 	if (heap->heapsize == 0) {
 		return NULL;
 	}
@@ -89,11 +87,3 @@ HeapNode *popMin(MinHeap *heap) {
 	}
 	return ret;
 }
-
-
-
-
-
-
-
-

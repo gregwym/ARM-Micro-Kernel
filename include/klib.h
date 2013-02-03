@@ -28,19 +28,21 @@ typedef struct heapnode {
 	void *datum;
 } HeapNode;
 
-typedef struct minheap {
+typedef struct heap {
 	int maxsize;
 	int heapsize;
 	HeapNode **data;
-} MinHeap;
+} Heap;
 
-void MinHeapInitial(MinHeap *heap, HeapNode **data, int heap_max);
+void heapInitial(Heap *heap, HeapNode **data, int heap_max);
 
-void HeapNodesInitial(HeapNode *nodes, int nodes_num);
+void heapNodesInitial(HeapNode *nodes, int nodes_num);
 
-void heapInsert(MinHeap *heap, HeapNode *node);
+// insert to a min-heap
+void minHeapInsert(Heap *heap, HeapNode *node);
 
-HeapNode *popMin(MinHeap *heap);
+// pop from a min-heap
+HeapNode *minHeapPop(Heap *heap);
 
 /* Print */
 #include <intern/bwio.h>

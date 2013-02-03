@@ -12,29 +12,29 @@ void test() {
 	for (i = 0; i < 10; i++) {
 		tnode[i].value = i * 2;
 	}
-	MinHeap minheap;
+	Heap minheap;
 	HeapNode hnode[10];
 	HeapNode *heap_data[10];
-	HeapNodesInitial(hnode, 10);
-	MinHeapInitial(&minheap, heap_data, 10);
+	heapNodesInitial(hnode, 10);
+	heapInitial(&minheap, heap_data, 10);
 	for (i = 0; i < 10; i++) {
 		hnode[i].datum = &tnode[i];
 		hnode[i].key = i;
 	}
 	
 
-	heapInsert(&minheap, &hnode[2]);
+	minHeapInsert(&minheap, &hnode[2]);
 	// bwprintf("cnm %d\n", ((testnode *)(minheap.data[0]->datum))->value);
-	heapInsert(&minheap, &hnode[5]);
-	heapInsert(&minheap, &hnode[3]);
-	heapInsert(&minheap, &hnode[8]);
-	heapInsert(&minheap, &hnode[9]);
-	heapInsert(&minheap, &hnode[0]);
+	minHeapInsert(&minheap, &hnode[5]);
+	minHeapInsert(&minheap, &hnode[3]);
+	minHeapInsert(&minheap, &hnode[8]);
+	minHeapInsert(&minheap, &hnode[9]);
+	minHeapInsert(&minheap, &hnode[0]);
 	
-	HeapNode *tmp = popMin(&minheap);
+	HeapNode *tmp = minHeapPop(&minheap);
 	while (tmp != NULL) {
 		bwprintf(COM2, "heap head: %d\n", ((testnode *)(tmp->datum))->value);
-		tmp = popMin(&minheap);
+		tmp = minHeapPop(&minheap);
 	}
 }
 
