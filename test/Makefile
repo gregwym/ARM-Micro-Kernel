@@ -16,11 +16,11 @@ ASFLAGS	= -mcpu=arm920t -mapcs-32
 
 LDFLAGS = -init main -Map main.map -N  -T orex.ld -L/u/wbcowan/gnuarm-4.0.2/lib/gcc/arm-elf/4.0.2 -L../lib
 
-OBJECTS = ../main.o send-receive-reply-perf.o
+OBJECTS = main.o heaptest.o
 LIBS = nameserver.a task.a syscall.a klib.a
 LIBS_INCLUDE = $(patsubst %.a,-l%,$(LIBS))
 
-all: srr-perf.elf
+all: test.elf
 
 %.s: %.c
 	$(XCC) -S $(CFLAGS) -o $@ $<
@@ -28,7 +28,7 @@ all: srr-perf.elf
 $(OBJECTS): %.o: %.s
 	$(AS) $(ASFLAGS) -o $@ $<
 
-srr-perf.elf: $(OBJECTS)
+test.elf: $(OBJECTS)
 	$(LD) $(LDFLAGS) -o $@ $(OBJECTS) $(LIBS_INCLUDE) -lgcc
 
 clean:
