@@ -17,9 +17,9 @@ ASFLAGS	= -mcpu=arm920t -mapcs-32
 
 ARFLAGS = rcs
 
-OBJECTS = syscall.o unistd.o asm/trapframe.o
+OBJECTS = interrupt.o syscall.o unistd.o irq.o asm/trapframe.o
 
-all:  syscall.a
+all:  interrupt.a
 
 %.s: %.c
 	$(XCC) -S $(CFLAGS) -o $@ $<
@@ -27,9 +27,9 @@ all:  syscall.a
 $(OBJECTS): %.o: %.s
 	$(AS) $(ASFLAGS) -o $@ $<
 
-syscall.a: $(OBJECTS)
+interrupt.a: $(OBJECTS)
 	$(AR) $(ARFLAGS) $@ $(OBJECTS)
-	cp *.a ../lib/libsyscall.a
+	cp *.a ../lib/libinterrupt.a
 
 clean:
 	-rm -f $(OBJECTS) *.s *.a

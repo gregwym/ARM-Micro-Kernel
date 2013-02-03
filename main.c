@@ -37,23 +37,23 @@ unsigned int setVicEnable(int vic_base) {
 // Prototype for the user program main function
 void umain();
 
-#ifndef umain
+// #define DEV_MAIN
+#ifndef DEV_MAIN
 void umain() {
-	unsigned int i = 1;
+	unsigned int time = 0;
+
 	bwprintf(COM2, "Hello World!\n");
-	while(i++) {
-		if(i % 100000 == 0) {
-			unsigned int cpsr;
-			asm("mrs 	%0, CPSR"
-			    :"=r"(cpsr)
-			    :
-			    );
-			unsigned int *vic2_irq_addr = (unsigned int*) VIC2_BASE + VIC_IRQ_ST_OFFSET;
-			bwprintf(COM2, "0x%x irq 0x%x cpsr 0x%x\n", getTimerValue(TIMER3_BASE), *vic2_irq_addr, cpsr);
-		}
+	while(1) {
+		AwaitEvent(EVENT_TIME_ELAP, NULL, 0);
+		time++;
+		bwprintf(COM2, "%ds\n", time);
 	}
 }
 #endif
+
+void idleTask() {
+	while(1);
+}
 
 int main() {
 	/* Initialize hardware */
@@ -64,14 +64,14 @@ int main() {
 	bwsetfifo(COM2, OFF);
 
 	// Setup timer
-	// setTimerLoadValue(TIMER3_BASE, 0x00000fff);
-	// setTimerControl(TIMER3_BASE, TRUE, TRUE, FALSE);
+	setTimerLoadValue(TIMER3_BASE, 2000);
+	setTimerControl(TIMER3_BASE, TRUE, TRUE, FALSE);
 
 	// Setup VIC
 	// setVicEnable(VIC1_BASE);
 	// setVicEnable(VIC2_BASE);
-	// unsigned int *vic2_in_en_addr = (unsigned int *) (VIC2_BASE + VIC_IN_EN_OFFSET);
-	// *vic2_in_en_addr = VIC_TIMER3_MASK;
+	unsigned int *vic2_in_en_addr = (unsigned int *) (VIC2_BASE + VIC_IN_EN_OFFSET);
+	*vic2_in_en_addr = VIC_TIMER3_MASK;
 
 	/* Initialize TaskList */
 	TaskList tlist;
@@ -106,10 +106,11 @@ int main() {
 	global.msg_array = msg_array;
 	global.task_array = task_array;
 
-	/* Set spsr to usermode with IRQ and FIQ on */
-	// asm("msr 	SPSR_c, #0x10");
+	/* Create idle task with lowest priority */
+	Task *idle_task = createTask(&flist, TASK_PRIORITY_MAX - 1, idleTask);
+	insertTask(&tlist, idle_task);
 
-	/* Create first task */
+	/* Create first task with highest priority */
 	Task *first_task = createTask(&flist, 0, umain);
 	insertTask(&tlist, first_task);
 
@@ -118,7 +119,7 @@ int main() {
 		// If no more task to run, break
 		if(!scheduleNextTask(&tlist)) break;
 		UserTrapframe* user_sp = (UserTrapframe *)tlist.curtask->current_sp;
-		DEBUG(DB_SYSCALL, "| SYSCALL:\tEXITING SP: 0x%x SPSR: 0x%x ResumePoint: 0x%x\n", user_sp, user_sp->spsr, user_sp->resume_point);
+		DEBUG(DB_TASK, "| TASK:\tEXITING SP: 0x%x SPSR: 0x%x ResumePoint: 0x%x\n", user_sp, user_sp->spsr, user_sp->resume_point);
 		// Exit kernel to let user program to execute
 		kernelExit(tlist.curtask->current_sp);
 
@@ -127,8 +128,11 @@ int main() {
 		    :"r"(&global)
 		    :"r0", "r2", "r3"
 		    );
-		asm("bl	syscallHandler(PLT)");
+		asm("bl	handlerRedirection(PLT)");
 	}
+
+	/* Turm off timer */
+	setTimerControl(TIMER3_BASE, FALSE, FALSE, FALSE);
 
 	return 0;
 }
