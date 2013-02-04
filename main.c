@@ -30,7 +30,8 @@ unsigned int getTimerValue(int timer_base) {
 
 unsigned int enableVicInterrupt(int vic_base, int mask) {
 	unsigned int* vic_enable_addr = (unsigned int*) (vic_base + VIC_IN_EN_OFFSET);
-	*vic_enable_addr = (*vic_enable_addr) & mask;
+	*vic_enable_addr = (*vic_enable_addr) | mask;
+	DEBUG(DB_IRQ, "| IRQ:\tEnabled with addr 0x%x and flag 0x%x", vic_enable_addr, *vic_enable_addr);
 	return *vic_enable_addr;
 }
 
