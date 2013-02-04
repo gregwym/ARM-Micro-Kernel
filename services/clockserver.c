@@ -34,41 +34,37 @@ typedef union {
 } ClockServerMsg;
 
 void notifier() {
-	char msg[3] = "ts";;
-	char send[2] = "w";
-	char reply[1];
+	char send[1] = "";
 	while (1) {
 		AwaitEvent(EVENT_TIME_ELAP, NULL, 0);
-		Send(CS_TID, send, 1, reply, 1);
+		Send(CS_TID, send, 1, NULL, 0);
 	}
 }
 
 int Delay( int ticks ) {
 	assert(ticks >= 0, "Delay ticks is negative");
-	char reply[1];
 	DelayQuery query;
 	query.type = CS_QUERY_TYPE_DELAY;
 	query.delay_tick = (unsigned int) ticks;
-	return Send(CS_TID, (char*)(&query), sizeof(DelayQuery), reply, 1);
+	return Send(CS_TID, (char*)(&query), sizeof(DelayQuery), NULL, 0);
 }
 
 int DelayUntil( int ticks ) {
 	assert(ticks >= 0, "DelayUntil ticks is negative");
-	char reply[1];
 	DelayUntilQuery query;
 	query.type = CS_QUERY_TYPE_DELAY_UNTIL;
 	query.delay_time = (unsigned int) ticks;
-	return Send(CS_TID, (char*)(&query), sizeof(DelayUntilQuery), reply, 1);
+	return Send(CS_TID, (char*)(&query), sizeof(DelayUntilQuery), NULL, 0);
 }
 	
 int Time() {
 	int ret = -1;
-	TimeQuery send_query;
-	TimeReply reply_query;
-	send_query.type = CS_QUERY_TYPE_TIME;
-	ret = Send(CS_TID, (char*)(&send_query), sizeof(TimeQuery), (char*)(&reply_query), sizeof(TimeReply));
+	TimeQuery query;
+	TimeReply reply;
+	query.type = CS_QUERY_TYPE_TIME;
+	ret = Send(CS_TID, (char*)(&query), sizeof(TimeQuery), (char*)(&reply), sizeof(TimeReply));
 	if (ret < 0) return ret;
-	return reply_query.time;
+	return reply.time;
 }
 
 void clockserver() {
@@ -99,36 +95,37 @@ void clockserver() {
 			while (minheap.heapsize > 0 && time >= minheap.data[0]->key) {
 				HeapNode *top = minHeapPop(&minheap);
 				Reply(*(int *)(top->datum), NULL, 0);
-			}	
-		} else {
-			switch(message.type) {
-				case 1:
-					// delay
+			}
+			continue;
+		}
+
+		switch(message.type) {
+			case CS_QUERY_TYPE_DELAY:
+				// delay
+				tid_array[tid % TASK_MAX] = tid;
+				nodes[tid % TASK_MAX].key = message.delayQuery.delay_tick + time;
+				nodes[tid % TASK_MAX].datum = &(tid_array[tid % TASK_MAX]);
+				minHeapInsert(&minheap, &(nodes[tid % TASK_MAX]));
+				break;
+			case CS_QUERY_TYPE_DELAY_UNTIL:
+				// delay until
+				if (message.delayUntilQuery.delay_time <= time) {
+					Reply(tid, NULL, 0);
+				} else {
 					tid_array[tid % TASK_MAX] = tid;
-					nodes[tid % TASK_MAX].key = message.delayQuery.delay_tick + time;
+					nodes[tid % TASK_MAX].key = message.delayUntilQuery.delay_time;
 					nodes[tid % TASK_MAX].datum = &(tid_array[tid % TASK_MAX]);
 					minHeapInsert(&minheap, &(nodes[tid % TASK_MAX]));
-					break;
-				case 2:
-					// delay until
-					if (message.delayUntilQuery.delay_time <= time) {
-						Reply(tid, NULL, 0);
-					} else {
-						tid_array[tid % TASK_MAX] = tid;
-						nodes[tid % TASK_MAX].key = message.delayUntilQuery.delay_time;
-						nodes[tid % TASK_MAX].datum = &(tid_array[tid % TASK_MAX]);
-						minHeapInsert(&minheap, &(nodes[tid % TASK_MAX]));
-					}
-					break;
-				case 3:
-					// time
-					reply.time = time;
-					Reply(tid, (char*)(&reply), sizeof(TimeReply));
-					break;
-				default:
-					break;
-					
-			}
+				}
+				break;
+			case CS_QUERY_TYPE_TIME:
+				// time
+				reply.time = time;
+				Reply(tid, (char*)(&reply), sizeof(TimeReply));
+				break;
+			default:
+				assert(0, "Clockserver received unknown query type");
+				break;
 		}
 	}
 }
