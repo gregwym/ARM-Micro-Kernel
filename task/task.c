@@ -2,6 +2,7 @@
 #include <klib.h>
 #include <unistd.h>
 #include <kern/md_const.h>
+#include <intern/trapframe.h>
 
 void tlistInitial(TaskList *task_list, Task **heads, Task **tails) {
 	task_list->curtask = NULL;
