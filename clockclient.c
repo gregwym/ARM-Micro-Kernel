@@ -28,17 +28,17 @@ void timeclient() {
 void umain() {
 	int tid;
 	tid = Create(4, nameserver);
-	bwprintf(COM2, "Created: %d\n", tid);
+	bwprintf(COM2, "Created: %d Nameserver\n", tid);
 	tid = Create(2, clockserver);
-	bwprintf(COM2, "Created: %d\n", tid);
+	bwprintf(COM2, "Created: %d Clockserver\n", tid);
 	tid = Create(5, timeclient);
-	bwprintf(COM2, "Created: %d\n", tid);
+	bwprintf(COM2, "Created: %d ClientP3\n", tid);
 	tid = Create(6, timeclient);
-	bwprintf(COM2, "Created: %d\n", tid);
+	bwprintf(COM2, "Created: %d ClientP4\n", tid);
 	tid = Create(7, timeclient);
-	bwprintf(COM2, "Created: %d\n", tid);
+	bwprintf(COM2, "Created: %d ClientP5\n", tid);
 	tid = Create(8, timeclient);
-	bwprintf(COM2, "Created: %d\n", tid);
+	bwprintf(COM2, "Created: %d ClientP6\n", tid);
 	createIdleTask();
 	CSClientReply reply;
 	reply.time_tick = 10;
