@@ -2,6 +2,7 @@
 #include <klib.h>
 #include <kern/callno.h>
 #include <kern/errno.h>
+#include <kern/unistd.h>
 
 int sysCreate(TaskList *task_list, FreeList *free_list, int priority, void (*code) (), int *rtn) {
 	Task *task = createTask(free_list, priority, code);
@@ -153,8 +154,13 @@ int sysAwaitEvent(KernelGlobal *global, int eventid, char *event, int eventlen, 
 	BlockedList *event_blocked_lists = global->event_blocked_lists;
 	MsgBuffer 	*msg_array = global->msg_array;
 
+	if (eventid < 0 || eventid >= EVENT_MAX) {
+		return -1;
+	}
+
 	int cur_tid = task_list->curtask->tid;
 	assert((msg_array[cur_tid]).event == NULL, "MsgBuffer.event is not NULL");
+
 	// Link waiter's event and eventlen to msg_array
 	(msg_array[cur_tid]).event = event;
 	(msg_array[cur_tid]).eventlen = eventlen;

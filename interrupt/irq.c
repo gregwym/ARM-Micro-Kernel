@@ -43,7 +43,10 @@ void irqHandler(KernelGlobal *global) {
 	// If IRQ from Timer3
 	if ((*vic2_irq_st_addr) & VIC_TIMER3_MASK) {
 		timerIrqHandler(global);
-		assert(!((*vic2_irq_st_addr) & VIC_TIMER3_MASK), "Failed to clear the interrupt");
+		assert(!((*vic2_irq_st_addr) & VIC_TIMER3_MASK), "Failed to clear the timer interrupt");
+	}
+	else {
+		assert(0, "Unknown IRQ type");
 	}
 
 	DEBUG(DB_IRQ, "| IRQ:\tCleared\tVIC1: 0x%x VIC2: 0x%x\n", *vic1_irq_st_addr, *vic2_irq_st_addr);
