@@ -17,9 +17,9 @@ ASFLAGS	= -mcpu=arm920t -mapcs-32
 
 ARFLAGS = rcs
 
-OBJECTS = nameserver.o
+OBJECTS = nameserver.o clockserver.o
 
-all:  nameserver.a
+all:  services.a
 
 %.s: %.c
 	$(XCC) -S $(CFLAGS) -o $@ $<
@@ -27,9 +27,9 @@ all:  nameserver.a
 $(OBJECTS): %.o: %.s
 	$(AS) $(ASFLAGS) -o $@ $<
 
-nameserver.a: $(OBJECTS)
+services.a: $(OBJECTS)
 	$(AR) $(ARFLAGS) $@ $(OBJECTS)
-	cp *.a ../lib/libnameserver.a
+	cp *.a ../lib/libservices.a
 
 clean:
 	-rm -f *.s *.a *.o

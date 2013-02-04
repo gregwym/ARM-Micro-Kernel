@@ -6,7 +6,7 @@
  */
 #define DB_SYSCALL     0x001
 #define DB_TASK        0x002
-#define DB_MSG_PASSING 0x004
+#define DB_CS          0x004
 #define DB_NS          0x008
 #define DB_RPS         0x010
 #define DB_IRQ         0x020
@@ -17,7 +17,7 @@
 // #define DB_NETFS       0x400
 // #define DB_KMALLOC     0x800
 
-#define dbflags 0 // DB_SYSCALL | DB_TASK | DB_NS | DB_RPS | DB_IRQ
+#define dbflags 0 // DB_SYSCALL | DB_TASK | DB_CS | DB_NS | DB_RPS | DB_IRQ
 
 #ifndef NDEBUG
 	/* assert */
