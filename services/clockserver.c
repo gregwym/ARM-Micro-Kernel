@@ -22,9 +22,9 @@ typedef struct time_query {
 	char 			type;
 } TimeQuery;
 
-typedef struct reply_query {
+typedef struct time_reply {
 	unsigned int	time;
-} ReplyQuery;
+} TimeReply;
 
 typedef union {
 	char				type;
@@ -37,10 +37,9 @@ void notifier() {
 	char msg[3] = "ts";;
 	char send[2] = "w";
 	char reply[1];
-	int time_server_tid = WhoIs(msg);
 	while (1) {
 		AwaitEvent(EVENT_TIME_ELAP, NULL, 0);
-		Send(time_server_tid, send, 1, reply, 1);
+		Send(CS_TID, send, 1, reply, 1);
 	}
 }
 
@@ -65,21 +64,16 @@ int DelayUntil( int ticks ) {
 int Time() {
 	int ret = -1;
 	TimeQuery send_query;
-	ReplyQuery reply_query;
+	TimeReply reply_query;
 	send_query.type = CS_QUERY_TYPE_TIME;
-	ret = Send(CS_TID, (char*)(&send_query), sizeof(TimeQuery), (char*)(&reply_query), sizeof(ReplyQuery));
+	ret = Send(CS_TID, (char*)(&send_query), sizeof(TimeQuery), (char*)(&reply_query), sizeof(TimeReply));
 	if (ret < 0) return ret;
 	return reply_query.time;
 }
 
 void clockserver() {
 	unsigned int time = 0;
-	char msg[3];
-	msg[0] = 't';
-	msg[1] = 's';
-	msg[2] = '\0';
-	ReplyQuery reply;
-	RegisterAs(msg);
+	TimeReply reply;
 	ClockServerMsg message;
 	int tid;
 	
@@ -102,7 +96,7 @@ void clockserver() {
 			Reply(tid, NULL, 0);
 			time++;
 			DEBUG(DB_CS, "| CS:\tTime : %d\n", time);
-			if (minheap.heapsize > 0 && time >= minheap.data[0]->key) {
+			while (minheap.heapsize > 0 && time >= minheap.data[0]->key) {
 				HeapNode *top = minHeapPop(&minheap);
 				Reply(*(int *)(top->datum), NULL, 0);
 			}	
@@ -129,7 +123,7 @@ void clockserver() {
 				case 3:
 					// time
 					reply.time = time;
-					Reply(tid, (char*)(&reply), sizeof(ReplyQuery));
+					Reply(tid, (char*)(&reply), sizeof(TimeReply));
 					break;
 				default:
 					break;

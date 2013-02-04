@@ -3,42 +3,27 @@
 #include <unistd.h>
 #include <task.h>
 
+typedef struct cs_client_reply {
+	int time_tick;
+	int delay_num;
+} CSClientReply;
 
-void timeclient_p3() {
+void timeclient() {
+	CSClientReply reply;
+	char send_msg[2] = "s";
+	Send(0, send_msg, 2, (char*)(&reply), sizeof(CSClientReply));
+	int tick = reply.time_tick;
 	int counter = 0;
-	while (counter < 20) {
+	int delay_num = reply.delay_num;
+	int myTid = MyTid();
+	while (counter < delay_num) {
 		counter++;
-		Delay(10);
-		DEBUG(DB_CS, "| CS:\tp3 delayed 10 secs\n");
+		Delay(tick);
+		// DEBUG(DB_CS, "| CS:\tdelayed ticks: %d\n", tick);
+		bwprintf(COM2, "%d: %d, %d\n", myTid, tick, counter);
 	}
 }
 
-void timeclient_p4() {
-	int counter = 0;
-	while (counter < 9) {
-		counter++;
-		Delay(23);
-		DEBUG(DB_CS, "| CS:\tp4 delayed 23 secs\n");
-	}
-}
-
-void timeclient_p5() {
-	int counter = 0;
-	while (counter < 6) {
-		counter++;
-		Delay(33);
-		DEBUG(DB_CS, "| CS:\tp5 delayed 33 secs\n");
-	}
-}
-
-void timeclient_p6() {
-	int counter = 0;
-	while (counter < 3) {
-		counter++;
-		Delay(71);
-		DEBUG(DB_CS, "| CS:\tp6 delayed 71 secs\n");
-	}
-}
 
 void umain() {
 	int tid;
@@ -46,15 +31,32 @@ void umain() {
 	bwprintf(COM2, "Created: %d\n", tid);
 	tid = Create(2, clockserver);
 	bwprintf(COM2, "Created: %d\n", tid);
-	tid = Create(5, timeclient_p3);
+	tid = Create(5, timeclient);
 	bwprintf(COM2, "Created: %d\n", tid);
-	tid = Create(6, timeclient_p4);
+	tid = Create(6, timeclient);
 	bwprintf(COM2, "Created: %d\n", tid);
-	tid = Create(7, timeclient_p5);
+	tid = Create(7, timeclient);
 	bwprintf(COM2, "Created: %d\n", tid);
-	tid = Create(8, timeclient_p6);
+	tid = Create(8, timeclient);
 	bwprintf(COM2, "Created: %d\n", tid);
 	createIdleTask();
+	CSClientReply reply;
+	reply.time_tick = 10;
+	reply.delay_num = 20;
+	Receive(&tid, NULL, 0);
+	Reply(tid, (char*) (&reply), sizeof(CSClientReply));
+	reply.time_tick = 23;
+	reply.delay_num = 9;
+	Receive(&tid, NULL, 0);
+	Reply(tid, (char*) (&reply), sizeof(CSClientReply));
+	reply.time_tick = 33;
+	reply.delay_num = 6;
+	Receive(&tid, NULL, 0);
+	Reply(tid, (char*) (&reply), sizeof(CSClientReply));
+	reply.time_tick = 71;
+	reply.delay_num = 3;
+	Receive(&tid, NULL, 0);
+	Reply(tid, (char*) (&reply), sizeof(CSClientReply));
 }
 
 
