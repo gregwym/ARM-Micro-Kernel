@@ -1,6 +1,6 @@
+#include <services.h>
 #include <klib.h>
 #include <unistd.h>
-#include <kern/types.h>
 
 #define NS_TID 1
 #define NS_REG_MAX 16
