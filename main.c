@@ -39,16 +39,22 @@ void umain();
 
 // #define DEV_MAIN
 #ifndef DEV_MAIN
-void umain() {
-	createIdleTask();
-
+void clockTick() {
 	unsigned int time = 0;
-
-	bwprintf(COM2, "Hello World!\n");
+	int tid = MyTid();
 	while(1) {
 		AwaitEvent(EVENT_TIME_ELAP, NULL, 0);
 		time++;
-		bwprintf(COM2, "%ds\n", time);
+		bwprintf(COM2, "%d: %ds\n", tid, time);
+	}
+}
+
+void umain() {
+	createIdleTask();
+	bwprintf(COM2, "Hello World!\n");
+	int i = 5;
+	for(; i > 0; i--) {
+		Create(5, clockTick);
 	}
 }
 #endif
