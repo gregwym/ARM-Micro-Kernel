@@ -6,6 +6,7 @@
 
 #define TRUE	0xffffffff
 #define FALSE	0x00000000
+#define TIMER_TICK_SIZE	20
 
 unsigned int setTimerLoadValue(int timer_base, unsigned int value) {
 	unsigned int* timer_load_addr = (unsigned int*) (timer_base + LDR_OFFSET);
@@ -38,7 +39,7 @@ unsigned int setVicEnable(int vic_base) {
 void umain();
 
 // #define DEV_MAIN
-#ifndef DEV_MAIN
+#ifdef DEV_MAIN
 void clockTick() {
 	unsigned int time = 0;
 	int tid = MyTid();
@@ -68,7 +69,7 @@ int main() {
 	bwsetfifo(COM2, OFF);
 
 	// Setup timer
-	setTimerLoadValue(TIMER3_BASE, 2000);
+	setTimerLoadValue(TIMER3_BASE, TIMER_TICK_SIZE);
 	setTimerControl(TIMER3_BASE, TRUE, TRUE, FALSE);
 
 	// Setup VIC
