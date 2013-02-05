@@ -80,7 +80,7 @@ void Exit() {
 int Send( int tid, char *msg, int msglen, char *reply, int replylen ) {
 	int callno = SYS_send;
 	int rtn = -1;
-	void *parameters[7] = {(&callno), &tid, msg, &msglen, reply, &replylen, NULL};
+	void *parameters[7] = {(&callno), &tid, &msg, &msglen, &reply, &replylen, NULL};
 	asm("mov r0, %0"
 	    :
 	    :"r"(parameters));
@@ -94,7 +94,7 @@ int Send( int tid, char *msg, int msglen, char *reply, int replylen ) {
 int Receive( int *tid, char *msg, int msglen ) {
 	int rtn = -1;
 	int callno = SYS_receive;
-	void *parameters[5] = {(&callno), tid, msg, &msglen, NULL};
+	void *parameters[5] = {(&callno), &tid, &msg, &msglen, NULL};
 	asm("mov r0, %0"
 	    :
 	    :"r"(parameters));
@@ -124,7 +124,7 @@ int Receive( int *tid, char *msg, int msglen ) {
 int Reply( int tid, char *reply, int replylen ) {
 	int rtn = -1;
 	int callno = SYS_reply;
-	void *parameters[5] = {(&callno), &tid, reply, &replylen, NULL};
+	void *parameters[5] = {(&callno), &tid, &reply, &replylen, NULL};
 	asm("mov r0, %0"
 	    :
 	    :"r"(parameters));

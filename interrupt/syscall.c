@@ -196,14 +196,14 @@ int syscallHandler(void **parameters, KernelGlobal *global) {
 			err = sysMyParentTid(task_list, &rtn);
 			break;
 		case SYS_send:
-			err = sysSend(global, *((int*)(parameters[1])), (char*)parameters[2], *((int*)(parameters[3])),
-						(char*)parameters[4], *((int*)(parameters[5])), &rtn);
+			err = sysSend(global, *((int*)(parameters[1])), *((char**)parameters[2]), *((int*)(parameters[3])),
+						*((char**)parameters[4]), *((int*)(parameters[5])), &rtn);
 			break;
 		case SYS_receive:
-			err = sysReceive(global, (int*)parameters[1], (char*)parameters[2], *((int*)(parameters[3])), &rtn);
+			err = sysReceive(global, *((int**)parameters[1]), *((char**)parameters[2]), *((int*)(parameters[3])), &rtn);
 			break;
 		case SYS_reply:
-			err = sysReply(global, *((int*)(parameters[1])), (char*)parameters[2], *((int*)(parameters[3])), &rtn);
+			err = sysReply(global, *((int*)(parameters[1])), *((char**)parameters[2]), *((int*)(parameters[3])), &rtn);
 			break;
 		case SYS_awaitEvent:
 			err = sysAwaitEvent(global, *((int*)(parameters[1])), *((char**)parameters[2]), *((int*)(parameters[3])), &rtn);
