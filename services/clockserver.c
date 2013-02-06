@@ -3,7 +3,7 @@
 #include <unistd.h>
 #include <task.h>
 
-#define CS_TID						2
+#define CS_REG_NAME					"CS"
 #define CS_QUERY_TYPE_DELAY 		1
 #define CS_QUERY_TYPE_DELAY_UNTIL 	2
 #define CS_QUERY_TYPE_TIME			3
@@ -34,45 +34,66 @@ typedef union {
 } ClockServerMsg;
 
 void notifier() {
+	char cs_name[] = CS_REG_NAME;
+	int cs_tid = WhoIs(cs_name);
+	assert(cs_tid >= 0, "Notifier cannot find clock server's tid");
+
 	char send[1] = "";
 	while (1) {
 		AwaitEvent(EVENT_TIME_ELAP, NULL, 0);
-		Send(CS_TID, send, 1, NULL, 0);
+		Send(cs_tid, send, 1, NULL, 0);
 	}
 }
 
 int Delay( int ticks ) {
 	assert(ticks >= 0, "Delay ticks is negative");
+
+	char cs_name[] = CS_REG_NAME;
+	int cs_tid = WhoIs(cs_name);
+	assert(cs_tid >= 0, "Delay: cannot find clock server's tid");
+
 	DelayQuery query;
 	query.type = CS_QUERY_TYPE_DELAY;
 	query.delay_tick = (unsigned int) ticks;
-	return Send(CS_TID, (char*)(&query), sizeof(DelayQuery), NULL, 0);
+	return Send(cs_tid, (char*)(&query), sizeof(DelayQuery), NULL, 0);
 }
 
 int DelayUntil( int ticks ) {
 	assert(ticks >= 0, "DelayUntil ticks is negative");
+
+	char cs_name[] = CS_REG_NAME;
+	int cs_tid = WhoIs(cs_name);
+	assert(cs_tid >= 0, "DelayUntil: cannot find clock server's tid");
+
 	DelayUntilQuery query;
 	query.type = CS_QUERY_TYPE_DELAY_UNTIL;
 	query.delay_time = (unsigned int) ticks;
-	return Send(CS_TID, (char*)(&query), sizeof(DelayUntilQuery), NULL, 0);
+	return Send(cs_tid, (char*)(&query), sizeof(DelayUntilQuery), NULL, 0);
 }
-	
+
 int Time() {
+	char cs_name[] = CS_REG_NAME;
+	int cs_tid = WhoIs(cs_name);
+	assert(cs_tid >= 0, "Time: cannot find clock server's tid");
+
 	int ret = -1;
 	TimeQuery query;
 	TimeReply reply;
 	query.type = CS_QUERY_TYPE_TIME;
-	ret = Send(CS_TID, (char*)(&query), sizeof(TimeQuery), (char*)(&reply), sizeof(TimeReply));
+	ret = Send(cs_tid, (char*)(&query), sizeof(TimeQuery), (char*)(&reply), sizeof(TimeReply));
 	if (ret < 0) return ret;
 	return reply.time;
 }
 
 void clockserver() {
+	char cs_name[] = CS_REG_NAME;
+	assert(RegisterAs(cs_name) == 0, "Clockserver register failed");
+
 	unsigned int time = 0;
 	TimeReply reply;
 	ClockServerMsg message;
 	int tid;
-	
+
 	/* heap implement */
 	Heap minheap;
 	HeapNode *heap_data[TASK_MAX];
@@ -85,7 +106,7 @@ void clockserver() {
 		tid_array[i] = -1;
 	}
 	int notifier_tid = Create(1, notifier);
-	
+
 	while (1) {
 		Receive(&tid, (char *)&message, sizeof(ClockServerMsg));
 		if (tid == notifier_tid) {
