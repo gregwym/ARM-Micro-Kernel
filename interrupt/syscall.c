@@ -58,12 +58,11 @@ int sysSend(KernelGlobal *global, int tid, char *msg, int msglen, char *reply, i
 	(msg_array[cur_tid]).replylen = replylen;
 
 	// block current task and add it to blocklist
-	enqueueBlockedList(receive_blocked_lists, tid % TASK_MAX, task_list, ReceiveBlocked);
+	blockCurrentTask(task_list, ReceiveBlocked, receive_blocked_lists, tid % TASK_MAX);
 
 	// unblock the receiver task
 	if (task_array[tid % TASK_MAX].state == SendBlocked) {
-		task_array[tid % TASK_MAX].state = Ready;
-		insertTask(task_list, &task_array[tid % TASK_MAX]);
+		insertTask(task_list, &(task_array[tid % TASK_MAX]));
 	}
 
 	*rtn = 0;
@@ -85,7 +84,7 @@ int sysReceive(KernelGlobal *global, int *tid, char *msg, int msglen, int *rtn) 
 
 	if (sender_tid == -1) {
 		// no one send current task msg
-		blockCurrentTask(task_list, SendBlocked);
+		blockCurrentTask(task_list, SendBlocked, NULL, 0);
 		return -1;
 	}
 
@@ -141,7 +140,6 @@ int sysReply(KernelGlobal *global, int tid, char *reply, int replylen, int *rtn)
 	sender_trapframe->r0 = replylen;
 
 	// Put sender back to ready queue
-	sender_task->state = Ready;
 	insertTask(task_list, sender_task);
 
 	// Reply succeed
@@ -166,7 +164,7 @@ int sysAwaitEvent(KernelGlobal *global, int eventid, char *event, int eventlen, 
 	(msg_array[cur_tid]).eventlen = eventlen;
 
 	// Block current task and add it to blocklist
-	enqueueBlockedList(event_blocked_lists, eventid, task_list, EventBlocked);
+	blockCurrentTask(task_list, EventBlocked, event_blocked_lists, eventid);
 
 	*rtn = 0;
 	return 0;

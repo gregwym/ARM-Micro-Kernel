@@ -25,6 +25,7 @@ void tarrayInitial(Task *task_array, char *stacks) {
 	for (i = 0; i < TASK_MAX; i++) {
 		task_array[i].tid = i - TASK_MAX;
 		task_array[i].init_sp = &(stacks[(i+1) * TASK_STACK_SIZE - 4]);
+		task_array[i].state = Zombie;
 	}
 }
 
@@ -32,10 +33,8 @@ void flistInitial(FreeList *free_list, Task *task_array) {
 	int i;
 	for (i = 0; i < TASK_MAX - 1; i++) {
 		task_array[i].next = &(task_array[i+1]);
-		task_array[i].state = Empty;
 	}
 	task_array[TASK_MAX - 1].next = NULL;
-	task_array[TASK_MAX - 1].state = Empty;
 
 	free_list->head = &task_array[0];
 	free_list->tail = &task_array[TASK_MAX - 1];
@@ -44,6 +43,9 @@ void flistInitial(FreeList *free_list, Task *task_array) {
 int insertTask(TaskList *task_list, Task *new_task) {
 	int i;
 	int priority = new_task->priority;
+
+	// Change the task state to Ready
+	new_task->state = Ready;
 
 	// Find and fill in new task
 	// If it is the first task
@@ -91,38 +93,36 @@ int insertTask(TaskList *task_list, Task *new_task) {
 	return 1;
 }
 
-Task* removeCurrentTask(TaskList *task_list, FreeList *free_list) {
-	// assert(task_list->head != NULL, "TaskList: list is empty");
-	int top_priority = task_list->head->priority;
-	Task *ret = NULL;
+void removeCurrentTask(TaskList *task_list, FreeList *free_list) {
+	assert(task_list->curtask == task_list->head, "Trying to remove a curtask that is not a head. ");
+	Task *task = task_list->curtask;
+	int priority = task->priority;
 
 	// Adjust top_priority head and tails
-	if (task_list->priority_heads[top_priority] == task_list->priority_tails[top_priority]) {
-		task_list->priority_heads[top_priority] = NULL;
-		task_list->priority_tails[top_priority] = NULL;
+	if (task_list->priority_heads[priority] == task_list->priority_tails[priority]) {
+		task_list->priority_heads[priority] = NULL;
+		task_list->priority_tails[priority] = NULL;
 	} else {
-		task_list->priority_heads[top_priority] = task_list->priority_heads[top_priority]->next;
+		task_list->priority_heads[priority] = task_list->priority_heads[priority]->next;
 	}
 
-	ret = task_list->head;
-
-	if (task_list->head == task_list->curtask) {
-		task_list->head = task_list->head->next;
-	}
-
-	if (free_list->head == NULL) {
-		free_list->head = ret;
-		free_list->tail = ret;
-		ret->next = NULL;
-		ret->state = Empty;
-	} else {
-		free_list->tail->next = ret;
-		free_list->tail = ret;
-		free_list->tail->next = NULL;
-		free_list->tail->state = Empty;
-	}
+	// Move head to next and clear curtask
+	task_list->head = task_list->head->next;
 	task_list->curtask = NULL;
-	return ret;
+
+	// Add the task to free list
+	if (free_list->head == NULL) {
+		free_list->head = task;
+		free_list->tail = task;
+	} else {
+		free_list->tail->next = task;
+		free_list->tail = task;
+	}
+
+	// Change the task state to Zombie and next to NULL (tail of free_list)
+	assert(task->state == Active, "Current task state is not Active");
+	task->state = Zombie;
+	task->next = NULL;
 }
 
 Task *createTask(FreeList *free_list, int priority, void (*code) ()) {
@@ -150,6 +150,10 @@ Task *createTask(FreeList *free_list, int priority, void (*code) ()) {
 void moveCurrentTaskToEnd(TaskList *task_list) {
 	int priority = task_list->curtask->priority;
 
+	// Change the task state to Ready
+	assert(task_list->curtask->state == Active, "Current task state is not Active");
+	task_list->curtask->state = Ready;
+
 	if (task_list->priority_heads[priority] != task_list->priority_tails[priority]) {
 		if (task_list->head->priority < priority) {
 			task_list->head->next = task_list->curtask->next;
@@ -165,6 +169,8 @@ void moveCurrentTaskToEnd(TaskList *task_list) {
 
 void refreshCurtask(TaskList *task_list) {
 	task_list->curtask = task_list->head;
+	// Change the task state to Active
+	task_list->curtask->state = Active;
 }
 
 int scheduleNextTask(TaskList *tlist) {
@@ -179,18 +185,19 @@ int scheduleNextTask(TaskList *tlist) {
 	return 1;
 }
 
-void enqueueBlockedList(BlockedList *blocked_lists, int blocked_lists_index, TaskList *task_list, TaskState blocked_state) {
-	Task* cur_task = task_list->curtask;
-	if (blocked_lists[blocked_lists_index].head == NULL) {
-		blocked_lists[blocked_lists_index].head = cur_task;
-		blocked_lists[blocked_lists_index].tail = cur_task;
-	} else {
-		blocked_lists[blocked_lists_index].tail->next = cur_task;
-		blocked_lists[blocked_lists_index].tail = cur_task;
+void enqueueBlockedList(BlockedList *blocked_lists, int blocked_list_index, Task* task) {
+	// If no blocked list to enqueue, return
+	if (blocked_lists == NULL) {
+		return;
 	}
 
-	// notice: current task->next is set to NULL in blockCurrentTask function
-	blockCurrentTask(task_list, blocked_state);
+	if (blocked_lists[blocked_list_index].head == NULL) {
+		blocked_lists[blocked_list_index].head = task;
+		blocked_lists[blocked_list_index].tail = task;
+	} else {
+		blocked_lists[blocked_list_index].tail->next = task;
+		blocked_lists[blocked_list_index].tail = task;
+	}
 }
 
 int dequeueBlockedList(BlockedList *blocked_lists, int blocked_list_index) {
@@ -207,8 +214,10 @@ int dequeueBlockedList(BlockedList *blocked_lists, int blocked_list_index) {
 	return ret;
 }
 
-void blockCurrentTask(TaskList *task_list, TaskState state) {
+void blockCurrentTask(TaskList *task_list, TaskState blocked_state,
+                      BlockedList *blocked_lists, int blocked_list_index) {
 	int top_priority = task_list->head->priority;
+	Task *task = task_list->curtask;
 	assert(task_list->head == task_list->curtask, "Blocking syscall invalid");
 
 	// Adjust top_priority head and tails
@@ -219,9 +228,13 @@ void blockCurrentTask(TaskList *task_list, TaskState state) {
 		task_list->priority_heads[top_priority] = task_list->priority_heads[top_priority]->next;
 	}
 	task_list->head = task_list->head->next;
-	task_list->curtask->state = state;
+
+	assert(task_list->curtask->state == Active, "Current task state is not Active");
+	task_list->curtask->state = blocked_state;
 	task_list->curtask->next = NULL;
 	task_list->curtask = NULL;
+
+	enqueueBlockedList(blocked_lists, blocked_list_index, task);
 }
 
 void blockedListsInitial(BlockedList *blocked_lists, int list_num) {
