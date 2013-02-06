@@ -1,4 +1,4 @@
-
+/* Name Server */
 void nameserver();
 int RegisterAs( char *name );
 int WhoIs( char *name );

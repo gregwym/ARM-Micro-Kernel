@@ -17,7 +17,6 @@ unsigned int setTimerLoadValue(int timer_base, unsigned int value) {
 unsigned int setTimerControl(int timer_base, unsigned int enable, unsigned int mode, unsigned int clksel) {
 	unsigned int* timer_control_addr = (unsigned int*) (timer_base + CRTL_OFFSET);
 	unsigned int control_value = (ENABLE_MASK & enable) | (MODE_MASK & mode) | (CLKSEL_MASK & clksel) ;
-	// DEBUG(DB_TIMER, "Timer3 control changing from 0x%x to 0x%x.\n", *timer_control_addr, control_value);
 
 	*timer_control_addr = control_value;
 	return *timer_control_addr;
@@ -29,9 +28,10 @@ unsigned int getTimerValue(int timer_base) {
 	return value;
 }
 
-unsigned int setVicEnable(int vic_base) {
+unsigned int enableVicInterrupt(int vic_base, int mask) {
 	unsigned int* vic_enable_addr = (unsigned int*) (vic_base + VIC_IN_EN_OFFSET);
-	*vic_enable_addr = vic_base == VIC1_BASE ? 0x7F7FFFF : vic_base == VIC2_BASE ? 0xF97865FB : 0x0;
+	*vic_enable_addr = (*vic_enable_addr) | mask;
+	DEBUG(DB_IRQ, "| IRQ:\tEnabled with addr 0x%x and flag 0x%x", vic_enable_addr, *vic_enable_addr);
 	return *vic_enable_addr;
 }
 
@@ -72,11 +72,8 @@ int main() {
 	setTimerLoadValue(TIMER3_BASE, TIMER_TICK_SIZE);
 	setTimerControl(TIMER3_BASE, TRUE, TRUE, FALSE);
 
-	// Setup VIC
-	// setVicEnable(VIC1_BASE);
-	// setVicEnable(VIC2_BASE);
-	unsigned int *vic2_in_en_addr = (unsigned int *) (VIC2_BASE + VIC_IN_EN_OFFSET);
-	*vic2_in_en_addr = VIC_TIMER3_MASK;
+	// Enable timer interrupt
+	enableVicInterrupt(VIC2_BASE, VIC_TIMER3_MASK);
 
 	/* Initialize TaskList */
 	TaskList tlist;

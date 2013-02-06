@@ -2,6 +2,7 @@
 #include <klib.h>
 #include <kern/callno.h>
 #include <kern/errno.h>
+#include <kern/unistd.h>
 
 int sysCreate(TaskList *task_list, FreeList *free_list, int priority, void (*code) (), int *rtn) {
 	Task *task = createTask(free_list, priority, code);
@@ -57,12 +58,11 @@ int sysSend(KernelGlobal *global, int tid, char *msg, int msglen, char *reply, i
 	(msg_array[cur_tid]).replylen = replylen;
 
 	// block current task and add it to blocklist
-	enqueueBlockedList(receive_blocked_lists, tid % TASK_MAX, task_list, ReceiveBlocked);
+	blockCurrentTask(task_list, ReceiveBlocked, receive_blocked_lists, tid % TASK_MAX);
 
 	// unblock the receiver task
 	if (task_array[tid % TASK_MAX].state == SendBlocked) {
-		task_array[tid % TASK_MAX].state = Ready;
-		insertTask(task_list, &task_array[tid % TASK_MAX]);
+		insertTask(task_list, &(task_array[tid % TASK_MAX]));
 	}
 
 	*rtn = 0;
@@ -84,7 +84,7 @@ int sysReceive(KernelGlobal *global, int *tid, char *msg, int msglen, int *rtn) 
 
 	if (sender_tid == -1) {
 		// no one send current task msg
-		blockCurrentTask(task_list, SendBlocked);
+		blockCurrentTask(task_list, SendBlocked, NULL, 0);
 		return -1;
 	}
 
@@ -140,7 +140,6 @@ int sysReply(KernelGlobal *global, int tid, char *reply, int replylen, int *rtn)
 	sender_trapframe->r0 = replylen;
 
 	// Put sender back to ready queue
-	sender_task->state = Ready;
 	insertTask(task_list, sender_task);
 
 	// Reply succeed
@@ -153,14 +152,19 @@ int sysAwaitEvent(KernelGlobal *global, int eventid, char *event, int eventlen, 
 	BlockedList *event_blocked_lists = global->event_blocked_lists;
 	MsgBuffer 	*msg_array = global->msg_array;
 
+	if (eventid < 0 || eventid >= EVENT_MAX) {
+		return -1;
+	}
+
 	int cur_tid = task_list->curtask->tid;
 	assert((msg_array[cur_tid]).event == NULL, "MsgBuffer.event is not NULL");
+
 	// Link waiter's event and eventlen to msg_array
 	(msg_array[cur_tid]).event = event;
 	(msg_array[cur_tid]).eventlen = eventlen;
 
 	// Block current task and add it to blocklist
-	enqueueBlockedList(event_blocked_lists, eventid, task_list, EventBlocked);
+	blockCurrentTask(task_list, EventBlocked, event_blocked_lists, eventid);
 
 	*rtn = 0;
 	return 0;
@@ -190,14 +194,14 @@ int syscallHandler(void **parameters, KernelGlobal *global) {
 			err = sysMyParentTid(task_list, &rtn);
 			break;
 		case SYS_send:
-			err = sysSend(global, *((int*)(parameters[1])), (char*)parameters[2], *((int*)(parameters[3])),
-						(char*)parameters[4], *((int*)(parameters[5])), &rtn);
+			err = sysSend(global, *((int*)(parameters[1])), *((char**)parameters[2]), *((int*)(parameters[3])),
+						*((char**)parameters[4]), *((int*)(parameters[5])), &rtn);
 			break;
 		case SYS_receive:
-			err = sysReceive(global, (int*)parameters[1], (char*)parameters[2], *((int*)(parameters[3])), &rtn);
+			err = sysReceive(global, *((int**)parameters[1]), *((char**)parameters[2]), *((int*)(parameters[3])), &rtn);
 			break;
 		case SYS_reply:
-			err = sysReply(global, *((int*)(parameters[1])), (char*)parameters[2], *((int*)(parameters[3])), &rtn);
+			err = sysReply(global, *((int*)(parameters[1])), *((char**)parameters[2]), *((int*)(parameters[3])), &rtn);
 			break;
 		case SYS_awaitEvent:
 			err = sysAwaitEvent(global, *((int*)(parameters[1])), *((char**)parameters[2]), *((int*)(parameters[3])), &rtn);

@@ -9,7 +9,6 @@ typedef enum TaskState {
 	Active,
 	Ready,
 	Zombie,
-	Empty,
 	SendBlocked,
 	ReceiveBlocked,
 	ReplyBlocked,
@@ -69,7 +68,7 @@ int insertTask(TaskList *tlist, Task *new_task);
 
 Task *createTask(FreeList *flist, int priority, void (*code) ());
 
-Task *removeCurrentTask(TaskList *tlist, FreeList *flist);
+void removeCurrentTask(TaskList *tlist, FreeList *flist);
 
 // move current task to the end of its priority queue
 void moveCurrentTaskToEnd(TaskList *tlist);
@@ -81,14 +80,15 @@ void refreshCurtask(TaskList *tlist);
 int scheduleNextTask(TaskList *tlist);
 
 // Add current task to specified block list
-// Note: Current task will be removed from the ready queue and its state will be changed to blocked_state
-void enqueueBlockedList(BlockedList *blocked_lists, int blocked_list_index, TaskList *task_list, TaskState blocked_state);
+void enqueueBlockedList(BlockedList *blocked_lists, int blocked_list_index, Task *task);
 
 // receiver call this to get a sender's tid that has sent to the receiver
 int dequeueBlockedList(BlockedList *blocked_lists, int blocked_list_index);
 
-// block current task with "state"
-void blockCurrentTask(TaskList *tlist, TaskState state);
+// block current task with "state" and add to the blocked_list
+// (if blocked_list is not NULL)
+void blockCurrentTask(TaskList *task_list, TaskState blocked_state,
+                      BlockedList *blocked_lists, int blocked_list_index);
 
 // block list initialization
 void blockedListsInitial(BlockedList *block_lists, int list_num);
