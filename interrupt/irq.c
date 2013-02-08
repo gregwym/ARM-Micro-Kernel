@@ -10,7 +10,7 @@ void timerIrqHandler(KernelGlobal *global) {
 	// Fetch global variables
 	BlockedList *event_blocked_lists = global->event_blocked_lists;
 	Task	 	*task_array = global->task_array;
-	TaskList	*task_list = global->task_list;
+	TaskList	*ready_queue = global->ready_queue;
 	MsgBuffer	*msg_array = global->msg_array;
 
 	// Dequeue event from the event_blocked_list
@@ -25,7 +25,7 @@ void timerIrqHandler(KernelGlobal *global) {
 		msg_array[tid].event = NULL;
 
 		// Insert the task back to priority queue
-		insertTask(task_list, task);
+		insertTask(ready_queue, task);
 		DEBUG(DB_IRQ, "| IRQ:\tTid %d resumed from EventBlocked\n", tid);
 
 		// Try to dequeue next blocked task

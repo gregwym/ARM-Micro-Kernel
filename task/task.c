@@ -4,19 +4,21 @@
 #include <kern/md_const.h>
 #include <intern/trapframe.h>
 
-void tlistInitial(TaskList *task_list, Task **heads, Task **tails) {
-	task_list->curtask = NULL;
-	task_list->head = NULL;
-	task_list->priority_heads = heads;
-	task_list->priority_tails = tails;
-
+void readyQueueInitial(ReadyQueue *ready_queue, Heap *task_heap, HeapNode *nodearray, TaskList *task_list) {
+	ready_queue->curtask = NULL;
+	ready_queue->head = NULL;
+	ready_queue->taskheap = task_heap;
+	ready_queue->nodearray = nodearray;
+	
 	int i;
 
 	// TODO: Add magic number to the end of each stack, so can detect stack overflow
 
-	for (i = 0; i < TASK_MAX; i++) {
-		heads[i] = NULL;
-		tails[i] = NULL;
+	for (i = 0; i < TASK_PRIORITY_MAX; i++) {
+		nodearray[i].key = i;
+		nodearray[i].datum = &(task_list[i]);
+		task_list[i].head = NULL;
+		task_list[i].tail = NULL;
 	}
 }
 
@@ -40,75 +42,56 @@ void flistInitial(FreeList *free_list, Task *task_array) {
 	free_list->tail = &task_array[TASK_MAX - 1];
 }
 
-int insertTask(TaskList *task_list, Task *new_task) {
-	int i;
+int insertTask(ReadyQueue *ready_queue, Task *new_task) {
 	int priority = new_task->priority;
 
 	// Change the task state to Ready
 	new_task->state = Ready;
+	
+	HeapNode *node = &(ready_queue->nodearray[priority]);
+	TaskList *task_list = (TaskList *)(node->datum);
 
-	// Find and fill in new task
-	// If it is the first task
 	if (task_list->head == NULL) {
 		task_list->head = new_task;
-		task_list->priority_heads[priority] = new_task;
-		task_list->priority_tails[priority] = new_task;
+		task_list->tail = new_task;
+		minHeapInsert(ready_queue->taskheap, node);
+	} else {
+		task_list->tail->next = new_task;
+		task_list->tail = new_task;
 	}
-	// If it is the new highest priority
-	else if (task_list->head->priority > priority) {
-		task_list->head = new_task;
-		task_list->priority_heads[priority] = new_task;
-		task_list->priority_tails[priority] = new_task;
-
-		// Link tail
-		for (i = priority + 1; i < TASK_PRIORITY_MAX; i++) {
-			if (task_list->priority_heads[i] != NULL) {
-				new_task->next = task_list->priority_heads[i];
-				break;
-			}
-		}
-	}
-	// If it is not new highest, but new priority
-	else if (task_list->priority_tails[priority] == NULL) {
-		task_list->priority_heads[priority] = new_task;
-		task_list->priority_tails[priority] = new_task;
-		// Link higher priority task next to new_task
-		for (i = priority - 1; i >= 0; i--) {
-			if (task_list->priority_tails[i] != NULL) {
-				new_task->next = task_list->priority_tails[i]->next;
-				task_list->priority_tails[i]->next = new_task;
-				break;
-			}
-		}
-		// assert(i >= 0, "TaskList: Failed to find higher priority task");
-	}
-	// If not new priority
-	else {
-		new_task->next = task_list->priority_tails[priority]->next;
-		task_list->priority_tails[priority]->next = new_task;
-		task_list->priority_tails[priority] = new_task;
-	}
+	
+	// Update head task
+	ready_queue->head = ((TaskList *)(ready_queue->taskheap->data[0]->datum))->head;
 
 	DEBUG(DB_TASK, "| TASK:\tInserted\tTid: %d SP: 0x%x\n", new_task->tid, new_task->current_sp);
 	return 1;
 }
 
-void removeCurrentTask(TaskList *task_list, FreeList *free_list) {
-	assert(task_list->curtask == task_list->head, "Trying to remove a curtask that is not a head. ");
-	Task *task = task_list->curtask;
+void removeCurrentTask(ReadyQueue *ready_queue, FreeList *free_list) {
+	assert(ready_queue->curtask == ready_queue->head, "Trying to remove a curtask that is not a head. ");
+	Task *task = ready_queue->curtask;
 	int priority = task->priority;
 
-	// Adjust top_priority head and tails
-	if (task_list->priority_heads[priority] == task_list->priority_tails[priority]) {
-		task_list->priority_heads[priority] = NULL;
-		task_list->priority_tails[priority] = NULL;
-	} else {
-		task_list->priority_heads[priority] = task_list->priority_heads[priority]->next;
-	}
+	TaskList *task_list = (TaskList *)(ready_queue->nodearray[priority].datum);
 
-	// Move head to next and clear curtask
-	task_list->head = task_list->head->next;
-	task_list->curtask = NULL;
+	// Last task in its priority queue
+	if (task->next == NULL) {
+		task_list->head = NULL;
+		task_list->tail = NULL;
+		minHeapPop(ready_queue->taskheap);
+	}
+	// Otherwise
+	else {
+		task_list->head = task_list->head->next;
+	}
+	
+	// Update head task and clear curtask
+	if (ready_queue->taskheap->heapsize > 0) {
+		ready_queue->head = ((TaskList *)(ready_queue->taskheap->data[0]->datum))->head;
+	} else {
+		ready_queue->head = NULL;
+	}
+	ready_queue->curtask = NULL;
 
 	// Add the task to free list
 	if (free_list->head == NULL) {
@@ -147,41 +130,41 @@ Task *createTask(FreeList *free_list, int priority, void (*code) ()) {
 	return ret;
 }
 
-void moveCurrentTaskToEnd(TaskList *task_list) {
-	int priority = task_list->curtask->priority;
+void moveCurrentTaskToEnd(ReadyQueue *ready_queue) {
+	int priority = ready_queue->curtask->priority;
 
 	// Change the task state to Ready
-	assert(task_list->curtask->state == Active, "Current task state is not Active");
-	task_list->curtask->state = Ready;
+	assert(ready_queue->curtask->state == Active, "Current task state is not Active");
+	ready_queue->curtask->state = Ready;
+	
+	TaskList *task_list = (TaskList *)(ready_queue->nodearray[priority].datum);
 
-	if (task_list->priority_heads[priority] != task_list->priority_tails[priority]) {
-		if (task_list->head->priority < priority) {
-			task_list->head->next = task_list->curtask->next;
-		} else {
-			task_list->head = task_list->curtask->next;
-		}
-		task_list->priority_heads[priority] = task_list->curtask->next;
-		task_list->curtask->next = task_list->priority_tails[priority]->next;
-		task_list->priority_tails[priority]->next = task_list->curtask;
-		task_list->priority_tails[priority] = task_list->curtask;
+	if (task_list->head != task_list->tail) {
+		task_list->head = task_list->head->next;
+		task_list->tail->next = ready_queue->curtask;
+		task_list->tail = ready_queue->curtask;
 	}
+	
+	// Update head task
+	ready_queue->head = ((TaskList *)(ready_queue->taskheap->data[0]->datum))->head;
+
 }
 
-void refreshCurtask(TaskList *task_list) {
-	task_list->curtask = task_list->head;
+void refreshCurtask(ReadyQueue *ready_queue) {
+	ready_queue->curtask = ready_queue->head;
 	// Change the task state to Active
-	task_list->curtask->state = Active;
+	ready_queue->curtask->state = Active;
 }
 
-int scheduleNextTask(TaskList *tlist) {
-	if(tlist->curtask != NULL) {
-		moveCurrentTaskToEnd(tlist);
+int scheduleNextTask(ReadyQueue *ready_queue) {
+	if(ready_queue->curtask != NULL) {
+		moveCurrentTaskToEnd(ready_queue);
 	}
-	refreshCurtask(tlist);
-	if (tlist->curtask == NULL) {
+	refreshCurtask(ready_queue);
+	if (ready_queue->curtask == NULL) {
 		return 0;
 	}
-	DEBUG(DB_TASK, "| TASK:\tScheduled\tTid: %d Priority: %d\n", tlist->curtask->tid, tlist->curtask->priority);
+	DEBUG(DB_TASK, "| TASK:\tScheduled\tTid: %d Priority: %d\n", ready_queue->curtask->tid, ready_queue->curtask->priority);
 	return 1;
 }
 
@@ -214,25 +197,37 @@ int dequeueBlockedList(BlockedList *blocked_lists, int blocked_list_index) {
 	return ret;
 }
 
-void blockCurrentTask(TaskList *task_list, TaskState blocked_state,
+void blockCurrentTask(ReadyQueue *ready_queue, TaskState blocked_state,
                       BlockedList *blocked_lists, int blocked_list_index) {
-	int top_priority = task_list->head->priority;
-	Task *task = task_list->curtask;
-	assert(task_list->head == task_list->curtask, "Blocking syscall invalid");
+	assert(ready_queue->curtask == ready_queue->head, "Blocking syscall invalid");
+	Task *task = ready_queue->curtask;
+	int priority = task->priority;
 
-	// Adjust top_priority head and tails
-	if (task_list->priority_heads[top_priority] == task_list->priority_tails[top_priority]) {
-		task_list->priority_heads[top_priority] = NULL;
-		task_list->priority_tails[top_priority] = NULL;
-	} else {
-		task_list->priority_heads[top_priority] = task_list->priority_heads[top_priority]->next;
+	TaskList *task_list = (TaskList *)(ready_queue->nodearray[priority].datum);
+
+	// Last task in its priority queue
+	if (task->next == NULL) {
+		task_list->head = NULL;
+		task_list->tail = NULL;
+		minHeapPop(ready_queue->taskheap);
 	}
-	task_list->head = task_list->head->next;
+	// Otherwise
+	else {
+		task_list->head = task_list->head->next;
+	}
+	
+	// Update head task and clear curtask
+	if (ready_queue->taskheap->heapsize > 0) {
+		ready_queue->head = ((TaskList *)(ready_queue->taskheap->data[0]->datum))->head;
+	} else {
+		ready_queue->head = NULL;
+	}
+	ready_queue->curtask = NULL;
 
-	assert(task_list->curtask->state == Active, "Current task state is not Active");
-	task_list->curtask->state = blocked_state;
-	task_list->curtask->next = NULL;
-	task_list->curtask = NULL;
+	assert(ready_queue->curtask->state == Active, "Current task state is not Active");
+	ready_queue->curtask->state = blocked_state;
+	ready_queue->curtask->next = NULL;
+	ready_queue->curtask = NULL;
 
 	enqueueBlockedList(blocked_lists, blocked_list_index, task);
 }

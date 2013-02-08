@@ -75,20 +75,23 @@ int main() {
 	// Enable timer interrupt
 	enableVicInterrupt(VIC2_BASE, VIC_TIMER3_MASK);
 
-	/* Initialize TaskList */
-	TaskList tlist;
-	FreeList flist;
-	Task task_array[TASK_MAX];
-	char stacks[TASK_MAX * TASK_STACK_SIZE];
-	Task *priority_head[TASK_PRIORITY_MAX];
-	Task *priority_tail[TASK_PRIORITY_MAX];
+	/* Initialize ReadyQueue */
+	ReadyQueue 	ready_queue;
+	Heap		task_heap;
+	HeapNode	*heap_data[TASK_PRIORITY_MAX];
+	HeapNode	node_array[TASK_PRIORITY_MAX];
+	FreeList 	flist;
+	Task 		task_array[TASK_MAX];
+	TaskList	task_list[TASK_PRIORITY_MAX];
+	char 		stacks[TASK_MAX * TASK_STACK_SIZE];
 	BlockedList receive_blocked_lists[TASK_MAX];
 	BlockedList event_blocked_lists[EVENT_MAX];
-	MsgBuffer msg_array[TASK_MAX];
+	MsgBuffer	msg_array[TASK_MAX];
 
 	tarrayInitial(task_array, stacks);
 	flistInitial(&flist, task_array);
-	tlistInitial(&tlist, priority_head, priority_tail);
+	heapInitial(&task_heap, heap_data, TASK_PRIORITY_MAX);
+	readyQueueInitial(&ready_queue, &task_heap, node_array, task_list);
 	blockedListsInitial(receive_blocked_lists, TASK_MAX);
 	blockedListsInitial(event_blocked_lists, EVENT_MAX);
 	msgArrayInitial(msg_array);
@@ -101,7 +104,7 @@ int main() {
 
 	/* Setup kernel global variable structure */
 	KernelGlobal global;
-	global.task_list = &tlist;
+	global.ready_queue = &ready_queue;
 	global.free_list = &flist;
 	global.receive_blocked_lists = receive_blocked_lists;
 	global.event_blocked_lists = event_blocked_lists;
@@ -110,16 +113,16 @@ int main() {
 
 	/* Create first task with highest priority */
 	Task *first_task = createTask(&flist, 0, umain);
-	insertTask(&tlist, first_task);
+	insertTask(&ready_queue, first_task);
 
 	/* Main syscall handling loop */
 	while(1){
 		// If no more task to run, break
-		if(!scheduleNextTask(&tlist)) break;
-		UserTrapframe* user_sp = (UserTrapframe *)tlist.curtask->current_sp;
+		if(!scheduleNextTask(&ready_queue)) break;
+		UserTrapframe* user_sp = (UserTrapframe *)ready_queue.curtask->current_sp;
 		DEBUG(DB_TASK, "| TASK:\tEXITING SP: 0x%x SPSR: 0x%x ResumePoint: 0x%x\n", user_sp, user_sp->spsr, user_sp->resume_point);
 		// Exit kernel to let user program to execute
-		kernelExit(tlist.curtask->current_sp);
+		kernelExit(ready_queue.curtask->current_sp);
 
 		asm("mov r1, %0"
 		    :

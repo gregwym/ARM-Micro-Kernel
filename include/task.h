@@ -1,6 +1,8 @@
 #ifndef __TASK_H__
 #define __TASK_H__
 
+#include <klib.h>
+
 #define TASK_MAX 30
 #define TASK_STACK_SIZE 2048
 #define TASK_PRIORITY_MAX 10
@@ -30,11 +32,16 @@ typedef struct task_descriptor {
 	// Return value
 } Task;
 
-typedef struct task_list {
+typedef struct ready_queue {
 	Task 		*curtask;					// Task pointer to the current task/swi caller
 	Task 		*head;						// Task pointer to the first highest priority task
-	Task 		**priority_heads;			// Task pointers to the head of each priority
-	Task 		**priority_tails;			// Task pointers to the tail of each priority
+	Heap		*taskheap;
+	HeapNode	*nodearray;
+} ReadyQueue;
+
+typedef struct task_list {
+	Task		*head;
+	Task		*tail;
 } TaskList;
 
 typedef struct free_list {
@@ -58,26 +65,26 @@ typedef struct msg_buffer {
 
 
 
-void tlistInitial(TaskList *tlist, Task **heads, Task **tails);
+void readyQueueInitial(ReadyQueue *ready_queue, Heap *task_heap, HeapNode *nodearray, TaskList *task_list);
 
 void tarrayInitial(Task *task_array, char *stacks);
 
 void flistInitial(FreeList *flist, Task *task_array);
 
-int insertTask(TaskList *tlist, Task *new_task);
+int insertTask(ReadyQueue *ready_queue, Task *new_task);
 
 Task *createTask(FreeList *flist, int priority, void (*code) ());
 
-void removeCurrentTask(TaskList *tlist, FreeList *flist);
+void removeCurrentTask(ReadyQueue *ready_queue, FreeList *flist);
 
 // move current task to the end of its priority queue
-void moveCurrentTaskToEnd(TaskList *tlist);
+void moveCurrentTaskToEnd(ReadyQueue *ready_queue);
 
 // set current task to head
-void refreshCurtask(TaskList *tlist);
+void refreshCurtask(ReadyQueue *ready_queue);
 
 // Schedule next task to run, return 0 if no more task
-int scheduleNextTask(TaskList *tlist);
+int scheduleNextTask(ReadyQueue *ready_queue);
 
 // Add current task to specified block list
 void enqueueBlockedList(BlockedList *blocked_lists, int blocked_list_index, Task *task);
@@ -87,7 +94,7 @@ int dequeueBlockedList(BlockedList *blocked_lists, int blocked_list_index);
 
 // block current task with "state" and add to the blocked_list
 // (if blocked_list is not NULL)
-void blockCurrentTask(TaskList *task_list, TaskState blocked_state,
+void blockCurrentTask(ReadyQueue *ready_queue, TaskState blocked_state,
                       BlockedList *blocked_lists, int blocked_list_index);
 
 // block list initialization
