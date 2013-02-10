@@ -9,7 +9,7 @@ void readyQueueInitial(ReadyQueue *ready_queue, Heap *task_heap, HeapNode *nodea
 	ready_queue->head = NULL;
 	ready_queue->taskheap = task_heap;
 	ready_queue->nodearray = nodearray;
-	
+
 	int i;
 
 	// TODO: Add magic number to the end of each stack, so can detect stack overflow
@@ -47,7 +47,8 @@ int insertTask(ReadyQueue *ready_queue, Task *new_task) {
 
 	// Change the task state to Ready
 	new_task->state = Ready;
-	
+	new_task->next = NULL;
+
 	HeapNode *node = &(ready_queue->nodearray[priority]);
 	TaskList *task_list = (TaskList *)(node->datum);
 
@@ -59,7 +60,7 @@ int insertTask(ReadyQueue *ready_queue, Task *new_task) {
 		task_list->tail->next = new_task;
 		task_list->tail = new_task;
 	}
-	
+
 	// Update head task
 	ready_queue->head = ((TaskList *)(ready_queue->taskheap->data[0]->datum))->head;
 
@@ -84,7 +85,7 @@ void removeCurrentTask(ReadyQueue *ready_queue, FreeList *free_list) {
 	else {
 		task_list->head = task_list->head->next;
 	}
-	
+
 	// Update head task and clear curtask
 	if (ready_queue->taskheap->heapsize > 0) {
 		ready_queue->head = ((TaskList *)(ready_queue->taskheap->data[0]->datum))->head;
@@ -92,6 +93,11 @@ void removeCurrentTask(ReadyQueue *ready_queue, FreeList *free_list) {
 		ready_queue->head = NULL;
 	}
 	ready_queue->curtask = NULL;
+
+	// Change the task state to Zombie and next to NULL (tail of free_list)
+	assert(task->state == Active, "Current task state is not Active");
+	task->state = Zombie;
+	task->next = NULL;
 
 	// Add the task to free list
 	if (free_list->head == NULL) {
@@ -101,11 +107,6 @@ void removeCurrentTask(ReadyQueue *ready_queue, FreeList *free_list) {
 		free_list->tail->next = task;
 		free_list->tail = task;
 	}
-
-	// Change the task state to Zombie and next to NULL (tail of free_list)
-	assert(task->state == Active, "Current task state is not Active");
-	task->state = Zombie;
-	task->next = NULL;
 }
 
 Task *createTask(FreeList *free_list, int priority, void (*code) ()) {
@@ -131,23 +132,23 @@ Task *createTask(FreeList *free_list, int priority, void (*code) ()) {
 }
 
 void moveCurrentTaskToEnd(ReadyQueue *ready_queue) {
-	int priority = ready_queue->curtask->priority;
+	Task *task = ready_queue->curtask;
+	int priority = task->priority;
 
 	// Change the task state to Ready
-	assert(ready_queue->curtask->state == Active, "Current task state is not Active");
-	ready_queue->curtask->state = Ready;
-	
+	assert(task->state == Active, "Current task state is not Active");
+	task->state = Ready;
+
 	TaskList *task_list = (TaskList *)(ready_queue->nodearray[priority].datum);
 
 	if (task_list->head != task_list->tail) {
 		task_list->head = task_list->head->next;
-		task_list->tail->next = ready_queue->curtask;
-		task_list->tail = ready_queue->curtask;
+		task_list->tail->next = task;
+		task_list->tail = task;
 	}
-	
+
 	// Update head task
 	ready_queue->head = ((TaskList *)(ready_queue->taskheap->data[0]->datum))->head;
-
 }
 
 void refreshCurtask(ReadyQueue *ready_queue) {
@@ -174,6 +175,7 @@ void enqueueBlockedList(BlockedList *blocked_lists, int blocked_list_index, Task
 		return;
 	}
 
+	task->next = NULL;
 	if (blocked_lists[blocked_list_index].head == NULL) {
 		blocked_lists[blocked_list_index].head = task;
 		blocked_lists[blocked_list_index].tail = task;
@@ -181,15 +183,14 @@ void enqueueBlockedList(BlockedList *blocked_lists, int blocked_list_index, Task
 		blocked_lists[blocked_list_index].tail->next = task;
 		blocked_lists[blocked_list_index].tail = task;
 	}
-	task->next = NULL;
 }
 
 int dequeueBlockedList(BlockedList *blocked_lists, int blocked_list_index) {
 	int ret = -1;
-	Task *read_task = NULL;
-	if (blocked_lists[blocked_list_index].head != NULL) { // && blocked_lists[blocked_list_index].tail != NULL) {
-		read_task = blocked_lists[blocked_list_index].head;
-		ret = read_task->tid;
+	Task *task = NULL;
+	if (blocked_lists[blocked_list_index].head != NULL) {
+		task = blocked_lists[blocked_list_index].head;
+		ret = task->tid;
 		blocked_lists[blocked_list_index].head = blocked_lists[blocked_list_index].head->next;
 		if (blocked_lists[blocked_list_index].head == NULL) {
 			blocked_lists[blocked_list_index].tail = NULL;
@@ -226,7 +227,6 @@ void blockCurrentTask(ReadyQueue *ready_queue, TaskState blocked_state,
 
 	assert(task->state == Active, "Current task state is not Active");
 	task->state = blocked_state;
-	task->next = NULL;
 	ready_queue->curtask = NULL;
 
 	enqueueBlockedList(blocked_lists, blocked_list_index, task);
