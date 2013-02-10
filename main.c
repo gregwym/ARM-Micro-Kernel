@@ -76,20 +76,20 @@ int main() {
 	enableVicInterrupt(VIC2_BASE, VIC_TIMER3_MASK);
 
 	/* Initialize ReadyQueue and Task related data structures */
-	ReadyQueue 	ready_queue;
+	ReadyQueue	ready_queue;
 	Heap		task_heap;
 	HeapNode	*task_heap_data[TASK_PRIORITY_MAX];
 	HeapNode	task_heap_nodes[TASK_PRIORITY_MAX];
-	FreeList 	free_list;
-	Task 		task_array[TASK_MAX];
+	FreeList	free_list;
+	Task		task_array[TASK_MAX];
 	TaskList	task_list[TASK_PRIORITY_MAX];
-	char 		stacks[TASK_MAX * TASK_STACK_SIZE];
-	BlockedList receive_blocked_lists[TASK_MAX];
-	BlockedList event_blocked_lists[EVENT_MAX];
+	char		stacks[TASK_MAX * TASK_STACK_SIZE];
+	BlockedList	receive_blocked_lists[TASK_MAX];
+	BlockedList	event_blocked_lists[EVENT_MAX];
 	MsgBuffer	msg_array[TASK_MAX];
 
-	tarrayInitial(task_array, stacks);
-	flistInitial(&free_list, task_array);
+	taskArrayInitial(task_array, stacks);
+	freeListInitial(&free_list, task_array);
 	heapInitial(&task_heap, task_heap_data, TASK_PRIORITY_MAX);
 	readyQueueInitial(&ready_queue, &task_heap, task_heap_nodes, task_list);
 	blockedListsInitial(receive_blocked_lists, TASK_MAX);

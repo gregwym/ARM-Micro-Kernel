@@ -67,15 +67,21 @@ typedef struct msg_buffer {
 
 void readyQueueInitial(ReadyQueue *ready_queue, Heap *task_heap, HeapNode *task_heap_nodes, TaskList *task_list);
 
-void tarrayInitial(Task *task_array, char *stacks);
+void taskArrayInitial(Task *task_array, char *stacks);
 
-void flistInitial(FreeList *flist, Task *task_array);
+void freeListInitial(FreeList *free_list, Task *task_array);
+
+// block list initialization
+void blockedListsInitial(BlockedList *block_lists, int list_num);
+
+// msg array initialization
+void msgArrayInitial(MsgBuffer *msg_array);
 
 int insertTask(ReadyQueue *ready_queue, Task *new_task);
 
-Task *createTask(FreeList *flist, int priority, void (*code) ());
+Task *createTask(FreeList *free_list, int priority, void (*code) ());
 
-void removeCurrentTask(ReadyQueue *ready_queue, FreeList *flist);
+void removeCurrentTask(ReadyQueue *ready_queue, FreeList *free_list);
 
 // move current task to the end of its priority queue
 void moveCurrentTaskToEnd(ReadyQueue *ready_queue);
@@ -96,12 +102,6 @@ int dequeueBlockedList(BlockedList *blocked_lists, int blocked_list_index);
 // (if blocked_list is not NULL)
 void blockCurrentTask(ReadyQueue *ready_queue, TaskState blocked_state,
                       BlockedList *blocked_lists, int blocked_list_index);
-
-// block list initialization
-void blockedListsInitial(BlockedList *block_lists, int list_num);
-
-// msg array initialization
-void msgArrayInitial(MsgBuffer *msg_array);
 
 void createIdleTask();
 

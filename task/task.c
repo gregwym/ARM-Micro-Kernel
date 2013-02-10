@@ -22,7 +22,7 @@ void readyQueueInitial(ReadyQueue *ready_queue, Heap *task_heap, HeapNode *task_
 	}
 }
 
-void tarrayInitial(Task *task_array, char *stacks) {
+void taskArrayInitial(Task *task_array, char *stacks) {
 	int i;
 	for (i = 0; i < TASK_MAX; i++) {
 		task_array[i].tid = i - TASK_MAX;
@@ -31,7 +31,7 @@ void tarrayInitial(Task *task_array, char *stacks) {
 	}
 }
 
-void flistInitial(FreeList *free_list, Task *task_array) {
+void freeListInitial(FreeList *free_list, Task *task_array) {
 	int i;
 	for (i = 0; i < TASK_MAX - 1; i++) {
 		task_array[i].next = &(task_array[i+1]);
@@ -40,6 +40,23 @@ void flistInitial(FreeList *free_list, Task *task_array) {
 
 	free_list->head = &task_array[0];
 	free_list->tail = &task_array[TASK_MAX - 1];
+}
+
+void blockedListsInitial(BlockedList *blocked_lists, int list_num) {
+	int i = -1;
+	for (i = 0; i < list_num; i++) {
+		blocked_lists[i].head = NULL;
+		blocked_lists[i].tail = NULL;
+	}
+}
+
+void msgArrayInitial(MsgBuffer *msg_array) {
+	int i = -1;
+	for (i = 0; i < TASK_MAX; i++) {
+		msg_array[i].msg = NULL;
+		msg_array[i].reply = NULL;
+		msg_array[i].event = NULL;
+	}
 }
 
 int insertTask(ReadyQueue *ready_queue, Task *new_task) {
@@ -230,21 +247,4 @@ void blockCurrentTask(ReadyQueue *ready_queue, TaskState blocked_state,
 	ready_queue->curtask = NULL;
 
 	enqueueBlockedList(blocked_lists, blocked_list_index, task);
-}
-
-void blockedListsInitial(BlockedList *blocked_lists, int list_num) {
-	int i = -1;
-	for (i = 0; i < list_num; i++) {
-		blocked_lists[i].head = NULL;
-		blocked_lists[i].tail = NULL;
-	}
-}
-
-void msgArrayInitial(MsgBuffer *msg_array) {
-	int i = -1;
-	for (i = 0; i < TASK_MAX; i++) {
-		msg_array[i].msg = NULL;
-		msg_array[i].reply = NULL;
-		msg_array[i].event = NULL;
-	}
 }
