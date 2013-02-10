@@ -181,12 +181,13 @@ void enqueueBlockedList(BlockedList *blocked_lists, int blocked_list_index, Task
 		blocked_lists[blocked_list_index].tail->next = task;
 		blocked_lists[blocked_list_index].tail = task;
 	}
+	task->next = NULL;
 }
 
 int dequeueBlockedList(BlockedList *blocked_lists, int blocked_list_index) {
 	int ret = -1;
 	Task *read_task = NULL;
-	if (blocked_lists[blocked_list_index].head != NULL) {
+	if (blocked_lists[blocked_list_index].head != NULL) { // && blocked_lists[blocked_list_index].tail != NULL) {
 		read_task = blocked_lists[blocked_list_index].head;
 		ret = read_task->tid;
 		blocked_lists[blocked_list_index].head = blocked_lists[blocked_list_index].head->next;
@@ -210,23 +211,22 @@ void blockCurrentTask(ReadyQueue *ready_queue, TaskState blocked_state,
 		task_list->head = NULL;
 		task_list->tail = NULL;
 		minHeapPop(ready_queue->taskheap);
+		// Update head task and clear curtask
+		if (ready_queue->taskheap->heapsize > 0) {
+			ready_queue->head = ((TaskList *)(ready_queue->taskheap->data[0]->datum))->head;
+		} else {
+			ready_queue->head = NULL;
+		}
 	}
 	// Otherwise
 	else {
 		task_list->head = task_list->head->next;
+		ready_queue->head = task_list->head;
 	}
-	
-	// Update head task and clear curtask
-	if (ready_queue->taskheap->heapsize > 0) {
-		ready_queue->head = ((TaskList *)(ready_queue->taskheap->data[0]->datum))->head;
-	} else {
-		ready_queue->head = NULL;
-	}
-	ready_queue->curtask = NULL;
 
-	assert(ready_queue->curtask->state == Active, "Current task state is not Active");
-	ready_queue->curtask->state = blocked_state;
-	ready_queue->curtask->next = NULL;
+	assert(task->state == Active, "Current task state is not Active");
+	task->state = blocked_state;
+	task->next = NULL;
 	ready_queue->curtask = NULL;
 
 	enqueueBlockedList(blocked_lists, blocked_list_index, task);

@@ -24,8 +24,8 @@ int sysMyTid(ReadyQueue *ready_queue, int *rtn) {
 	return 0;
 }
 
-int sysMyParentTid(ReadyQueue *tlist, int *rtn) {
-	*rtn = tlist->curtask->parent_tid;
+int sysMyParentTid(ReadyQueue *ready_queue, int *rtn) {
+	*rtn = ready_queue->curtask->parent_tid;
 	return 0;
 }
 

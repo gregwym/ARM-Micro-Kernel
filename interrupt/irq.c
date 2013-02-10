@@ -10,7 +10,7 @@ void timerIrqHandler(KernelGlobal *global) {
 	// Fetch global variables
 	BlockedList *event_blocked_lists = global->event_blocked_lists;
 	Task	 	*task_array = global->task_array;
-	TaskList	*ready_queue = global->ready_queue;
+	ReadyQueue	*ready_queue = global->ready_queue;
 	MsgBuffer	*msg_array = global->msg_array;
 
 	// Dequeue event from the event_blocked_list
@@ -21,7 +21,6 @@ void timerIrqHandler(KernelGlobal *global) {
 		// Change task states and clear MsgBuffer
 		Task *task = &(task_array[tid % TASK_MAX]);
 		assert(task->state == EventBlocked, "Task in event_blocked_lists was not EventBlocked");
-		task->state = Ready;
 		msg_array[tid].event = NULL;
 
 		// Insert the task back to priority queue
