@@ -4,19 +4,19 @@
 #include <kern/md_const.h>
 #include <intern/trapframe.h>
 
-void readyQueueInitial(ReadyQueue *ready_queue, Heap *task_heap, HeapNode *nodearray, TaskList *task_list) {
+void readyQueueInitial(ReadyQueue *ready_queue, Heap *task_heap, HeapNode *task_heap_nodes, TaskList *task_list) {
 	ready_queue->curtask = NULL;
 	ready_queue->head = NULL;
-	ready_queue->taskheap = task_heap;
-	ready_queue->nodearray = nodearray;
+	ready_queue->heap = task_heap;
+	ready_queue->heap_nodes = task_heap_nodes;
 
 	int i;
 
 	// TODO: Add magic number to the end of each stack, so can detect stack overflow
 
 	for (i = 0; i < TASK_PRIORITY_MAX; i++) {
-		nodearray[i].key = i;
-		nodearray[i].datum = &(task_list[i]);
+		task_heap_nodes[i].key = i;
+		task_heap_nodes[i].datum = &(task_list[i]);
 		task_list[i].head = NULL;
 		task_list[i].tail = NULL;
 	}
@@ -49,20 +49,20 @@ int insertTask(ReadyQueue *ready_queue, Task *new_task) {
 	new_task->state = Ready;
 	new_task->next = NULL;
 
-	HeapNode *node = &(ready_queue->nodearray[priority]);
+	HeapNode *node = &(ready_queue->heap_nodes[priority]);
 	TaskList *task_list = (TaskList *)(node->datum);
 
 	if (task_list->head == NULL) {
 		task_list->head = new_task;
 		task_list->tail = new_task;
-		minHeapInsert(ready_queue->taskheap, node);
+		minHeapInsert(ready_queue->heap, node);
 	} else {
 		task_list->tail->next = new_task;
 		task_list->tail = new_task;
 	}
 
 	// Update head task
-	ready_queue->head = ((TaskList *)(ready_queue->taskheap->data[0]->datum))->head;
+	ready_queue->head = ((TaskList *)(ready_queue->heap->data[0]->datum))->head;
 
 	DEBUG(DB_TASK, "| TASK:\tInserted\tTid: %d SP: 0x%x\n", new_task->tid, new_task->current_sp);
 	return 1;
@@ -73,13 +73,13 @@ void removeCurrentTask(ReadyQueue *ready_queue, FreeList *free_list) {
 	Task *task = ready_queue->curtask;
 	int priority = task->priority;
 
-	TaskList *task_list = (TaskList *)(ready_queue->nodearray[priority].datum);
+	TaskList *task_list = (TaskList *)(ready_queue->heap_nodes[priority].datum);
 
 	// Last task in its priority queue
 	if (task->next == NULL) {
 		task_list->head = NULL;
 		task_list->tail = NULL;
-		minHeapPop(ready_queue->taskheap);
+		minHeapPop(ready_queue->heap);
 	}
 	// Otherwise
 	else {
@@ -87,8 +87,8 @@ void removeCurrentTask(ReadyQueue *ready_queue, FreeList *free_list) {
 	}
 
 	// Update head task and clear curtask
-	if (ready_queue->taskheap->heapsize > 0) {
-		ready_queue->head = ((TaskList *)(ready_queue->taskheap->data[0]->datum))->head;
+	if (ready_queue->heap->heapsize > 0) {
+		ready_queue->head = ((TaskList *)(ready_queue->heap->data[0]->datum))->head;
 	} else {
 		ready_queue->head = NULL;
 	}
@@ -139,7 +139,7 @@ void moveCurrentTaskToEnd(ReadyQueue *ready_queue) {
 	assert(task->state == Active, "Current task state is not Active");
 	task->state = Ready;
 
-	TaskList *task_list = (TaskList *)(ready_queue->nodearray[priority].datum);
+	TaskList *task_list = (TaskList *)(ready_queue->heap_nodes[priority].datum);
 
 	if (task_list->head != task_list->tail) {
 		task_list->head = task_list->head->next;
@@ -148,7 +148,7 @@ void moveCurrentTaskToEnd(ReadyQueue *ready_queue) {
 	}
 
 	// Update head task
-	ready_queue->head = ((TaskList *)(ready_queue->taskheap->data[0]->datum))->head;
+	ready_queue->head = ((TaskList *)(ready_queue->heap->data[0]->datum))->head;
 }
 
 void refreshCurtask(ReadyQueue *ready_queue) {
@@ -205,16 +205,16 @@ void blockCurrentTask(ReadyQueue *ready_queue, TaskState blocked_state,
 	Task *task = ready_queue->curtask;
 	int priority = task->priority;
 
-	TaskList *task_list = (TaskList *)(ready_queue->nodearray[priority].datum);
+	TaskList *task_list = (TaskList *)(ready_queue->heap_nodes[priority].datum);
 
 	// Last task in its priority queue
 	if (task->next == NULL) {
 		task_list->head = NULL;
 		task_list->tail = NULL;
-		minHeapPop(ready_queue->taskheap);
+		minHeapPop(ready_queue->heap);
 		// Update head task and clear curtask
-		if (ready_queue->taskheap->heapsize > 0) {
-			ready_queue->head = ((TaskList *)(ready_queue->taskheap->data[0]->datum))->head;
+		if (ready_queue->heap->heapsize > 0) {
+			ready_queue->head = ((TaskList *)(ready_queue->heap->data[0]->datum))->head;
 		} else {
 			ready_queue->head = NULL;
 		}

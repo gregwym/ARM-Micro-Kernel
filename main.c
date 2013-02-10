@@ -75,12 +75,12 @@ int main() {
 	// Enable timer interrupt
 	enableVicInterrupt(VIC2_BASE, VIC_TIMER3_MASK);
 
-	/* Initialize ReadyQueue */
+	/* Initialize ReadyQueue and Task related data structures */
 	ReadyQueue 	ready_queue;
 	Heap		task_heap;
-	HeapNode	*heap_data[TASK_PRIORITY_MAX];
-	HeapNode	node_array[TASK_PRIORITY_MAX];
-	FreeList 	flist;
+	HeapNode	*task_heap_data[TASK_PRIORITY_MAX];
+	HeapNode	task_heap_nodes[TASK_PRIORITY_MAX];
+	FreeList 	free_list;
 	Task 		task_array[TASK_MAX];
 	TaskList	task_list[TASK_PRIORITY_MAX];
 	char 		stacks[TASK_MAX * TASK_STACK_SIZE];
@@ -89,9 +89,9 @@ int main() {
 	MsgBuffer	msg_array[TASK_MAX];
 
 	tarrayInitial(task_array, stacks);
-	flistInitial(&flist, task_array);
-	heapInitial(&task_heap, heap_data, TASK_PRIORITY_MAX);
-	readyQueueInitial(&ready_queue, &task_heap, node_array, task_list);
+	flistInitial(&free_list, task_array);
+	heapInitial(&task_heap, task_heap_data, TASK_PRIORITY_MAX);
+	readyQueueInitial(&ready_queue, &task_heap, task_heap_nodes, task_list);
 	blockedListsInitial(receive_blocked_lists, TASK_MAX);
 	blockedListsInitial(event_blocked_lists, EVENT_MAX);
 	msgArrayInitial(msg_array);
@@ -105,14 +105,14 @@ int main() {
 	/* Setup kernel global variable structure */
 	KernelGlobal global;
 	global.ready_queue = &ready_queue;
-	global.free_list = &flist;
+	global.free_list = &free_list;
 	global.receive_blocked_lists = receive_blocked_lists;
 	global.event_blocked_lists = event_blocked_lists;
 	global.msg_array = msg_array;
 	global.task_array = task_array;
 
 	/* Create first task with highest priority */
-	Task *first_task = createTask(&flist, 0, umain);
+	Task *first_task = createTask(&free_list, 0, umain);
 	insertTask(&ready_queue, first_task);
 
 	/* Main syscall handling loop */

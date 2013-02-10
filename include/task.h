@@ -35,8 +35,8 @@ typedef struct task_descriptor {
 typedef struct ready_queue {
 	Task 		*curtask;					// Task pointer to the current task/swi caller
 	Task 		*head;						// Task pointer to the first highest priority task
-	Heap		*taskheap;
-	HeapNode	*nodearray;
+	Heap		*heap;
+	HeapNode	*heap_nodes;
 } ReadyQueue;
 
 typedef struct task_list {
@@ -65,7 +65,7 @@ typedef struct msg_buffer {
 
 
 
-void readyQueueInitial(ReadyQueue *ready_queue, Heap *task_heap, HeapNode *nodearray, TaskList *task_list);
+void readyQueueInitial(ReadyQueue *ready_queue, Heap *task_heap, HeapNode *task_heap_nodes, TaskList *task_list);
 
 void tarrayInitial(Task *task_array, char *stacks);
 
