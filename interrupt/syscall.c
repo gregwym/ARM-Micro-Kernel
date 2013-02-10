@@ -4,39 +4,39 @@
 #include <kern/errno.h>
 #include <kern/unistd.h>
 
-int sysCreate(TaskList *task_list, FreeList *free_list, int priority, void (*code) (), int *rtn) {
+int sysCreate(ReadyQueue *ready_queue, FreeList *free_list, int priority, void (*code) (), int *rtn) {
 	Task *task = createTask(free_list, priority, code);
 	if(task == NULL) return -1;
 
-	task->parent_tid = task_list->curtask->tid;
-	insertTask(task_list, task);
+	task->parent_tid = ready_queue->curtask->tid;
+	insertTask(ready_queue, task);
 	*rtn = task->tid;
 	return 0;
 }
 
-int sysExit(TaskList *task_list, FreeList *free_list) {
-	removeCurrentTask(task_list, free_list);
+int sysExit(ReadyQueue *ready_queue, FreeList *free_list) {
+	removeCurrentTask(ready_queue, free_list);
 	return 0;
 }
 
-int sysMyTid(TaskList *task_list, int *rtn) {
-	*rtn = task_list->curtask->tid;
+int sysMyTid(ReadyQueue *ready_queue, int *rtn) {
+	*rtn = ready_queue->curtask->tid;
 	return 0;
 }
 
-int sysMyParentTid(TaskList *tlist, int *rtn) {
-	*rtn = tlist->curtask->parent_tid;
+int sysMyParentTid(ReadyQueue *ready_queue, int *rtn) {
+	*rtn = ready_queue->curtask->parent_tid;
 	return 0;
 }
 
 int sysSend(KernelGlobal *global, int tid, char *msg, int msglen, char *reply, int replylen, int *rtn) {
 
-	TaskList 	*task_list = global->task_list;
+	ReadyQueue 	*ready_queue = global->ready_queue;
 	BlockedList *receive_blocked_lists = global->receive_blocked_lists;
 	MsgBuffer 	*msg_array = global->msg_array;
 	Task	 	*task_array = global->task_array;
 
-	int cur_tid = task_list->curtask->tid;
+	int cur_tid = ready_queue->curtask->tid;
 
 	// not a possible task id.
 	if (tid < 0) {
@@ -58,11 +58,11 @@ int sysSend(KernelGlobal *global, int tid, char *msg, int msglen, char *reply, i
 	(msg_array[cur_tid]).replylen = replylen;
 
 	// block current task and add it to blocklist
-	blockCurrentTask(task_list, ReceiveBlocked, receive_blocked_lists, tid % TASK_MAX);
+	blockCurrentTask(ready_queue, ReceiveBlocked, receive_blocked_lists, tid % TASK_MAX);
 
 	// unblock the receiver task
 	if (task_array[tid % TASK_MAX].state == SendBlocked) {
-		insertTask(task_list, &(task_array[tid % TASK_MAX]));
+		insertTask(ready_queue, &(task_array[tid % TASK_MAX]));
 	}
 
 	*rtn = 0;
@@ -71,7 +71,7 @@ int sysSend(KernelGlobal *global, int tid, char *msg, int msglen, char *reply, i
 
 int sysReceive(KernelGlobal *global, int *tid, char *msg, int msglen, int *rtn) {
 
-	TaskList 	*task_list = global->task_list;
+	ReadyQueue 	*ready_queue = global->ready_queue;
 	BlockedList *receive_blocked_lists = global->receive_blocked_lists;
 	MsgBuffer 	*msg_array = global->msg_array;
 	Task	 	*task_array = global->task_array;
@@ -80,11 +80,11 @@ int sysReceive(KernelGlobal *global, int *tid, char *msg, int msglen, int *rtn) 
 	Task *sender_task = NULL;
 
 	// pull a sender's tid
-	sender_tid = dequeueBlockedList(receive_blocked_lists, task_list->curtask->tid % TASK_MAX);
+	sender_tid = dequeueBlockedList(receive_blocked_lists, ready_queue->curtask->tid % TASK_MAX);
 
 	if (sender_tid == -1) {
 		// no one send current task msg
-		blockCurrentTask(task_list, SendBlocked, NULL, 0);
+		blockCurrentTask(ready_queue, SendBlocked, NULL, 0);
 		return -1;
 	}
 
@@ -110,7 +110,7 @@ int sysReceive(KernelGlobal *global, int *tid, char *msg, int msglen, int *rtn) 
 
 
 int sysReply(KernelGlobal *global, int tid, char *reply, int replylen, int *rtn) {
-	TaskList 	*task_list = global->task_list;
+	ReadyQueue 	*ready_queue = global->ready_queue;
 	MsgBuffer 	*msg_array = global->msg_array;
 	Task	 	*task_array = global->task_array;
 
@@ -140,7 +140,7 @@ int sysReply(KernelGlobal *global, int tid, char *reply, int replylen, int *rtn)
 	sender_trapframe->r0 = replylen;
 
 	// Put sender back to ready queue
-	insertTask(task_list, sender_task);
+	insertTask(ready_queue, sender_task);
 
 	// Reply succeed
 	*rtn = 0;
@@ -148,7 +148,7 @@ int sysReply(KernelGlobal *global, int tid, char *reply, int replylen, int *rtn)
 }
 
 int sysAwaitEvent(KernelGlobal *global, int eventid, char *event, int eventlen, int *rtn) {
-	TaskList 	*task_list = global->task_list;
+	ReadyQueue 	*ready_queue = global->ready_queue;
 	BlockedList *event_blocked_lists = global->event_blocked_lists;
 	MsgBuffer 	*msg_array = global->msg_array;
 
@@ -156,7 +156,7 @@ int sysAwaitEvent(KernelGlobal *global, int eventid, char *event, int eventlen, 
 		return -1;
 	}
 
-	int cur_tid = task_list->curtask->tid;
+	int cur_tid = ready_queue->curtask->tid;
 	assert((msg_array[cur_tid]).event == NULL, "MsgBuffer.event is not NULL");
 
 	// Link waiter's event and eventlen to msg_array
@@ -164,7 +164,7 @@ int sysAwaitEvent(KernelGlobal *global, int eventid, char *event, int eventlen, 
 	(msg_array[cur_tid]).eventlen = eventlen;
 
 	// Block current task and add it to blocklist
-	blockCurrentTask(task_list, EventBlocked, event_blocked_lists, eventid);
+	blockCurrentTask(ready_queue, EventBlocked, event_blocked_lists, eventid);
 
 	*rtn = 0;
 	return 0;
@@ -177,21 +177,21 @@ int syscallHandler(void **parameters, KernelGlobal *global) {
 
 	DEBUG(DB_SYSCALL, "| SYSCALL:\tCallno: %d\n", callno);
 
-	TaskList *task_list = global->task_list;
+	ReadyQueue *ready_queue = global->ready_queue;
 	FreeList *free_list = global->free_list;
 
 	switch(callno) {
 		case SYS_exit:
-			err = sysExit(task_list, free_list);
+			err = sysExit(ready_queue, free_list);
 			break;
 		case SYS_create:
-			err = sysCreate(task_list, free_list, *((int*)(parameters[1])), *((void **)(parameters[2])), &rtn);
+			err = sysCreate(ready_queue, free_list, *((int*)(parameters[1])), *((void **)(parameters[2])), &rtn);
 			break;
 		case SYS_myTid:
-			err = sysMyTid(task_list, &rtn);
+			err = sysMyTid(ready_queue, &rtn);
 			break;
 		case SYS_myParentTid:
-			err = sysMyParentTid(task_list, &rtn);
+			err = sysMyParentTid(ready_queue, &rtn);
 			break;
 		case SYS_send:
 			err = sysSend(global, *((int*)(parameters[1])), *((char**)parameters[2]), *((int*)(parameters[3])),
