@@ -35,6 +35,21 @@ void minHeapInsert(Heap *heap, HeapNode *node);
 // pop from a min-heap
 HeapNode *minHeapPop(Heap *heap);
 
+/* Char Buffer */
+typedef struct charbuffer {
+	char *buffer;
+	int front;
+	int back;
+	int current_size;
+	int buffer_size;
+} CharBuffer;
+
+void charBufferInitial(CharBuffer *char_buffer, char *buffer, int buffer_size);
+
+void cBufferPush(CharBuffer *char_buffer, char c);
+
+char cBufferPop(CharBuffer *char_buffer);
+
 /* Print */
 #include <intern/bwio.h>
 #include <intern/debug.h>
