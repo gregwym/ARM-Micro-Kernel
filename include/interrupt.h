@@ -5,7 +5,7 @@
 #include <task.h>
 
 typedef struct kernel_global {
-	TaskList 	*task_list;
+	ReadyQueue 	*ready_queue;
 	FreeList 	*free_list;
 	BlockedList	*receive_blocked_lists;
 	BlockedList	*event_blocked_lists;
