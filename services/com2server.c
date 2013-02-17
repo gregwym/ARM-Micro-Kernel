@@ -26,13 +26,37 @@ char static getcFromCOM2() {
 	// assert(0, "wtf?");
 }
 
+void com2SendNotifier() {
+	char c2_name[] = COM2_REG_NAME
+	int com2_server_tid = WhoIs(c2_name);
+	assert(com2_server_tid >= 0, "Notifier cannot find com2 server's tid");
+	
+	char send[1] = "";
+	while (1) {
+		AwaitEvent(/* , , */);
+		Send(com2_server_tid, send, 1, NULL, 0);
+	}
+}
+
+void com2ReceiveNotifier() {
+	char c2_name[] = COM2_REG_NAME
+	int com2_server_tid = WhoIs(c2_name);
+	assert(com2_server_tid >= 0, "Notifier cannot find com2 server's tid");
+	
+	char send[1] = "";
+	while (1) {
+		AwaitEvent(/* , , */);
+		Send(com2_server_tid, send, 1, NULL, 0);
+	}
+}
+
 void com2server() {
 	char c2_name[] = COM2_REG_NAME;
 	assert(RegisterAs(c2_name) == 0, "Clockserver register failed");
 	
 	char buffer[C2_BUFFER_SIZE];
-	IoBuffer send_buffer;
-	ioBufferInitial(&send_buffer, buffer, c2_BUFFER_SIZE);
+	CharBuffer send_buffer;
+	cBufferInitial(&send_buffer, buffer, c2_BUFFER_SIZE);
 	
 	int send_notifier_tid = Create(1, com2SendNotifier);
 	int receive_notifier_tid = Create(1, com2ReceiveNotifier);
@@ -50,13 +74,13 @@ void com2server() {
 		switch(tid) {
 			case send_notifier_tid:
 				Reply(tid, reply, 2);
-				putcToCOM1(cBufferPop(&send_buffer));
+				putcToCOM2(cBufferPop(&send_buffer));
 				if (send_buffer.current_size == 0) {
 					//todo: turn off COM1 receive interrupt
 				}
 				break;
 			case receive_notifier_tid:
-				send[0] = getcFromCOM1();
+				send[0] = getcFromCOM2();
 				Reply(tid, reply, 2);
 				Send(train_server_tid, send, 3, NULL, 0);
 				break;

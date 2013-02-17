@@ -44,7 +44,7 @@ typedef struct charbuffer {
 	int buffer_size;
 } CharBuffer;
 
-void charBufferInitial(CharBuffer *char_buffer, char *buffer, int buffer_size);
+void cBufferInitial(CharBuffer *char_buffer, char *buffer, int buffer_size);
 
 void cBufferPush(CharBuffer *char_buffer, char c);
 

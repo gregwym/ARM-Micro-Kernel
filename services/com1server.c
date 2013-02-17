@@ -26,13 +26,37 @@ char static getcFromCOM1() {
 	// assert(0, "wtf?");
 }
 
+void com1SendNotifier() {
+	char c1_name[] = COM1_REG_NAME
+	int com1_server_tid = WhoIs(c1_name);
+	assert(com1_server_tid >= 0, "Notifier cannot find com1 server's tid");
+	
+	char send[1] = "";
+	while (1) {
+		AwaitEvent(/* , , */);
+		Send(com1_server_tid, send, 1, NULL, 0);
+	}
+}
+
+void com1ReceiveNotifier() {
+	char c1_name[] = COM1_REG_NAME
+	int com1_server_tid = WhoIs(c1_name);
+	assert(com1_server_tid >= 0, "Notifier cannot find com1 server's tid");
+	
+	char send[1] = "";
+	while (1) {
+		AwaitEvent(/* , , */);
+		Send(com1_server_tid, send, 1, NULL, 0);
+	}
+}
+
 void com1server() {
 	char c1_name[] = COM1_REG_NAME;
 	assert(RegisterAs(c1_name) == 0, "Clockserver register failed");
 	
 	char buffer[C1_BUFFER_SIZE];
-	IoBuffer send_buffer;
-	ioBufferInitial(&send_buffer, buffer, C1_BUFFER_SIZE);
+	CharBuffer send_buffer;
+	cBufferInitial(&send_buffer, buffer, C1_BUFFER_SIZE);
 	
 	int send_notifier_tid = Create(1, com1SendNotifier);
 	int receive_notifier_tid = Create(1, com1ReceiveNotifier);
