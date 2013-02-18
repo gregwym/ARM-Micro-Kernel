@@ -27,6 +27,8 @@
 #define VIC1_BASE	0x800B0000
 #define VIC2_BASE	0x800C0000
 	#define VIC_TIMER3_MASK	0x00080000
+	#define VIC_UART1_MASK	0x00100000
+	#define VIC_UART2_MASK	0x00400000
 
 #define VIC_IRQ_ST_OFFSET	0x00000000
 #define VIC_FIQ_ST_OFFSET	0x00000004
@@ -93,7 +95,11 @@
 	#define TXFF_MASK	0x20	// Transmit buffer full
 	#define RXFF_MASK	0x40	// Receive buffer full
 	#define TXFE_MASK	0x80	// Transmit buffer empty
-#define UART_INTR_OFFSET	0x1c
+#define UART_INTR_OFFSET	0x1c	// low 4 bits
+	#define MIS_MASK	0x1	// Modem interrupt
+	#define RIS_MASK	0x2	// Receive interrupt
+	#define TIS_MASK	0x4	// Transmit interrupt
+	#define RTIS_MASK	0x8	// Receive timeout
 #define UART_DMAR_OFFSET	0x28
 
 // Specific to UART1
