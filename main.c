@@ -10,7 +10,7 @@
 // Prototype for the user program main function
 void umain();
 
-#define DEV_MAIN
+// #define DEV_MAIN
 #ifdef DEV_MAIN
 void clockTick() {
 	unsigned int time = 0;
