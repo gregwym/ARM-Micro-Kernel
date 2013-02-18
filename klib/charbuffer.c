@@ -1,6 +1,6 @@
 #include <klib.h>
 
-void charBufferInitial(CharBuffer *char_buffer, char *buffer, int buffer_size) {
+void cBufferInitial(CharBuffer *char_buffer, char *buffer, int buffer_size) {
 	char_buffer->buffer = buffer;
 	char_buffer->front = 0;
 	char_buffer->back = 0;

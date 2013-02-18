@@ -10,7 +10,7 @@
 #define DB_NS          0x008
 #define DB_RPS         0x010
 #define DB_IRQ         0x020
-// #define DB_EXEC        0x040
+#define DB_IO          0x040
 // #define DB_VFS         0x080
 // #define DB_SFS         0x100
 // #define DB_NET         0x200

@@ -1,6 +1,7 @@
+#include <services.h>
 #include <klib.h>
 #include <unistd.h>
-#include <services.h>
+#include <task.h>
 
 void test() {
 	int ch;
@@ -12,14 +13,17 @@ void test() {
 
 void umain() {
 	int tid = -1;
-
-	tid = Create(4, nameserver);
-	bwprintf(COM2, "Created: %d\n", tid);
+	int comserver_id = COM1;
+	
+	tid = Create(5, nameserver);
+	
+	tid = Create(3, comserver);
+	Send(tid, (char *)(&comserver_id), sizeof(int), NULL, 0);
+	
 	tid = Create(4, comserver);
-	bwprintf(COM2, "Created: %d\n", tid);
-	tid = Create(4, comserver);
-	bwprintf(COM2, "Created: %d\n", tid);
-	tid = Create(5, test);
-	bwprintf(COM2, "Created: %d\n", tid);
+	comserver_id = COM2;
+	Send(tid, (char *)(&comserver_id), sizeof(int), NULL, 0);
+	
+	tid = Create(7, test);
 	createIdleTask();
 }
