@@ -1,6 +1,26 @@
 #include <ts7200.h>
 #include <klib.h>
 
+int getRegister(int base, int offset) {
+	int *addr = (int *)(base + offset);
+	return *addr;
+}
+
+int getRegisterBit(int base, int offset, int mask) {
+	return (getRegister(base, offset)) & mask;
+}
+
+void setRegister(int base, int offset, int value) {
+	int *addr = (int *)(base + offset);
+	*addr = value;
+}
+
+void setRegisterBit(int base, int offset, int mask, int value) {
+	int buf = getRegister(base, offset);
+	buf = value ? buf | mask : buf & ~mask;
+	setRegister(base, offset, buf);
+}
+
 unsigned int setTimerLoadValue(int timer_base, unsigned int value) {
 	unsigned int* timer_load_addr = (unsigned int*) (timer_base + LDR_OFFSET);
 	*timer_load_addr = value;
