@@ -1,5 +1,6 @@
 #include <interrupt.h>
 #include <klib.h>
+#include <ts7200.h>
 #include <kern/callno.h>
 #include <kern/errno.h>
 #include <kern/unistd.h>
@@ -165,6 +166,18 @@ int sysAwaitEvent(KernelGlobal *global, int eventid, char *event, int eventlen, 
 
 	// Block current task and add it to blocklist
 	blockCurrentTask(ready_queue, EventBlocked, event_blocked_lists, eventid);
+
+	// Turn on UART IRQ if is an COM event
+	switch(eventid) {
+		case EVENT_COM2_TX:
+			setUARTControlBit(UART2_BASE, TIEN_MASK, TRUE);
+		case EVENT_COM2_RX:
+			setUARTControlBit(UART2_BASE, RIEN_MASK, TRUE);
+		case EVENT_COM1_TX:
+		case EVENT_COM1_RX:
+		default:
+			break;
+	}
 
 	*rtn = 0;
 	return 0;

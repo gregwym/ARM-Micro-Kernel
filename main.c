@@ -3,13 +3,14 @@
 #include <interrupt.h>
 #include <ts7200.h>
 #include <kern/md_const.h>
+#include <services.h>
 
 #define TIMER_TICK_SIZE	20
 
 // Prototype for the user program main function
 void umain();
 
-// #define DEV_MAIN
+#define DEV_MAIN
 #ifdef DEV_MAIN
 void clockTick() {
 	unsigned int time = 0;
@@ -21,13 +22,32 @@ void clockTick() {
 	}
 }
 
-void umain() {
-	createIdleTask();
-	bwprintf(COM2, "Hello World!\n");
-	int i = 5;
-	for(; i > 0; i--) {
-		Create(5, clockTick);
+void sender() {
+	char data[11] = "0123456789";
+	int i = 0;
+
+	while(++i) {
+		Delay(100);
+		AwaitEvent(EVENT_COM2_TX, &(data[i % 10]), sizeof(char));
 	}
+}
+
+void receiver() {
+	char data = '\0';
+
+	while(1) {
+		AwaitEvent(EVENT_COM2_RX, &data, sizeof(char));
+		AwaitEvent(EVENT_COM2_TX, &data, sizeof(char));
+	}
+}
+
+void umain() {
+	Create(4, nameserver);
+	Create(2, clockserver);
+	Create(8, sender);
+	Create(8, receiver);
+
+	createIdleTask();
 }
 #endif
 
@@ -36,15 +56,17 @@ int main() {
 	// Turn off interrupt
 	asm("msr 	CPSR_c, #0xd3");
 
-	// Turn off FIFO
-	bwsetfifo(COM2, OFF);
+	// Setup UART2
+	setUARTLineControl(UART2_BASE, 3, FALSE, FALSE, FALSE, FALSE, FALSE, 115200);
+	setUARTControl(UART2_BASE, TRUE, FALSE, FALSE, FALSE, TRUE, FALSE);
 
 	// Setup timer
 	setTimerLoadValue(TIMER3_BASE, TIMER_TICK_SIZE);
 	setTimerControl(TIMER3_BASE, TRUE, TRUE, FALSE);
 
-	// Enable timer interrupt
+	// Enable interrupt
 	enableVicInterrupt(VIC2_BASE, VIC_TIMER3_MASK);
+	enableVicInterrupt(VIC2_BASE, VIC_UART2_MASK);
 
 	/* Initialize ReadyQueue and Task related data structures */
 	ReadyQueue	ready_queue;
