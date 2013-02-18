@@ -26,6 +26,9 @@ typedef unsigned int uintptr_t;	/* Unsigned pointer-sized integer */
 #undef NULL
 #define NULL ((void *)0)
 
+#define TRUE	0xffffffff
+#define FALSE	0x00000000
+
 typedef int32_t off_t;   /* Offset within file */
 typedef int32_t tid_t;   /* Task ID */
 typedef int32_t time_t;  /* Time in seconds */

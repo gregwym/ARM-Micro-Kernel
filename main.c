@@ -1,44 +1,16 @@
 #include <klib.h>
 #include <unistd.h>
 #include <interrupt.h>
+#include <ts7200.h>
 #include <kern/md_const.h>
-#include <kern/ts7200.h>
+#include <services.h>
 
-#define TRUE	0xffffffff
-#define FALSE	0x00000000
 #define TIMER_TICK_SIZE	20
-
-unsigned int setTimerLoadValue(int timer_base, unsigned int value) {
-	unsigned int* timer_load_addr = (unsigned int*) (timer_base + LDR_OFFSET);
-	*timer_load_addr = value;
-	return *timer_load_addr;
-}
-
-unsigned int setTimerControl(int timer_base, unsigned int enable, unsigned int mode, unsigned int clksel) {
-	unsigned int* timer_control_addr = (unsigned int*) (timer_base + CRTL_OFFSET);
-	unsigned int control_value = (ENABLE_MASK & enable) | (MODE_MASK & mode) | (CLKSEL_MASK & clksel) ;
-
-	*timer_control_addr = control_value;
-	return *timer_control_addr;
-}
-
-unsigned int getTimerValue(int timer_base) {
-	unsigned int* timer_value_addr = (unsigned int*) (timer_base + VAL_OFFSET);
-	unsigned int value = *timer_value_addr;
-	return value;
-}
-
-unsigned int enableVicInterrupt(int vic_base, int mask) {
-	unsigned int* vic_enable_addr = (unsigned int*) (vic_base + VIC_IN_EN_OFFSET);
-	*vic_enable_addr = (*vic_enable_addr) | mask;
-	DEBUG(DB_IRQ, "| IRQ:\tEnabled with addr 0x%x and flag 0x%x", vic_enable_addr, *vic_enable_addr);
-	return *vic_enable_addr;
-}
 
 // Prototype for the user program main function
 void umain();
 
-// #define DEV_MAIN
+#define DEV_MAIN
 #ifdef DEV_MAIN
 void clockTick() {
 	unsigned int time = 0;
@@ -50,13 +22,32 @@ void clockTick() {
 	}
 }
 
-void umain() {
-	createIdleTask();
-	bwprintf(COM2, "Hello World!\n");
-	int i = 5;
-	for(; i > 0; i--) {
-		Create(5, clockTick);
+void sender() {
+	char data[11] = "0123456789";
+	int i = 0;
+
+	while(++i) {
+		Delay(100);
+		AwaitEvent(EVENT_COM2_TX, &(data[i % 10]), sizeof(char));
 	}
+}
+
+void receiver() {
+	char data = '\0';
+
+	while(1) {
+		AwaitEvent(EVENT_COM2_RX, &data, sizeof(char));
+		AwaitEvent(EVENT_COM2_TX, &data, sizeof(char));
+	}
+}
+
+void umain() {
+	Create(4, nameserver);
+	Create(2, clockserver);
+	Create(8, sender);
+	Create(8, receiver);
+
+	createIdleTask();
 }
 #endif
 
@@ -65,15 +56,17 @@ int main() {
 	// Turn off interrupt
 	asm("msr 	CPSR_c, #0xd3");
 
-	// Turn off FIFO
-	bwsetfifo(COM2, OFF);
+	// Setup UART2
+	setUARTLineControl(UART2_BASE, 3, FALSE, FALSE, FALSE, FALSE, FALSE, 115200);
+	setUARTControl(UART2_BASE, TRUE, FALSE, FALSE, FALSE, TRUE, FALSE);
 
 	// Setup timer
 	setTimerLoadValue(TIMER3_BASE, TIMER_TICK_SIZE);
 	setTimerControl(TIMER3_BASE, TRUE, TRUE, FALSE);
 
-	// Enable timer interrupt
+	// Enable interrupt
 	enableVicInterrupt(VIC2_BASE, VIC_TIMER3_MASK);
+	enableVicInterrupt(VIC2_BASE, VIC_UART2_MASK);
 
 	/* Initialize ReadyQueue and Task related data structures */
 	ReadyQueue	ready_queue;

@@ -17,7 +17,7 @@ ASFLAGS	= -mcpu=arm920t -mapcs-32
 
 ARFLAGS = rcs
 
-OBJECTS = interrupt.o syscall.o unistd.o irq.o asm/trapframe.o
+OBJECTS = ts7200.o interrupt.o syscall.o unistd.o irq.o asm/trapframe.o
 
 all:  interrupt.a
 
