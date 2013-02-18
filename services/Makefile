@@ -17,7 +17,7 @@ ASFLAGS	= -mcpu=arm920t -mapcs-32
 
 ARFLAGS = rcs
 
-OBJECTS = nameserver.o clockserver.o
+OBJECTS = nameserver.o clockserver.o comserver.o
 
 all:  services.a
 
