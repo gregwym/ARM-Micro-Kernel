@@ -16,4 +16,6 @@ unsigned int setUARTControl(int uart_base, unsigned int enable,
                             unsigned int trans_irq, unsigned int recv_irq,
                             unsigned int ms_irq);
 
+unsigned int setUARTControlBit(int uart_base, unsigned int mask, int value);
+
 unsigned int enableVicInterrupt(int vic_base, int mask);

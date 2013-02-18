@@ -71,6 +71,12 @@ unsigned int setUARTControl(int uart_base, unsigned int enable,
 	return *uart_control_addr;
 }
 
+unsigned int setUARTControlBit(int uart_base, unsigned int mask, int value) {
+	unsigned int* uart_control_addr = (unsigned int*) (uart_base + UART_CTLR_OFFSET);
+	*uart_control_addr = value ? *uart_control_addr | mask : *uart_control_addr & ~mask;
+	return *uart_control_addr;
+}
+
 unsigned int enableVicInterrupt(int vic_base, int mask) {
 	unsigned int* vic_enable_addr = (unsigned int*) (vic_base + VIC_IN_EN_OFFSET);
 	*vic_enable_addr = (*vic_enable_addr) | mask;
