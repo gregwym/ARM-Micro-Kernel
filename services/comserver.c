@@ -2,7 +2,7 @@
 #include <klib.h>
 #include <unistd.h>
 
-#define COM_BUFFER_SIZE		100
+#define COM_BUFFER_SIZE		1000
 #define COM_NOTIFIER_PRIORITY	1
 
 #define IO_QUERY_TYPE_GETC	0
@@ -154,6 +154,7 @@ void comserver() {
 	// Prepare message and reply data structure
 	IOMsg message;
 	int reply;
+	char ch;
 
 	// Prepare flag variables
 	int char_getter_is_waiting = 0;
@@ -173,6 +174,8 @@ void comserver() {
 			// Reply FIRST, then push the char to receive_buffer
 			Reply(tid, NULL, 0);
 			cBufferPush(&receive_buffer, message.ch);
+			// If is from COM2, echo it
+			if(channel_id == COM2) cBufferPush(&send_buffer, message.ch);
 		}
 		// Or is a getc msg, set char_getter_is_waiting and save its tid
 		else if (message.type == IO_QUERY_TYPE_GETC) {
@@ -188,7 +191,7 @@ void comserver() {
 
 		/* Serve waiting getter/send notifier */
 		if (send_notifier_is_waiting && send_buffer.current_size > 0) {
-			char ch = cBufferPop(&send_buffer);
+			ch = cBufferPop(&send_buffer);
 			send_notifier_is_waiting = 0;
 			Reply(send_notifier_tid, &ch, sizeof(char));
 		}

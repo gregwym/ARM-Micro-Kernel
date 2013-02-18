@@ -7,7 +7,7 @@ void test() {
 	int ch;
 	while (1) {
 		ch = Getc(COM2);
-		Putc(COM2, (char)ch);
+		// Putc(COM2, (char)ch);
 	}
 }
 
