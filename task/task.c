@@ -162,6 +162,7 @@ void moveCurrentTaskToEnd(ReadyQueue *ready_queue) {
 		task_list->head = task_list->head->next;
 		task_list->tail->next = task;
 		task_list->tail = task;
+		task->next = NULL;
 	}
 
 	// Update head task
