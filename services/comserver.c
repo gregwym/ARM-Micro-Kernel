@@ -2,15 +2,16 @@
 #include <klib.h>
 #include <unistd.h>
 
-#define COM_BUFFER_SIZE		1000
+#define COM_BUFFER_SIZE			1000
 #define COM_NOTIFIER_PRIORITY	1
 
-#define IO_QUERY_TYPE_GETC	0
-#define IO_QUERY_TYPE_PUTC	1
+#define IO_QUERY_TYPE_GETC		0
+#define IO_QUERY_TYPE_PUTC		1
+#define IO_QUERY_TYPE_PUTS		2
 
-#define COM1_REG_NAME 	"C1"
-#define COM2_REG_NAME 	"C2"
-#define COM_NAME_ARRAY_LEN	3
+#define COM1_REG_NAME 			"C1"
+#define COM2_REG_NAME 			"C2"
+#define COM_NAME_ARRAY_LEN		3
 
 typedef struct putc_query {
 	int type;
@@ -21,10 +22,17 @@ typedef struct getc_query {
 	int type;
 } GetcQuery;
 
+typedef struct puts_query {
+	int type;
+	char *msg;
+	int msglen;
+} PutsQuery;
+
 typedef union {
 	int 		type;
 	char		ch;
 	PutcQuery	putcQuery;
+	PutsQuery	putsQuery;
 	GetcQuery	getcQuery;
 } IOMsg;
 
@@ -118,6 +126,18 @@ int Putc(int channel, char ch) {
 	return rtn;
 }
 
+int Puts(int channel, char *msg) {
+	int server_tid = serverTidForChannel(channel);
+
+	PutsQuery puts_query;
+	puts_query.type = IO_QUERY_TYPE_PUTS;
+	puts_query.msg = msg;
+	puts_query.msglen = strlen(msg);
+	
+	int rtn = Send(server_tid, (char *)(&puts_query), sizeof(PutsQuery), NULL, 0);
+	return rtn;
+}
+
 void comserver() {
 	// Receive serving channel id
 	int tid;
@@ -175,7 +195,14 @@ void comserver() {
 			Reply(tid, NULL, 0);
 			bufferPush(&receive_buffer, (int) message.ch);
 			// If is from COM2, echo it
-			if(channel_id == COM2) bufferPush(&send_buffer, (int) message.ch);
+			if(channel_id == COM2) {
+				bufferPush(&send_buffer, (int) message.ch);
+				if (message.ch == '\b') {
+					bufferPush(&send_buffer, (int)'\e');
+					bufferPush(&send_buffer, (int)'[');
+					bufferPush(&send_buffer, (int)'K');
+				}
+			}
 		}
 		// Or is a getc msg, set char_getter_is_waiting and save its tid
 		else if (message.type == IO_QUERY_TYPE_GETC) {
@@ -188,7 +215,15 @@ void comserver() {
 			bufferPush(&send_buffer, message.putcQuery.ch);
 			Reply(tid, NULL, 0);
 		}
-
+		// Or is a puts msg,
+		else if (message.type == IO_QUERY_TYPE_PUTS) {
+			// copy the whole string into send_buffer, then reply
+			int i = 0;
+			for (i = 0; i < message.putsQuery.msglen; i++) {
+				bufferPush(&send_buffer, message.putsQuery.msg[i]);
+			}
+			Reply(tid, NULL, 0);
+		}
 		/* Serve waiting getter/send notifier */
 		if (send_notifier_is_waiting && send_buffer.current_size > 0) {
 			ch = (char) bufferPop(&send_buffer);
