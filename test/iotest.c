@@ -13,15 +13,17 @@ void test() {
 
 void umain() {
 	int tid = -1;
-	int comserver_id = COM1;
 
 	tid = Create(5, nameserver);
 
-	tid = Create(3, comserver);
-	Send(tid, (char *)(&comserver_id), sizeof(int), NULL, 0);
+	tid = Create(3, clockserver);
 
-	tid = Create(4, comserver);
+	int comserver_id = COM1;
+	// tid = Create(3, comserver);
+	// Send(tid, (char *)(&comserver_id), sizeof(int), NULL, 0);
+
 	comserver_id = COM2;
+	tid = Create(4, comserver);
 	Send(tid, (char *)(&comserver_id), sizeof(int), NULL, 0);
 
 	tid = Create(7, test);
