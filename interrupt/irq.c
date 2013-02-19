@@ -43,9 +43,12 @@ void uart2IrqHandler(KernelGlobal *global) {
 
 	char *uart2_data_addr = (char *) (UART2_BASE + UART_DATA_OFFSET);
 	unsigned int *uart2_flag_addr = (unsigned int *) (UART2_BASE + UART_FLAG_OFFSET);
+	unsigned int *uart2_intr_addr = (unsigned int *) (UART2_BASE + UART_INTR_OFFSET);
 
 	// If is receive buffer full
-	if((*uart2_flag_addr) & RXFF_MASK) {
+	if((*uart2_intr_addr) & RIS_MASK) {
+		assert((*uart2_flag_addr) & RXFF_MASK, "Got RX IRQ but RX FIFO not full");
+
 		// Find COM2_RX blocked task
 		int tid = dequeueBlockedList(event_blocked_lists, EVENT_COM2_RX);
 		if(tid == -1) {
@@ -72,7 +75,9 @@ void uart2IrqHandler(KernelGlobal *global) {
 	}
 
 	// If is transmit buffer empty
-	if((*uart2_flag_addr) & TXFE_MASK) {
+	else if((*uart2_intr_addr) & TIS_MASK) {
+		assert((*uart2_flag_addr) & TXFE_MASK, "Got TX IRQ but TX FIFO not empty");
+
 		// Find COM2_TX blocked task
 		int tid = dequeueBlockedList(event_blocked_lists, EVENT_COM2_TX);
 		if(tid == -1) {
