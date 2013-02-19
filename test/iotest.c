@@ -5,6 +5,7 @@
 
 void test() {
 	int ch;
+	iprintf(COM2, "Hello World\n");
 	while (1) {
 		ch = Getc(COM2);
 		// Putc(COM2, (char)ch);

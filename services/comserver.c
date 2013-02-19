@@ -1,6 +1,7 @@
 #include <services.h>
 #include <klib.h>
 #include <unistd.h>
+#include <intern/irqio.h>
 
 #define COM_BUFFER_SIZE		1000
 #define COM_NOTIFIER_PRIORITY	1

@@ -1,26 +1,9 @@
-/*
- * io.c - busy-wait I/O routines for diagnosis
- *
- * Specific to the TS-7200 ARM evaluation board
- *
- // */
 
 #include <kern/ts7200.h>
-#include <intern/io.h>
 #include <intern/va_list.h>
-#include <services.h>
+#include <intern/irqio.h>
 
-/*
- * The UARTs are initialized by RedBoot to the following state
- * 	115,200 bps
- * 	8 bits
- * 	no parity
- * 	fifos enabled
- */
-char c2x( char ch ) {
-	if ( (ch <= 9) ) return '0' + ch;
-	return 'a' + ch - 10;
-}
+
 
 int putx( int channel, char c ) {
 	char chh, chl;
@@ -159,7 +142,7 @@ void format ( int channel, char *fmt, va_list va ) {
 	}
 }
 
-void printf( int channel, char *fmt, ... ) {
+void iprintf( int channel, char *fmt, ... ) {
         va_list va;
 
         va_start(va,fmt);
