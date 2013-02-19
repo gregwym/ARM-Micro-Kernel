@@ -1,9 +1,12 @@
-
+#include <intern/irqio.h>
+#include <services.h>
 #include <kern/ts7200.h>
 #include <intern/va_list.h>
-#include <intern/irqio.h>
 
-
+char c2x( char ch ) {
+	if ( (ch <= 9) ) return '0' + ch;
+	return 'a' + ch - 10;
+}
 
 int putx( int channel, char c ) {
 	char chh, chl;
@@ -142,11 +145,11 @@ void format ( int channel, char *fmt, va_list va ) {
 	}
 }
 
-void iprintf( int channel, char *fmt, ... ) {
+void iprintf( char *fmt, ... ) {
         va_list va;
 
         va_start(va,fmt);
-        format( channel, fmt, va );
+        format( COM2, fmt, va );
         va_end(va);
 }
 

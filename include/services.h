@@ -11,6 +11,8 @@ int Time( );
 
 /* IO Server */
 void comserver();
+int Getc(int channel);
+int Putc(int channel, char ch);
 
 /* Train Server */
 #define TR_REG_NAME	"TR"
