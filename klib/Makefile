@@ -17,7 +17,7 @@ ASFLAGS	= -mcpu=arm920t -mapcs-32
 
 ARFLAGS = rcs
 
-OBJECTS = assert.o string.o bwio.o heap.o buffer.o
+OBJECTS = irqio.o assert.o string.o bwio.o heap.o buffer.o
 
 all: klib.a
 

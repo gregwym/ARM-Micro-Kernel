@@ -66,6 +66,7 @@ void iBufferPush(IntBuffer *int_buffer, int i);
 int iBufferPop(IntBuffer *int_buffer);
 
 /* Print */
+#include <intern/irqio.h>
 #include <intern/bwio.h>
 #include <intern/debug.h>
 
