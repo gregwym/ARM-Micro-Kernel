@@ -133,13 +133,13 @@ void comserver() {
 	assert(RegisterAs(server_name) == 0, "COM server register failed");
 
 	// Create send and receive buffer
-	CharBuffer send_buffer;
-	CharBuffer receive_buffer;
+	CircularBuffer send_buffer;
+	CircularBuffer receive_buffer;
 	char send_array[COM_BUFFER_SIZE];
 	char receive_array[COM_BUFFER_SIZE];
 
-	cBufferInitial(&send_buffer, send_array, COM_BUFFER_SIZE);
-	cBufferInitial(&receive_buffer, receive_array, COM_BUFFER_SIZE);
+	bufferInitial(&send_buffer, CHARS, send_array, COM_BUFFER_SIZE);
+	bufferInitial(&receive_buffer, CHARS, receive_array, COM_BUFFER_SIZE);
 
 	// Create send and receive notifier
 	int send_notifier_tid;
@@ -173,9 +173,9 @@ void comserver() {
 		else if (tid == receive_notifier_tid) {
 			// Reply FIRST, then push the char to receive_buffer
 			Reply(tid, NULL, 0);
-			cBufferPush(&receive_buffer, message.ch);
+			bufferPush(&receive_buffer, (int) message.ch);
 			// If is from COM2, echo it
-			if(channel_id == COM2) cBufferPush(&send_buffer, message.ch);
+			if(channel_id == COM2) bufferPush(&send_buffer, (int) message.ch);
 		}
 		// Or is a getc msg, set char_getter_is_waiting and save its tid
 		else if (message.type == IO_QUERY_TYPE_GETC) {
@@ -185,18 +185,18 @@ void comserver() {
 		// Or is a putc msg,
 		else if (message.type == IO_QUERY_TYPE_PUTC) {
 			// Push the char to send_buffer, then reply
-			cBufferPush(&send_buffer, message.putcQuery.ch);
+			bufferPush(&send_buffer, message.putcQuery.ch);
 			Reply(tid, NULL, 0);
 		}
 
 		/* Serve waiting getter/send notifier */
 		if (send_notifier_is_waiting && send_buffer.current_size > 0) {
-			ch = cBufferPop(&send_buffer);
+			ch = (char) bufferPop(&send_buffer);
 			send_notifier_is_waiting = 0;
 			Reply(send_notifier_tid, &ch, sizeof(char));
 		}
 		if (char_getter_is_waiting && receive_buffer.current_size > 0) {
-			reply = cBufferPop(&receive_buffer);
+			reply = bufferPop(&receive_buffer);
 			char_getter_is_waiting = 0;
 			Reply(char_getter_tid, (char *)(&reply), sizeof(int));
 		}

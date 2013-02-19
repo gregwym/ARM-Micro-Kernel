@@ -35,35 +35,36 @@ void minHeapInsert(Heap *heap, HeapNode *node);
 // pop from a min-heap
 HeapNode *minHeapPop(Heap *heap);
 
-/* Char Buffer */
-typedef struct charbuffer {
-	char *buffer;
+
+/* Circular Buffer */
+typedef enum buffer_type {
+	CHARS,
+	INTS,
+	POINTERS,
+	VOIDS,
+} BufferType;
+
+typedef union buffer_array {
+	char *chars;
+	int  *ints;
+	void **pointers;
+	void *voids;
+} BufferArray;
+
+typedef struct circular_buffer {
+	BufferType type;
 	int front;
 	int back;
 	int current_size;
 	int buffer_size;
-} CharBuffer;
+	BufferArray buffer;
+} CircularBuffer;
 
-void cBufferInitial(CharBuffer *char_buffer, char *buffer, int buffer_size);
+void bufferInitial(CircularBuffer *circ_buffer, BufferType type, void *buffer, int buffer_size);
 
-void cBufferPush(CharBuffer *char_buffer, char c);
+void bufferPush(CircularBuffer *circ_buffer, int i);
 
-char cBufferPop(CharBuffer *char_buffer);
-
-/* Int Buffer */
-typedef struct intbuffer {
-	int *buffer;
-	int front;
-	int back;
-	int current_size;
-	int buffer_size;
-} IntBuffer;
-
-void iBufferInitial(IntBuffer *int_buffer, int *buffer, int buffer_size);
-
-void iBufferPush(IntBuffer *int_buffer, int i);
-
-int iBufferPop(IntBuffer *int_buffer);
+int bufferPop(CircularBuffer *circ_buffer);
 
 /* Print */
 #include <intern/irqio.h>
