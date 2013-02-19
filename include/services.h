@@ -13,7 +13,8 @@ int Time( );
 void comserver();
 int Getc(int channel);
 int Putc(int channel, char ch);
+int Puts(int channel, char *msg);
 
 /* Train Server */
 #define TR_REG_NAME	"TR"
-void trainserver();
+void traincmdserver();
