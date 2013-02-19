@@ -118,11 +118,13 @@ void uart1IrqHandler(KernelGlobal *global) {
 
 	// If is a modem interrupt
 	if((*uart1_intr_addr) & MIS_MASK) {
+		DEBUG(DB_IRQ, "| IRQ:\tModem IRQ with flag 0x%x\n", *uart1_flag_addr);
 		// If cts is asserted
 		if((*uart1_flag_addr) & CTS_MASK) {
 			// Stop waiting for cts, enable TX IRQ
 			global->uart1WaitingCTS = FALSE;
-			setUARTControlBit(UART2_BASE, TIEN_MASK, TRUE);
+			setUARTControlBit(UART1_BASE, TIEN_MASK, TRUE);
+			DEBUG(DB_IRQ, "| IRQ:\tCOM1 Clear to send\n");
 		}
 		// Clear modem interrupt
 		setRegister(UART1_BASE, UART_INTR_OFFSET, FALSE);
@@ -131,11 +133,12 @@ void uart1IrqHandler(KernelGlobal *global) {
 	else if((*uart1_intr_addr) & RIS_MASK) {
 		assert((*uart1_flag_addr) & RXFF_MASK, "Got RX IRQ but RX FIFO not full");
 
-		// Find COM2_RX blocked task
-		int tid = dequeueBlockedList(event_blocked_lists, EVENT_COM2_RX);
+		// Find COM1_RX blocked task
+		int tid = dequeueBlockedList(event_blocked_lists, EVENT_COM1_RX);
 		if(tid == -1) {
 			// Turn off RX interrupt if no waiting receive notifier
-			setUARTControlBit(UART2_BASE, RIEN_MASK, FALSE);
+			setUARTControlBit(UART1_BASE, RIEN_MASK, FALSE);
+			DEBUG(DB_IRQ, "| IRQ:\tTX IRQ waiting for receiver\n");
 			return;
 		}
 
@@ -154,22 +157,25 @@ void uart1IrqHandler(KernelGlobal *global) {
 
 		// Put the task back to the ready queue
 		insertTask(ready_queue, task);
+		DEBUG(DB_IRQ, "| IRQ:\tReceive 0x%x to task %d\n", data, tid);
 	}
 	// If is none above, and is waiting for cts
 	else if(global->uart1WaitingCTS) {
 		// Disable TX IRQ
-		setUARTControlBit(UART2_BASE, TIEN_MASK, FALSE);
+		setUARTControlBit(UART1_BASE, TIEN_MASK, FALSE);
+		DEBUG(DB_IRQ, "| IRQ:\tTX IRQ waiting for CTS\n");
 	}
 	// If is transmit buffer empty
 	else if((*uart1_intr_addr) & TIS_MASK) {
 		assert((*uart1_flag_addr) & TXFE_MASK, "Got TX IRQ but TX FIFO not empty");
 		assert((*uart1_flag_addr) & CTS_MASK, "Got TX IRQ but CTS is not assertted");
 
-		// Find COM2_TX blocked task
-		int tid = dequeueBlockedList(event_blocked_lists, EVENT_COM2_TX);
+		// Find COM1_TX blocked task
+		int tid = dequeueBlockedList(event_blocked_lists, EVENT_COM1_TX);
 		if(tid == -1) {
 			// Turn off TX interrupt if no more waiting transmit notifier
-			setUARTControlBit(UART2_BASE, TIEN_MASK, FALSE);
+			setUARTControlBit(UART1_BASE, TIEN_MASK, FALSE);
+			DEBUG(DB_IRQ, "| IRQ:\tTX IRQ waiting for sender\n");
 			return;
 		}
 
@@ -189,10 +195,11 @@ void uart1IrqHandler(KernelGlobal *global) {
 
 		// Start waiting for cts and disable TX IRQ
 		global->uart1WaitingCTS = TRUE;
-		setUARTControlBit(UART2_BASE, TIEN_MASK, FALSE);
+		setUARTControlBit(UART1_BASE, TIEN_MASK, FALSE);
 
 		// Put the task back to the ready queue
 		insertTask(ready_queue, task);
+		DEBUG(DB_IRQ, "| IRQ:\tSent 0x%x from task %d\n", data, tid);
 	}
 }
 
