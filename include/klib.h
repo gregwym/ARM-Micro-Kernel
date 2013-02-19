@@ -50,6 +50,21 @@ void cBufferPush(CharBuffer *char_buffer, char c);
 
 char cBufferPop(CharBuffer *char_buffer);
 
+/* Int Buffer */
+typedef struct intbuffer {
+	int *buffer;
+	int front;
+	int back;
+	int current_size;
+	int buffer_size;
+} IntBuffer;
+
+void iBufferInitial(IntBuffer *int_buffer, int *buffer, int buffer_size);
+
+void iBufferPush(IntBuffer *int_buffer, int i);
+
+int iBufferPop(IntBuffer *int_buffer);
+
 /* Print */
 #include <intern/bwio.h>
 #include <intern/debug.h>
