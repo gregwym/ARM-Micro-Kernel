@@ -11,6 +11,7 @@ typedef struct kernel_global {
 	BlockedList	*event_blocked_lists;
 	MsgBuffer	*msg_array;
 	Task	 	*task_array;
+	int			uart1WaitingCTS;
 } KernelGlobal;
 
 void handlerRedirection(void **parameters, KernelGlobal *global, UserTrapframe *user_sp);
