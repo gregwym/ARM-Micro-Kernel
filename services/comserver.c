@@ -22,7 +22,7 @@ typedef struct getc_query {
 	int type;
 } GetcQuery;
 
-typedef struct gets_query {
+typedef struct puts_query {
 	int type;
 	char *msg;
 	int msglen;

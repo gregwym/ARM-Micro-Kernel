@@ -156,7 +156,3 @@ void traincmdserver() {
 		}
 	}
 }
-			
-		
-	
-	
