@@ -9,12 +9,12 @@ void com1test() {
 	char speed = 0;
 	while (1) {
 		speed = 30 - speed;
+		iprintf("Press any key to continue...");
 		ch = Getc(COM2);
 		iprintf("S: %d\n", speed);
 		Putc(COM1, speed);
 		Putc(COM1, train_id);
-		// AwaitEvent(EVENT_COM1_TX, &speed, sizeof(char));
-		// AwaitEvent(EVENT_COM1_TX, &train_id, sizeof(char));
+		Delay(100);
 	}
 }
 
