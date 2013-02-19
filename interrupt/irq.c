@@ -105,6 +105,97 @@ void uart2IrqHandler(KernelGlobal *global) {
 	}
 }
 
+void uart1IrqHandler(KernelGlobal *global) {
+	// Fetch global variables
+	BlockedList *event_blocked_lists = global->event_blocked_lists;
+	Task	 	*task_array = global->task_array;
+	ReadyQueue	*ready_queue = global->ready_queue;
+	MsgBuffer	*msg_array = global->msg_array;
+
+	char *uart1_data_addr = (char *) (UART1_BASE + UART_DATA_OFFSET);
+	unsigned int *uart1_flag_addr = (unsigned int *) (UART1_BASE + UART_FLAG_OFFSET);
+	unsigned int *uart1_intr_addr = (unsigned int *) (UART1_BASE + UART_INTR_OFFSET);
+
+	// If is a modem interrupt
+	if((*uart1_intr_addr) & MIS_MASK) {
+		// If cts is asserted
+		if((*uart1_flag_addr) & CTS_MASK) {
+			// Stop waiting for cts, enable TX IRQ
+			global->uart1WaitingCTS = FALSE;
+			setUARTControlBit(UART2_BASE, TIEN_MASK, TRUE);
+		}
+		// Clear modem interrupt
+		setRegister(UART1_BASE, UART_INTR_OFFSET, FALSE);
+	}
+	// If is receive buffer full
+	else if((*uart1_intr_addr) & RIS_MASK) {
+		assert((*uart1_flag_addr) & RXFF_MASK, "Got RX IRQ but RX FIFO not full");
+
+		// Find COM2_RX blocked task
+		int tid = dequeueBlockedList(event_blocked_lists, EVENT_COM2_RX);
+		if(tid == -1) {
+			// Turn off RX interrupt if no waiting receive notifier
+			setUARTControlBit(UART2_BASE, RIEN_MASK, FALSE);
+			return;
+		}
+
+		// Check task state and event msg len
+		Task *task = &(task_array[tid % TASK_MAX]);
+		assert(task->state == EventBlocked, "Task in event_blocked_lists was not EventBlocked");
+		assert(msg_array[tid].eventlen == sizeof(char), "RX event msg len is not sizeof(char)");
+
+		// Fetch the char
+		// Side effect: clear the RX IRQ
+		char data = (*uart1_data_addr) & DATA_MASK;
+
+		// Copy the event msg in
+		memcpy(msg_array[tid].event, &data, sizeof(char));
+		msg_array[tid].event = NULL;
+
+		// Put the task back to the ready queue
+		insertTask(ready_queue, task);
+	}
+	// If is none above, and is waiting for cts
+	else if(global->uart1WaitingCTS) {
+		// Disable TX IRQ
+		setUARTControlBit(UART2_BASE, TIEN_MASK, FALSE);
+	}
+	// If is transmit buffer empty
+	else if((*uart1_intr_addr) & TIS_MASK) {
+		assert((*uart1_flag_addr) & TXFE_MASK, "Got TX IRQ but TX FIFO not empty");
+		assert((*uart1_flag_addr) & CTS_MASK, "Got TX IRQ but CTS is not assertted");
+
+		// Find COM2_TX blocked task
+		int tid = dequeueBlockedList(event_blocked_lists, EVENT_COM2_TX);
+		if(tid == -1) {
+			// Turn off TX interrupt if no more waiting transmit notifier
+			setUARTControlBit(UART2_BASE, TIEN_MASK, FALSE);
+			return;
+		}
+
+		// Check task state and event msg len
+		Task *task = &(task_array[tid % TASK_MAX]);
+		assert(task->state == EventBlocked, "Task in event_blocked_lists was not EventBlocked");
+		assert(msg_array[tid].eventlen == sizeof(char), "TX event msg len is not sizeof(char)");
+
+		// Copy the event msg out
+		char data;
+		memcpy(&data, msg_array[tid].event, sizeof(char));
+		msg_array[tid].event = NULL;
+
+		// Send the char
+		// Side effect: clear the TX IRQ
+		*uart1_data_addr = data;
+
+		// Start waiting for cts and disable TX IRQ
+		global->uart1WaitingCTS = TRUE;
+		setUARTControlBit(UART2_BASE, TIEN_MASK, FALSE);
+
+		// Put the task back to the ready queue
+		insertTask(ready_queue, task);
+	}
+}
+
 void irqHandler(KernelGlobal *global) {
 
 	// Access VICs' IRQ Status Registers
@@ -119,6 +210,9 @@ void irqHandler(KernelGlobal *global) {
 	}
 	else if ((*vic2_irq_st_addr) & VIC_UART2_MASK) {
 		uart2IrqHandler(global);
+	}
+	else if ((*vic2_irq_st_addr) & VIC_UART1_MASK) {
+		uart1IrqHandler(global);
 	}
 	else {
 		assert(0, "Unknown IRQ type");
