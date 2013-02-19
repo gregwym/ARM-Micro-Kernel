@@ -3,7 +3,22 @@
 #include <unistd.h>
 #include <task.h>
 
-void test() {
+void com1test() {
+	char train_id = 35;
+	int ch;
+	char speed = 0;
+	while (1) {
+		speed = 30 - speed;
+		ch = bwgetc(COM2);
+		bwprintf(COM2, "S: %d\n", speed);
+		Putc(COM1, speed);
+		Putc(COM1, train_id);
+		// AwaitEvent(EVENT_COM1_TX, &speed, sizeof(char));
+		// AwaitEvent(EVENT_COM1_TX, &train_id, sizeof(char));
+	}
+}
+
+void com2test() {
 	int ch;
 	while (1) {
 		ch = Getc(COM2);
@@ -19,13 +34,14 @@ void umain() {
 	tid = Create(3, clockserver);
 
 	int comserver_id = COM1;
-	// tid = Create(3, comserver);
-	// Send(tid, (char *)(&comserver_id), sizeof(int), NULL, 0);
+	tid = Create(3, comserver);
+	Send(tid, (char *)(&comserver_id), sizeof(int), NULL, 0);
 
 	comserver_id = COM2;
 	tid = Create(4, comserver);
 	Send(tid, (char *)(&comserver_id), sizeof(int), NULL, 0);
 
-	tid = Create(7, test);
+	// tid = Create(7, com2test);
+	tid = Create(7, com1test);
 	createIdleTask();
 }

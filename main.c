@@ -60,6 +60,10 @@ int main() {
 	setUARTLineControl(UART2_BASE, 3, FALSE, FALSE, FALSE, FALSE, FALSE, 115200);
 	setUARTControl(UART2_BASE, TRUE, FALSE, FALSE, FALSE, TRUE, FALSE);
 
+	// Setup UART1
+	setUARTLineControl(UART1_BASE, 3, FALSE, TRUE, FALSE, FALSE, FALSE, 2400);
+	setUARTControl(UART1_BASE, TRUE, FALSE, FALSE, FALSE, TRUE, TRUE);
+
 	// Setup timer
 	setTimerLoadValue(TIMER3_BASE, TIMER_TICK_SIZE);
 	setTimerControl(TIMER3_BASE, TRUE, TRUE, FALSE);
@@ -103,6 +107,7 @@ int main() {
 	global.event_blocked_lists = event_blocked_lists;
 	global.msg_array = msg_array;
 	global.task_array = task_array;
+	global.uart1WaitingCTS = FALSE;
 
 	/* Create first task with highest priority */
 	Task *first_task = createTask(&free_list, 0, umain);

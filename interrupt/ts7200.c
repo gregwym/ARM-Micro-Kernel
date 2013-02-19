@@ -1,6 +1,26 @@
 #include <ts7200.h>
 #include <klib.h>
 
+int getRegister(int base, int offset) {
+	int *addr = (int *)(base + offset);
+	return *addr;
+}
+
+int getRegisterBit(int base, int offset, int mask) {
+	return (getRegister(base, offset)) & mask;
+}
+
+void setRegister(int base, int offset, int value) {
+	int *addr = (int *)(base + offset);
+	*addr = value;
+}
+
+void setRegisterBit(int base, int offset, int mask, int value) {
+	int buf = getRegister(base, offset);
+	buf = value ? buf | mask : buf & ~mask;
+	setRegister(base, offset, buf);
+}
+
 unsigned int setTimerLoadValue(int timer_base, unsigned int value) {
 	unsigned int* timer_load_addr = (unsigned int*) (timer_base + LDR_OFFSET);
 	*timer_load_addr = value;
@@ -80,6 +100,6 @@ unsigned int setUARTControlBit(int uart_base, unsigned int mask, int value) {
 unsigned int enableVicInterrupt(int vic_base, int mask) {
 	unsigned int* vic_enable_addr = (unsigned int*) (vic_base + VIC_IN_EN_OFFSET);
 	*vic_enable_addr = (*vic_enable_addr) | mask;
-	DEBUG(DB_IRQ, "| IRQ:\tEnabled with addr 0x%x and flag 0x%x", vic_enable_addr, *vic_enable_addr);
+	DEBUG(DB_IRQ, "| IRQ:\tEnabled with addr 0x%x and flag 0x%x\n", vic_enable_addr, *vic_enable_addr);
 	return *vic_enable_addr;
 }
