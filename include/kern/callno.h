@@ -10,5 +10,6 @@
 #define SYS_receive		6
 #define SYS_reply		7
 #define SYS_awaitEvent	8
+#define SYS_halt		9
 
 #endif // _KERN_CALLNO_H_
