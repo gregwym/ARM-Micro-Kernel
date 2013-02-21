@@ -47,28 +47,109 @@ int tr_atoi(const char *str) {
 	return ret;
 }
 
-void delaytrain() {
+void reversetrain() {
+	char cmd[3];
+	cmd[2] = '\0';
 	int tr_num = -1;
 	int tid = -1;
 	Receive(&tid, (char *)&tr_num, sizeof(int));
 	Reply(tid, NULL, 0);
+	cmd[0] = 0;
+	cmd[1] = tr_num;
+	Puts(COM1, cmd, 2);
 	Delay(100);
-	Putc(COM1, TRAIN_REVERSE);
-	Putc(COM1, tr_num);
-	Putc(COM1, 10);
-	Putc(COM1, tr_num);
+	cmd[0] = TRAIN_REVERSE;
+	cmd[1] = tr_num;
+	Puts(COM1, cmd, 2);
+	cmd[0] = 10;
+	cmd[1] = tr_num;
+	Puts(COM1, cmd, 2);
 }
 
+typedef struct sw_query {
+	int sw_num;
+	char state[2];
+} SwitchQuery;
+
+void changeswitch() {
+	char switch_update[14];
+	// [5] is the line#
+	// [7][8] is the column#
+	// [10] is the switch state
+	switch_update[0] = '\e';
+	switch_update[1] = '[';
+	switch_update[2] = 's';
+	switch_update[3] = '\e';
+	switch_update[4] = '[';
+	switch_update[6] = ';';
+	switch_update[9] = 'H';
+	switch_update[11] = '\e';
+	switch_update[12] = '[';
+	switch_update[13] = 'u';
+	int column_num;
+	SwitchQuery sw_msg;
+	char cmd[3];
+	cmd[2] = '\0';
+	int tid = -1;
+	Receive(&tid, (char *)&sw_msg, sizeof(SwitchQuery));
+	Reply(tid, NULL, 0);
+	
+	if (strcmp(sw_msg.state, "S") != 0 && strcmp(sw_msg.state, "C") != 0) {
+		return;
+	} else {
+		if (sw_msg.state[0] == 'S') {
+			cmd[0] = SWITCH_STR;
+			cmd[1] = sw_msg.sw_num;
+			Puts(COM1, cmd, 2);
+		} else if (sw_msg.state[0] == 'C') {
+			cmd[0] = SWITCH_CUR;
+			cmd[1] = sw_msg.sw_num;
+			Puts(COM1, cmd, 2);
+		}
+		
+		if (sw_msg.sw_num < SWITCH_NAMING_MAX) {
+			switch_update[5] = '0' + (sw_msg.sw_num - 1)/9 + 6;
+			column_num = ((sw_msg.sw_num - 1)%9)*6 + 6;
+			switch_update[7] = '0' + column_num / 10;
+			switch_update[8] = '0' + column_num % 10;
+		} else if (sw_msg.sw_num >= 153 && sw_msg.sw_num <= 156) {
+			switch_update[5] = '0' + (sw_msg.sw_num - 1)/9 + 6;
+			column_num = ((sw_msg.sw_num - 153)%9)*6 + 6;
+			switch_update[7] = '0' + column_num / 10;
+			switch_update[8] = '0' + column_num % 10;
+		} else {
+			return;
+		}
+		if (sw_msg.state[0] == 'S') {
+			switch_update[10] = 'S';
+		} else {
+			switch_update[10] = 'C';
+		}
+		Puts(COM2, switch_update, 14);
+		
+		Delay(40);
+		
+		Putc(COM1, 32);
+	}
+}
+		
+		
+
 int static send_cmd(char *input, const char **train_cmds) {
+	char cmd[3];
+	cmd[2] = '\0';
 	char token[8];
 	input = str2token(input, token, 8);
 	int i = 0;
 	int argv1 = 0;
 	int argv2 = 0;
+	
 	for (i = 0; i < TrainCmd_Max; i++) {
 		if (strcmp(train_cmds[i], token) == 0) break;
 	}
+	
 	if (i == TrainCmd_Max) return -1;
+	
 	switch (i) {
 		case TrainCmd_TR:
 			input = str2token(input, token, 8);
@@ -78,33 +159,26 @@ int static send_cmd(char *input, const char **train_cmds) {
 			argv2 = tr_atoi(token);
 			if (argv2 < 0 || argv2 > 31) return -1;
 			
-			Putc(COM1, argv2);
-			Putc(COM1, argv1);
+			cmd[0] = argv2;
+			cmd[1] = argv1;
+			Puts(COM1, cmd, 2);
 			break;
 		case TrainCmd_RV:
 			input = str2token(input, token, 8);
 			argv1 = tr_atoi(token);
-			int delay_tid = Create(1, delaytrain);
-			Putc(COM1, 0);
-			Putc(COM1, argv1);
-			Send(delay_tid, (char *)&argv1, sizeof(int), NULL, 0);
+			int rv_tid = Create(1, reversetrain);
+			Send(rv_tid, (char *)&argv1, sizeof(int), NULL, 0);
 			break;
 		case TrainCmd_SW:
 			input = str2token(input, token, 8);
 			argv1 = tr_atoi(token);
-			if ((argv1 > SWITCH_NAMING_BASE && argv1 < SWITCH_NAMING_MAX) ||
-				(argv1 > SWITCH_NAMING_MID_BASE && argv1 < SWITCH_NAMING_MID_MAX)) {
-				input = str2token(input, token, 8);
-				if (strcmp(token, "S") == 0) {
-					Putc(COM1, SWITCH_STR);
-					Putc(COM1, argv1);
-					break;
-				} else if (strcmp(token, "C") == 0) {
-					Putc(COM1, SWITCH_CUR);
-					Putc(COM1, argv1);
-					break;
-				}
-			}
+			input = str2token(input, token, 8);
+			SwitchQuery sw_query;
+			sw_query.sw_num = argv1;
+			sw_query.state[0] = token[0];
+			sw_query.state[1] = '\0';
+			int sw_tid = Create(1, changeswitch);
+			Send(sw_tid, (char*)&sw_query, sizeof(SwitchQuery), NULL, 0);
 			return -1;
 		default:
 			assert(0, "wo qu?");
@@ -126,7 +200,6 @@ void traincmdserver() {
 	train_cmds[TrainCmd_TR] = "tr";
 	train_cmds[TrainCmd_RV] = "rv";
 	train_cmds[TrainCmd_SW] = "sw";
-	Puts(COM2, "\e[2J\e[2;1H");
 	while (1) {
 		ch = Getc(COM2);
 		if (ch >= 0) {
@@ -140,9 +213,8 @@ void traincmdserver() {
 				case '\n':
 				case '\r':
 					send_cmd(input_array, train_cmds);
-					Puts(COM2, "\e[1;1H\e[K");
-					Puts(COM2, input_array);
-					Puts(COM2, "\e[2;1H\e[K");
+					// todo: change to printf later
+					Puts(COM2, "\e[3;1H\e[K", 0);
 					input_array[0] = '\0';
 					input_size = 0;
 					break;
