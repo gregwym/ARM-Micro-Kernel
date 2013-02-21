@@ -185,6 +185,13 @@ int sysAwaitEvent(KernelGlobal *global, int eventid, char *event, int eventlen, 
 	return 0;
 }
 
+int sysHalt(KernelGlobal *global) {
+	ReadyQueue 	*ready_queue = global->ready_queue;
+	ready_queue->curtask = NULL;
+	ready_queue->head = NULL;
+	return 0;
+}
+
 int syscallHandler(void **parameters, KernelGlobal *global) {
 	int callno = *((int*)(parameters[0]));
 	int err = 0;
@@ -220,6 +227,9 @@ int syscallHandler(void **parameters, KernelGlobal *global) {
 			break;
 		case SYS_awaitEvent:
 			err = sysAwaitEvent(global, *((int*)(parameters[1])), *((char**)parameters[2]), *((int*)(parameters[3])), &rtn);
+			break;
+		case SYS_halt:
+			err = sysHalt(global);
 			break;
 		case SYS_pass:
 		default:

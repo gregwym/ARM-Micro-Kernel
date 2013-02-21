@@ -148,3 +148,12 @@ int AwaitEvent( int eventid, char *event, int eventlen ) {
 	    :);
 	return rtn;
 }
+
+void Halt() {
+	int callno = SYS_halt;
+	void *parameters[2] = {(&callno), NULL};
+	asm("mov r0, %0"
+	    :
+	    :"r"(parameters));
+	asm("swi 0");
+}
