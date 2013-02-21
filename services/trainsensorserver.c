@@ -10,7 +10,7 @@
 #define SENSOR_BYTE_EACH 2
 #define SENSOR_BYTE_SIZE 8
 #define SENSOR_BIT_MASK 0x01
-#define SENSOR_UI_BUFFER_LEN 12
+#define SENSOR_UI_BUFFER_LEN 8
 
 // Sensor Data
 typedef struct sensor_data {

@@ -24,6 +24,7 @@ typedef enum train_cmd_type {
 	TrainCmd_TR = 0,
 	TrainCmd_RV,
 	TrainCmd_SW,
+	TrainCmd_Quit,
 	TrainCmd_Max,
 } TrCmdType;
 
@@ -180,6 +181,8 @@ int static send_cmd(char *input, const char **train_cmds) {
 			int sw_tid = Create(1, changeswitch);
 			Send(sw_tid, (char*)&sw_query, sizeof(SwitchQuery), NULL, 0);
 			return -1;
+		case TrainCmd_Quit:
+			Halt();
 		default:
 			assert(0, "wo qu?");
 	}
@@ -200,6 +203,7 @@ void traincmdserver() {
 	train_cmds[TrainCmd_TR] = "tr";
 	train_cmds[TrainCmd_RV] = "rv";
 	train_cmds[TrainCmd_SW] = "sw";
+	train_cmds[TrainCmd_Quit] = "q";
 	while (1) {
 		ch = Getc(COM2);
 		if (ch >= 0) {
