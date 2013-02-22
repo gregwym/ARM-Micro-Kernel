@@ -126,13 +126,17 @@ int Putc(int channel, char ch) {
 	return rtn;
 }
 
-int Puts(int channel, char *msg) {
+int Puts(int channel, char *msg, int msglen) {
 	int server_tid = serverTidForChannel(channel);
 
 	PutsQuery puts_query;
 	puts_query.type = IO_QUERY_TYPE_PUTS;
 	puts_query.msg = msg;
-	puts_query.msglen = strlen(msg);
+	if (msglen == 0) {
+		puts_query.msglen = strlen(msg);
+	} else {
+		puts_query.msglen = msglen;
+	}
 	
 	int rtn = Send(server_tid, (char *)(&puts_query), sizeof(PutsQuery), NULL, 0);
 	return rtn;
