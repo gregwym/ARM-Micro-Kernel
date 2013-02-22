@@ -27,7 +27,7 @@ void trainserver() {
 	iprintf("\e[9;1HSensor Data:");
 	iprintf("\e[%d;%dH", 3, 1);
 	
-	// Create(7, trainclockserver);
+	Create(7, trainclockserver);
 	Create(7, traincmdserver);
 	Create(2, trainsensorserver);
 }
