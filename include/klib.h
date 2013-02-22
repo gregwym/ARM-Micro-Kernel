@@ -66,6 +66,10 @@ void bufferPush(CircularBuffer *circ_buffer, int i);
 
 int bufferPop(CircularBuffer *circ_buffer);
 
+void bufferPushStr(CircularBuffer *circ_buffer, char *str, int strlen);
+
+void bufferPushChar(CircularBuffer *circ_buffer, char c);
+
 /* Print */
 #include <intern/irqio.h>
 #include <intern/bwio.h>

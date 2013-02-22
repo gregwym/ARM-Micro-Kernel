@@ -52,3 +52,14 @@ int bufferPop(CircularBuffer *circ_buffer) {
 	circ_buffer->current_size -= 1;
 	return ret;
 }
+
+void bufferPushStr(CircularBuffer *circ_buffer, char *str, int strlen) {
+	assert(circ_buffer->current_size + strlen < circ_buffer->buffer_size, "IOBUFFER exceed buffer size(pushs)");
+	// todo
+}
+
+void bufferPushChar(CircularBuffer *circ_buffer, char c) {
+	circ_buffer->buffer.chars[circ_buffer->back] = c;
+	circ_buffer->back = (circ_buffer->back + 1) % circ_buffer->buffer_size;
+	circ_buffer->current_size += 1;
+}
