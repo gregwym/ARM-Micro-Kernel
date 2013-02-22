@@ -209,9 +209,9 @@ void comserver() {
 			if(channel_id == COM2) {
 				bufferPushChar(&send_buffer, message.ch);
 				if (message.ch == '\b') {
-					bufferPushChar(&send_buffer, (int)'\e');
-					bufferPushChar(&send_buffer, (int)'[');
-					bufferPushChar(&send_buffer, (int)'K');
+					bufferPushChar(&send_buffer, '\e');
+					bufferPushChar(&send_buffer, '[');
+					bufferPushChar(&send_buffer, 'K');
 				}
 			}
 		}

@@ -70,7 +70,7 @@ int main() {
 	setTimerControl(TIMER3_BASE, TRUE, FALSE, FALSE);
 
 	// Enable interrupt
-	// enableVicInterrupt(VIC1_BASE, VIC_TIMER1_MASK);
+	enableVicInterrupt(VIC1_BASE, VIC_TIMER1_MASK);
 	enableVicInterrupt(VIC2_BASE, VIC_UART2_MASK);
 	enableVicInterrupt(VIC2_BASE, VIC_UART1_MASK);
 
@@ -155,6 +155,7 @@ int main() {
 
 	/* Turm off timer */
 	setTimerControl(TIMER1_BASE, FALSE, FALSE, FALSE);
+	setTimerControl(TIMER3_BASE, FALSE, FALSE, FALSE);
 
 	return 0;
 }
