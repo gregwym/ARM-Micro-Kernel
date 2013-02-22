@@ -13,8 +13,12 @@ int Time( );
 void comserver();
 int Getc(int channel);
 int Putc(int channel, char ch);
-int Puts(int channel, char *msg);
+// set msglen to 0 to checkout string len by "strlen" automatically
+int Puts(int channel, char *msg, int msglen);
 
 /* Train Server */
 #define TR_REG_NAME	"TR"
+void trainserver();
 void traincmdserver();
+void trainsensorserver();
+void trainclockserver();

@@ -103,3 +103,14 @@ unsigned int enableVicInterrupt(int vic_base, int mask) {
 	DEBUG(DB_IRQ, "| IRQ:\tEnabled with addr 0x%x and flag 0x%x\n", vic_enable_addr, *vic_enable_addr);
 	return *vic_enable_addr;
 }
+
+void enableCache() {
+	int p15;
+	asm("MRC p15, 0, %0, c1, c0, 0"
+		:"=r"(p15)
+		:);
+	p15 = p15 | 0x1000;
+	asm("MCR p15, 0, %0, c1, c0, 0"
+		:
+		:"r"(p15));
+}

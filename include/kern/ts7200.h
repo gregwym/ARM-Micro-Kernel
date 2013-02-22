@@ -25,6 +25,7 @@
 /* VIC registers */
 
 #define VIC1_BASE	0x800B0000
+	#define VIC_TIMER1_MASK	0x10
 #define VIC2_BASE	0x800C0000
 	#define VIC_TIMER3_MASK	0x00080000
 	#define VIC_UART1_MASK	0x00100000

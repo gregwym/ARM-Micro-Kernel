@@ -27,3 +27,5 @@ unsigned int setUARTControl(int uart_base, unsigned int enable,
 unsigned int setUARTControlBit(int uart_base, unsigned int mask, int value);
 
 unsigned int enableVicInterrupt(int vic_base, int mask);
+
+void enableCache();

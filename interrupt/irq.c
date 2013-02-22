@@ -5,9 +5,9 @@
 #include <ts7200.h>
 
 void timerIrqHandler(KernelGlobal *global) {
-	// Clear timer3's interrupt
-	unsigned int *timer3_clr_addr = (unsigned int*) (TIMER3_BASE + CLR_OFFSET);
-	*timer3_clr_addr = 0xff;
+	// Clear timer1's interrupt
+	unsigned int *timer1_clr_addr = (unsigned int*) (TIMER1_BASE + CLR_OFFSET);
+	*timer1_clr_addr = 0xff;
 
 	// Fetch global variables
 	BlockedList *event_blocked_lists = global->event_blocked_lists;
@@ -146,10 +146,10 @@ void irqHandler(KernelGlobal *global) {
 	unsigned int *vic2_irq_st_addr = (unsigned int*) (VIC2_BASE + VIC_IRQ_ST_OFFSET);
 	DEBUG(DB_IRQ, "| IRQ:\tCaught\tVIC1: 0x%x VIC2: 0x%x\n", *vic1_irq_st_addr, *vic2_irq_st_addr);
 
-	// If IRQ from Timer3
-	if ((*vic2_irq_st_addr) & VIC_TIMER3_MASK) {
+	// If IRQ from Timer1
+	if ((*vic1_irq_st_addr) & VIC_TIMER1_MASK) {
 		timerIrqHandler(global);
-		assert(!((*vic2_irq_st_addr) & VIC_TIMER3_MASK), "Failed to clear the timer interrupt");
+		assert(!((*vic1_irq_st_addr) & VIC_TIMER1_MASK), "Failed to clear the timer interrupt");
 	}
 	else if ((*vic2_irq_st_addr) & VIC_UART2_MASK) {
 		uartIrqHandler(global, UART2_BASE);
