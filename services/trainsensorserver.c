@@ -130,6 +130,9 @@ void saveDecoderData(unsigned int decoder_index, char new_data, SensorData *sens
 				print_buffer[13] = '0' + sensor_id % 10;
 				Puts(COM2, print_buffer, 18);
 				Puts(COM2, sensor_pointer, 25);
+				
+				// iprintf("%c%d\n", sensorData->sensor_decoder_ids[decoder_index / 2], sensor_id);
+				
 				sensorData->sensor_recent_next = (sensorData->sensor_recent_next + 1) % SENSOR_UI_BUFFER_LEN;
 			}
 			old_temp = old_temp >> 1;
@@ -158,9 +161,17 @@ void collectSensorData(SensorData *sensorData) {
 
 void trainsensorserver() {
 	SensorData sensorData;
-
+	unsigned int start;
+	unsigned int total_time = 0;
 	sensorBootstrap(&sensorData);
 	while(1) {
+		// if(sensorData.sensor_decoder_next == 0) 
+			// start = getTimerValue(TIMER3_BASE);
 		collectSensorData(&sensorData);
+		// if(sensorData.sensor_decoder_next == 9) {
+			// total_time += (start - getTimerValue(TIMER3_BASE));
+			// iprintf(" : %u", total_time);
+		
+		// }
 	}
 }

@@ -21,6 +21,6 @@ void umain() {
 
 	// tid = Create(7, com2test);
 	// tid = Create(7, com1test);
-	tid = Create(7, trainserver);
+	tid = Create(6, trainserver);
 	createIdleTask();
 }

@@ -114,7 +114,7 @@ void changeswitch() {
 			switch_update[7] = '0' + column_num / 10;
 			switch_update[8] = '0' + column_num % 10;
 		} else if (sw_msg.sw_num >= 153 && sw_msg.sw_num <= 156) {
-			switch_update[5] = '0' + (sw_msg.sw_num - 1)/9 + 6;
+			switch_update[5] = '0' + 8;
 			column_num = ((sw_msg.sw_num - 153)%9)*6 + 6;
 			switch_update[7] = '0' + column_num / 10;
 			switch_update[8] = '0' + column_num % 10;

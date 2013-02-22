@@ -70,7 +70,7 @@ int main() {
 	setTimerControl(TIMER3_BASE, TRUE, FALSE, FALSE);
 
 	// Enable interrupt
-	enableVicInterrupt(VIC1_BASE, VIC_TIMER1_MASK);
+	// enableVicInterrupt(VIC1_BASE, VIC_TIMER1_MASK);
 	enableVicInterrupt(VIC2_BASE, VIC_UART2_MASK);
 	enableVicInterrupt(VIC2_BASE, VIC_UART1_MASK);
 
@@ -115,25 +115,24 @@ int main() {
 	Task *first_task = createTask(&free_list, 0, umain);
 	insertTask(&ready_queue, first_task);
 	
-	unsigned int start;
 	unsigned int p_start = getTimerValue(TIMER3_BASE);
-	unsigned int idle_time = 0;
-	int prev_idle = 0;
+	
+	int i;
+	unsigned int idle_time[TASK_MAX];
+	for (i = 0; i < TASK_MAX; i++) {
+		idle_time[i] = 0;
+	}
+	unsigned int start = getTimerValue(TIMER3_BASE);
+	int prev_id = 0;
 	
 	/* Main syscall handling loop */
 	while(1){
 		// If no more task to run, break
 		if(!scheduleNextTask(&ready_queue)) break;
-		if (ready_queue.head->tid == 6) {
-			if (!prev_idle) {
-				prev_idle = 1;
-				start = getTimerValue(TIMER3_BASE);
-			}
-		} else {
-			if (prev_idle) {
-				idle_time = idle_time + (start - getTimerValue(TIMER3_BASE));
-				prev_idle = 0;
-			}
+		if (prev_id != ready_queue.head->tid) {
+			idle_time[prev_id] += (start - getTimerValue(TIMER3_BASE));
+			prev_id = ready_queue.head->tid;
+			start = getTimerValue(TIMER3_BASE);
 		}
 				
 		UserTrapframe* user_sp = (UserTrapframe *)ready_queue.curtask->current_sp;
@@ -149,8 +148,10 @@ int main() {
 		asm("bl	handlerRedirection(PLT)");
 	}
 	
-	bwprintf(COM2, "TOTAL TIME: %u\n", p_start - getTimerValue(TIMER3_BASE));
-	bwprintf(COM2, "IDLE TIME: %u\n", idle_time);
+	bwprintf(COM2, "\e[15;1HJTOTAL TIME: %u\n", p_start - getTimerValue(TIMER3_BASE));
+	for (i = 0; i < TASK_MAX; i++) {
+		bwprintf(COM2, "TASK%d: %u\n", i, idle_time[i]);
+	}
 
 	/* Turm off timer */
 	setTimerControl(TIMER1_BASE, FALSE, FALSE, FALSE);
