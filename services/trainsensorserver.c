@@ -51,7 +51,7 @@ void requestSensorData(SensorData *sensorData){
 
 	int decoder_index = sensorData->sensor_decoder_next / SENSOR_BYTE_EACH;
 	sensorData->sensor_decoder_next = decoder_index * SENSOR_BYTE_EACH;
-	char command = SENSOR_READ_ONE + (sensorData->sensor_decoder_next / SENSOR_BYTE_EACH) + 1;
+	char command = SENSOR_READ_MULTI + SENSOR_DECODER_TOTAL;
 	Putc(COM1, command);
 }
 
@@ -154,7 +154,7 @@ void collectSensorData(SensorData *sensorData) {
 	sensorData->sensor_decoder_next = (sensorData->sensor_decoder_next + 1) % (SENSOR_DECODER_TOTAL * SENSOR_BYTE_EACH);
 
 	// If end receiving last chunk of data, clear to send sensor data request
-	if((sensorData->sensor_decoder_next % 2) == 0) {
+	if(sensorData->sensor_decoder_next == 0) {
 		receivedSensorData(sensorData);
 	}
 }
