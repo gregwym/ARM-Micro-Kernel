@@ -73,6 +73,9 @@ int main() {
 	enableVicInterrupt(VIC1_BASE, VIC_TIMER1_MASK);
 	enableVicInterrupt(VIC2_BASE, VIC_UART2_MASK);
 	enableVicInterrupt(VIC2_BASE, VIC_UART1_MASK);
+	
+	// Enable Cache
+	enableCache();
 
 	/* Initialize ReadyQueue and Task related data structures */
 	ReadyQueue	ready_queue;
