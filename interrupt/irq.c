@@ -44,6 +44,7 @@ void uartIrqHandler(KernelGlobal *global, unsigned int uart_base) {
 	char *uart_data_addr = (char *) (uart_base + UART_DATA_OFFSET);
 	unsigned int *uart_flag_addr = (unsigned int *) (uart_base + UART_FLAG_OFFSET);
 	unsigned int *uart_intr_addr = (unsigned int *) (uart_base + UART_INTR_OFFSET);
+	unsigned int *uart_rsr_addr = (unsigned int *) (uart_base + UART_RSR_OFFSET);
 	int tx_event = uart_base == UART1_BASE ? EVENT_COM1_TX : EVENT_COM2_TX;
 	int rx_event = uart_base == UART1_BASE ? EVENT_COM1_RX : EVENT_COM2_RX;
 
@@ -64,6 +65,11 @@ void uartIrqHandler(KernelGlobal *global, unsigned int uart_base) {
 	// If is receive buffer full
 	else if((*uart_intr_addr) & RIS_MASK) {
 		assert((*uart_flag_addr) & RXFF_MASK, "Got RX IRQ but RX FIFO not full");
+		if((*uart_rsr_addr) & LOW_4_MASK) {
+			assert((*uart_rsr_addr) & OE_MASK, "Overrun");
+			assert((*uart_rsr_addr) & FE_MASK, "Frame Error");
+			*uart_rsr_addr = 0xff;
+		}
 
 		// Find COM1_RX blocked task
 		int tid = dequeueBlockedList(event_blocked_lists, rx_event);

@@ -69,6 +69,7 @@
 	#define PE_MASK		0x2
 	#define BE_MASK		0x4
 	#define OE_MASK		0x8
+ 	#define LOW_4_MASK	0xf
 #define UART_LCRH_OFFSET	0x8	// low 7 bits
 	#define BRK_MASK	0x1
 	#define PEN_MASK	0x2	// parity enable
