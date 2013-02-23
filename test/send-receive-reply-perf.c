@@ -31,10 +31,10 @@ void receiver() {
 	char fourBytes[4];
 	char sixtyFourBytes[64];
 	int tid;
-	
+
 	Receive(&tid, fourBytes, 4);
-	result = Reply(tid, fourBytes, 4);
-	
+	Reply(tid, fourBytes, 4);
+
 	Receive(&tid, sixtyFourBytes, 64);
 	Reply(tid, sixtyFourBytes, 64);
 }
