@@ -59,6 +59,9 @@ typedef struct msg_buffer {
 	int msglen;
 	char *reply;
 	int replylen;
+	char *receive;
+	int receivelen;
+	int *sender_tid_ref;
 	char *event;
 	int eventlen;
 } MsgBuffer;

@@ -52,19 +52,30 @@ int sysSend(KernelGlobal *global, int tid, char *msg, int msglen, char *reply, i
 	}
 
 	assert((msg_array[cur_tid]).msg == NULL, "msg_array is not NULL");
-	// link sender's msg to msg_array
-	(msg_array[cur_tid]).msg = msg;
-	(msg_array[cur_tid]).msglen = msglen;
+
+	// if receiver task is already SendBlocked, unblock the receiver task and pass msg into receiver's buffer
+	if (task_array[tid % TASK_MAX].state == SendBlocked) {
+		DEBUG(DB_SYSCALL, "Sender writing to receiver tid buffer addr 0x%x\n", msg_array[tid % TASK_MAX].sender_tid_ref);
+		memcpy(msg_array[tid % TASK_MAX].receive, msg, msg_array[tid % TASK_MAX].receivelen);
+		*(msg_array[tid % TASK_MAX].sender_tid_ref) = cur_tid;
+		
+		// edit receiver task's return value
+		((UserTrapframe *)(task_array[tid % TASK_MAX].current_sp))->r0 = msglen;
+		
+		blockCurrentTask(ready_queue, ReplyBlocked, NULL, 0);
+		insertTask(ready_queue, &(task_array[tid % TASK_MAX]));
+	} else {
+		// link sender's msg to msg_array
+		(msg_array[cur_tid]).msg = msg;
+		(msg_array[cur_tid]).msglen = msglen;
+		
+		// block current task and add it to blocklist
+		blockCurrentTask(ready_queue, ReceiveBlocked, receive_blocked_lists, tid % TASK_MAX);
+	}
+	
+	
 	(msg_array[cur_tid]).reply = reply;
 	(msg_array[cur_tid]).replylen = replylen;
-
-	// block current task and add it to blocklist
-	blockCurrentTask(ready_queue, ReceiveBlocked, receive_blocked_lists, tid % TASK_MAX);
-
-	// unblock the receiver task
-	if (task_array[tid % TASK_MAX].state == SendBlocked) {
-		insertTask(ready_queue, &(task_array[tid % TASK_MAX]));
-	}
 
 	*rtn = 0;
 	return 0;
@@ -77,6 +88,7 @@ int sysReceive(KernelGlobal *global, int *tid, char *msg, int msglen, int *rtn) 
 	MsgBuffer 	*msg_array = global->msg_array;
 	Task	 	*task_array = global->task_array;
 
+	int cur_tid = ready_queue->curtask->tid;
 	int sender_tid = -1;
 	Task *sender_task = NULL;
 
@@ -85,6 +97,9 @@ int sysReceive(KernelGlobal *global, int *tid, char *msg, int msglen, int *rtn) 
 
 	if (sender_tid == -1) {
 		// no one send current task msg
+		msg_array[cur_tid].receive = msg;
+		msg_array[cur_tid].receivelen = msglen;
+		msg_array[cur_tid].sender_tid_ref = tid;
 		blockCurrentTask(ready_queue, SendBlocked, NULL, 0);
 		return -1;
 	}
@@ -133,7 +148,7 @@ int sysReply(KernelGlobal *global, int tid, char *reply, int replylen, int *rtn)
 	Task *sender_task = &task_array[tid % TASK_MAX];
 
 	// copy reply msg to reply buffer
-	msg_array[tid % TASK_MAX].reply = memcpy(msg_array[tid % TASK_MAX].reply, reply, msg_array[tid % TASK_MAX].replylen);
+	memcpy(msg_array[tid % TASK_MAX].reply, reply, msg_array[tid % TASK_MAX].replylen);
 	msg_array[tid % TASK_MAX].msg = NULL;
 
 	// Set sender's return value to be the reply msg's length

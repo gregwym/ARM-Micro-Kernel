@@ -1,23 +1,8 @@
-#include <kern/ts7200.h>
+#include <ts7200.h>
 #include <klib.h>
 #include <unistd.h>
 
-#define FALSE 0x00000000
-#define TRUE 0xffffffff
 
-unsigned int setTimerControl(int timer_base, unsigned int enable, unsigned int mode, unsigned int clksel) {
-	unsigned int* timer_control_addr = (unsigned int*) (timer_base + CRTL_OFFSET);
-	unsigned int control_value = (ENABLE_MASK & enable) | (MODE_MASK & mode) | (CLKSEL_MASK & clksel) ;
-
-	*timer_control_addr = control_value;
-	return *timer_control_addr;
-}
-
-unsigned int getTimerValue(int timer_base) {
-	unsigned int* timer_value_addr = (unsigned int*) (timer_base + VAL_OFFSET);
-	unsigned int value = *timer_value_addr;
-	return value;
-}
 
 void sender() {
 	time_t start = getTimerValue(TIMER3_BASE);
@@ -49,6 +34,7 @@ void receiver() {
 
 	Receive(&tid, fourBytes, 4);
 	Reply(tid, fourBytes, 4);
+
 	Receive(&tid, sixtyFourBytes, 64);
 	Reply(tid, sixtyFourBytes, 64);
 }
