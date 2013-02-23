@@ -102,21 +102,8 @@ int Receive( int *tid, char *msg, int msglen ) {
 	asm("mov %0, r0"
 	    :"=r"(rtn)
 	    :);
-
-	// If received with no error, return
-	if (rtn >= 0) {
-		return rtn;
-	}
-
-	// Else, try again, might was blocked because no one sent
-	asm("mov r0, %0"
-	    :
-	    :"r"(parameters));
-	asm("swi 0");
-	asm("mov %0, r0"
-	    :"=r"(rtn)
-	    :);
-	assert(rtn >= 0, "Second time received with ERROR");
+	
+	assert(rtn >= 0, "Received with ERROR");
 
 	return rtn;
 }

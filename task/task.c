@@ -55,6 +55,7 @@ void msgArrayInitial(MsgBuffer *msg_array) {
 	for (i = 0; i < TASK_MAX; i++) {
 		msg_array[i].msg = NULL;
 		msg_array[i].reply = NULL;
+		msg_array[i].receive = NULL;
 		msg_array[i].event = NULL;
 	}
 }
