@@ -13,6 +13,8 @@
 #define COM2_REG_NAME 			"C2"
 #define COM_NAME_ARRAY_LEN		3
 
+#define GETTER_BUFFER_SIZE		10
+
 typedef struct putc_query {
 	int type;
 	char ch;
@@ -126,13 +128,17 @@ int Putc(int channel, char ch) {
 	return rtn;
 }
 
-int Puts(int channel, char *msg) {
+int Puts(int channel, char *msg, int msglen) {
 	int server_tid = serverTidForChannel(channel);
 
 	PutsQuery puts_query;
 	puts_query.type = IO_QUERY_TYPE_PUTS;
 	puts_query.msg = msg;
-	puts_query.msglen = strlen(msg);
+	if (msglen == 0) {
+		puts_query.msglen = strlen(msg);
+	} else {
+		puts_query.msglen = msglen;
+	}
 	
 	int rtn = Send(server_tid, (char *)(&puts_query), sizeof(PutsQuery), NULL, 0);
 	return rtn;
@@ -175,9 +181,14 @@ void comserver() {
 	IOMsg message;
 	int reply;
 	char ch;
-
+	
+	// Create getter buffer
+	CircularBuffer getter_buffer;
+	int getter_array[GETTER_BUFFER_SIZE];
+	
+	bufferInitial(&getter_buffer, INTS, getter_array, GETTER_BUFFER_SIZE);
+	
 	// Prepare flag variables
-	int char_getter_is_waiting = 0;
 	int send_notifier_is_waiting = 0;
 	int char_getter_tid = 0;
 
@@ -193,26 +204,25 @@ void comserver() {
 		else if (tid == receive_notifier_tid) {
 			// Reply FIRST, then push the char to receive_buffer
 			Reply(tid, NULL, 0);
-			bufferPush(&receive_buffer, (int) message.ch);
+			bufferPushChar(&receive_buffer, message.ch);
 			// If is from COM2, echo it
 			if(channel_id == COM2) {
-				bufferPush(&send_buffer, (int) message.ch);
+				bufferPushChar(&send_buffer, message.ch);
 				if (message.ch == '\b') {
-					bufferPush(&send_buffer, (int)'\e');
-					bufferPush(&send_buffer, (int)'[');
-					bufferPush(&send_buffer, (int)'K');
+					bufferPushChar(&send_buffer, '\e');
+					bufferPushChar(&send_buffer, '[');
+					bufferPushChar(&send_buffer, 'K');
 				}
 			}
 		}
 		// Or is a getc msg, set char_getter_is_waiting and save its tid
 		else if (message.type == IO_QUERY_TYPE_GETC) {
-			char_getter_is_waiting = 1;
-			char_getter_tid = tid;
+			bufferPush(&getter_buffer, tid);
 		}
 		// Or is a putc msg,
 		else if (message.type == IO_QUERY_TYPE_PUTC) {
 			// Push the char to send_buffer, then reply
-			bufferPush(&send_buffer, message.putcQuery.ch);
+			bufferPushChar(&send_buffer, message.putcQuery.ch);
 			Reply(tid, NULL, 0);
 		}
 		// Or is a puts msg,
@@ -220,7 +230,7 @@ void comserver() {
 			// copy the whole string into send_buffer, then reply
 			int i = 0;
 			for (i = 0; i < message.putsQuery.msglen; i++) {
-				bufferPush(&send_buffer, message.putsQuery.msg[i]);
+				bufferPushChar(&send_buffer, message.putsQuery.msg[i]);
 			}
 			Reply(tid, NULL, 0);
 		}
@@ -230,10 +240,9 @@ void comserver() {
 			send_notifier_is_waiting = 0;
 			Reply(send_notifier_tid, &ch, sizeof(char));
 		}
-		if (char_getter_is_waiting && receive_buffer.current_size > 0) {
+		if (getter_buffer.current_size > 0 && receive_buffer.current_size > 0) {
 			reply = bufferPop(&receive_buffer);
-			char_getter_is_waiting = 0;
-			Reply(char_getter_tid, (char *)(&reply), sizeof(int));
+			Reply(bufferPop(&getter_buffer), (char *)(&reply), sizeof(int));
 		}
 	}
 }
