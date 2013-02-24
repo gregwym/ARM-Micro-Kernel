@@ -77,8 +77,8 @@ void uartIrqHandler(KernelGlobal *global, unsigned int uart_base) {
 			if((*uart_rsr_addr) & OE_MASK) STAT_UART(global, uart_base, US_RI_OE);
 			if((*uart_rsr_addr) & FE_MASK) STAT_UART(global, uart_base, US_RI_FE);
 
-			assert((*uart_rsr_addr) & OE_MASK, "Overrun");
-			assert((*uart_rsr_addr) & FE_MASK, "Frame Error");
+			// assert((*uart_rsr_addr) & OE_MASK, "Overrun");
+			// assert((*uart_rsr_addr) & FE_MASK, "Frame Error");
 
 			*uart_rsr_addr = 0xff;
 		}
