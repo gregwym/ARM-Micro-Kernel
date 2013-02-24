@@ -19,6 +19,9 @@ void timerIrqHandler(KernelGlobal *global) {
 	int tid = dequeueBlockedList(event_blocked_lists, EVENT_TIME_ELAP);
 
 	// If there is any blocked task
+	if(tid == -1) {
+		global->timer_stat.missed_tick++;
+	}
 	while(tid != -1) {
 		// Change task states and clear MsgBuffer
 		Task *task = &(task_array[tid % TASK_MAX]);

@@ -16,6 +16,8 @@ void kernelGlobalInitial(KernelGlobal *global) {
 			global->uart_stat[i].counts[j] = 0;
 		}
 	}
+
+	global->timer_stat.missed_tick = 0;
 }
 
 void printStat(KernelGlobal *global) {
@@ -37,11 +39,13 @@ void printStat(KernelGlobal *global) {
 	}
 
 	for(i = 0; i < 2; i++) {
-		bwprintf(COM2, "UART%d: \n", i);
+		bwprintf(COM2, "\nUART%d: \n", i);
 		for(j = 0; j < US_TOTAL; j++) {
 			bwprintf(COM2, "%s: %u\n", uart_stat_name[j], global->uart_stat[i].counts[j]);
 		}
 	}
+
+	bwprintf(COM2, "\nTIMER MISSED TICK: %u\n", global->timer_stat.missed_tick);
 }
 
 void handlerRedirection(void **parameters, KernelGlobal *global, UserTrapframe *user_sp) {
