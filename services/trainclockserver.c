@@ -64,15 +64,15 @@ void trainclockserver() {
 		misec[11] = '0' + (tick / 10) % 10;
 		Puts(COM2, misec, 15);
 		if (sec != tick / 100) {
-			sec = tick / 100;
-			second[11] = '0' + (tick / 100) / 10;
-			second[12] = '0' + (tick / 100) % 10;
+			sec = tick / 100 % 60;
+			second[11] = '0' + sec / 10;
+			second[12] = '0' + sec % 10;
 			Puts(COM2, second, 16);
 		}
 		if (min != tick / 6000) {
 			min = tick / 6000;
-			minute[11] = '0' + (tick / 6000) / 10;
-			minute[12] = '0' + (tick / 6000) % 10;
+			minute[11] = '0' + min / 10;
+			minute[12] = '0' + min % 10;
 			Puts(COM2, minute, 16);
 		}
 	}
