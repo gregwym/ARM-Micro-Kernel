@@ -27,6 +27,10 @@ typedef struct task_stat {
 	unsigned int	active_time[TASK_MAX];
 } TaskStat;
 
+typedef struct timer_stat {
+	unsigned int	missed_tick;
+} TimerStat;
+
 typedef struct kernel_global {
 	ReadyQueue	*ready_queue;
 	FreeList	*free_list;
@@ -37,6 +41,7 @@ typedef struct kernel_global {
 	int			uart1_waiting_cts;
 	UartStat	uart_stat[2];
 	TaskStat	task_stat;
+	TimerStat	timer_stat;
 } KernelGlobal;
 
 void kernelGlobalInitial(KernelGlobal *global);
