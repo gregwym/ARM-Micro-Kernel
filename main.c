@@ -112,7 +112,8 @@ int main() {
 	global.event_blocked_lists = event_blocked_lists;
 	global.msg_array = msg_array;
 	global.task_array = task_array;
-	global.uart1WaitingCTS = FALSE;
+
+	kernelGlobalInitial(&global);
 
 	/* Create first task with highest priority */
 	Task *first_task = createTask(&free_list, 0, umain);
@@ -155,6 +156,8 @@ int main() {
 	for (i = 0; i < TASK_MAX; i++) {
 		bwprintf(COM2, "TASK%d: %u\n", i, idle_time[i]);
 	}
+
+	printStat(&global);
 
 	/* Turm off timer */
 	setTimerControl(TIMER1_BASE, FALSE, FALSE, FALSE);
