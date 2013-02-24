@@ -139,7 +139,7 @@ int Puts(int channel, char *msg, int msglen) {
 	} else {
 		puts_query.msglen = msglen;
 	}
-	
+
 	int rtn = Send(server_tid, (char *)(&puts_query), sizeof(PutsQuery), NULL, 0);
 	return rtn;
 }
@@ -181,16 +181,15 @@ void comserver() {
 	IOMsg message;
 	int reply;
 	char ch;
-	
+
 	// Create getter buffer
 	CircularBuffer getter_buffer;
 	int getter_array[GETTER_BUFFER_SIZE];
-	
+
 	bufferInitial(&getter_buffer, INTS, getter_array, GETTER_BUFFER_SIZE);
-	
+
 	// Prepare flag variables
 	int send_notifier_is_waiting = 0;
-	int char_getter_tid = 0;
 
 	while(1) {
 		/* Receive and process a message */
