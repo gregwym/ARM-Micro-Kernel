@@ -21,17 +21,17 @@ void kernelGlobalInitial(KernelGlobal *global) {
 void printStat(KernelGlobal *global) {
 	int i = 0, j = 0;
 	const char *uart_stat_name[US_TOTAL];
-	uart_stat_name[US_MI] = "US_MI";
-	uart_stat_name[US_RI] = "US_RI";
-	uart_stat_name[US_TI] = "US_TI";
-	uart_stat_name[US_MI_CTS_TRUE] = "US_MI_CTS_TRUE";
-	uart_stat_name[US_RI_OE] = "US_RI_OE";
-	uart_stat_name[US_RI_FE] = "US_RI_FE";
-	uart_stat_name[US_RI_NO_WAITING] = "US_RI_NO_WAITING";
-	uart_stat_name[US_TI_WAIT_CTS] = "US_TI_WAIT_CTS";
-	uart_stat_name[US_TI_NO_WAITING] = "US_TI_NO_WAITING";
+	uart_stat_name[US_MI] = "MI";
+	uart_stat_name[US_RI] = "RI";
+	uart_stat_name[US_TI] = "TI";
+	uart_stat_name[US_MI_CTS_TRUE] = "MI_CTS_TRUE";
+	uart_stat_name[US_RI_OE] = "RI_OE";
+	uart_stat_name[US_RI_FE] = "RI_FE";
+	uart_stat_name[US_RI_NO_WAITING] = "RI_NO_WAITING";
+	uart_stat_name[US_TI_WAIT_CTS] = "TI_WAIT_CTS";
+	uart_stat_name[US_TI_NO_WAITING] = "TI_NO_WAITING";
 
-	bwprintf(COM2, "\e[15;1HJTOTAL TIME: %u\n", global->task_stat.boot_timestamp - getTimerValue(TIMER3_BASE));
+	bwprintf(COM2, "\e[15;1HTOTAL TIME: %u\n", global->task_stat.boot_timestamp - getTimerValue(TIMER3_BASE));
 	for(i = 0; i < TASK_MAX; i++) {
 		bwprintf(COM2, "TASK%d: %u\n", i, global->task_stat.active_time[i]);
 	}
