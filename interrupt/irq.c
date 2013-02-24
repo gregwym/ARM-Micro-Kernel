@@ -44,17 +44,20 @@ void uartIrqHandler(KernelGlobal *global, unsigned int uart_base) {
 	char *uart_data_addr = (char *) (uart_base + UART_DATA_OFFSET);
 	unsigned int *uart_flag_addr = (unsigned int *) (uart_base + UART_FLAG_OFFSET);
 	unsigned int *uart_intr_addr = (unsigned int *) (uart_base + UART_INTR_OFFSET);
+	unsigned int *uart_rsr_addr = (unsigned int *) (uart_base + UART_RSR_OFFSET);
 	int tx_event = uart_base == UART1_BASE ? EVENT_COM1_TX : EVENT_COM2_TX;
 	int rx_event = uart_base == UART1_BASE ? EVENT_COM1_RX : EVENT_COM2_RX;
 
 	// If is a modem interrupt
 	if((*uart_intr_addr) & MIS_MASK) {
+		STAT_UART(global, uart_base, US_MI);
 		assert(uart_base == UART1_BASE, "Got MIS IRQ but not for UART1");
 		DEBUG(DB_IRQ, "| IRQ:\tModem IRQ with flag 0x%x\n", *uart_flag_addr);
 		// If cts is asserted
 		if((*uart_flag_addr) & CTS_MASK) {
+			STAT_UART(global, uart_base, US_MI_CTS_TRUE);
 			// Stop waiting for cts, enable TX IRQ
-			global->uart1WaitingCTS = FALSE;
+			global->uart1_waiting_cts = FALSE;
 			setUARTControlBit(uart_base, TIEN_MASK, TRUE);
 			DEBUG(DB_IRQ, "| IRQ:\tCOM1 Clear to send\n");
 		}
@@ -63,11 +66,22 @@ void uartIrqHandler(KernelGlobal *global, unsigned int uart_base) {
 	}
 	// If is receive buffer full
 	else if((*uart_intr_addr) & RIS_MASK) {
+		STAT_UART(global, uart_base, US_RI);
 		assert((*uart_flag_addr) & RXFF_MASK, "Got RX IRQ but RX FIFO not full");
+		if((*uart_rsr_addr) & LOW_4_MASK) {
+			if((*uart_rsr_addr) & OE_MASK) STAT_UART(global, uart_base, US_RI_OE);
+			if((*uart_rsr_addr) & FE_MASK) STAT_UART(global, uart_base, US_RI_FE);
+
+			assert((*uart_rsr_addr) & OE_MASK, "Overrun");
+			assert((*uart_rsr_addr) & FE_MASK, "Frame Error");
+
+			*uart_rsr_addr = 0xff;
+		}
 
 		// Find COM1_RX blocked task
 		int tid = dequeueBlockedList(event_blocked_lists, rx_event);
 		if(tid == -1) {
+			STAT_UART(global, uart_base, US_RI_NO_WAITING);
 			// Turn off RX interrupt if no waiting receive notifier
 			setUARTControlBit(uart_base, RIEN_MASK, FALSE);
 			DEBUG(DB_IRQ, "| IRQ:\tTX IRQ waiting for receiver\n");
@@ -92,13 +106,15 @@ void uartIrqHandler(KernelGlobal *global, unsigned int uart_base) {
 		DEBUG(DB_IRQ, "| IRQ:\tReceive 0x%x to task %d\n", data, tid);
 	}
 	// If is none above, and is waiting for cts
-	else if(uart_base == UART1_BASE && global->uart1WaitingCTS) {
+	else if(uart_base == UART1_BASE && global->uart1_waiting_cts) {
+		STAT_UART(global, uart_base, US_TI_WAIT_CTS);
 		// Disable TX IRQ
 		setUARTControlBit(uart_base, TIEN_MASK, FALSE);
 		DEBUG(DB_IRQ, "| IRQ:\tTX IRQ waiting for CTS\n");
 	}
 	// If is transmit buffer empty
 	else if((*uart_intr_addr) & TIS_MASK) {
+		STAT_UART(global, uart_base, US_TI);
 		assert((*uart_flag_addr) & TXFE_MASK, "Got TX IRQ but TX FIFO not empty");
 		assert((uart_base != UART1_BASE) || ((*uart_flag_addr) & CTS_MASK),
 		       "Got TX IRQ but CTS is not assertted");
@@ -106,6 +122,7 @@ void uartIrqHandler(KernelGlobal *global, unsigned int uart_base) {
 		// Find COM1_TX blocked task
 		int tid = dequeueBlockedList(event_blocked_lists, tx_event);
 		if(tid == -1) {
+			STAT_UART(global, uart_base, US_TI_NO_WAITING);
 			// Turn off TX interrupt if no more waiting transmit notifier
 			setUARTControlBit(uart_base, TIEN_MASK, FALSE);
 			DEBUG(DB_IRQ, "| IRQ:\tTX IRQ waiting for sender\n");
@@ -129,7 +146,7 @@ void uartIrqHandler(KernelGlobal *global, unsigned int uart_base) {
 		// If it is UART1
 		if(uart_base == UART1_BASE) {
 			// Start waiting for cts and disable TX IRQ
-			global->uart1WaitingCTS = TRUE;
+			global->uart1_waiting_cts = TRUE;
 			setUARTControlBit(uart_base, TIEN_MASK, FALSE);
 		}
 
