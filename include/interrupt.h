@@ -21,6 +21,12 @@ typedef struct uart_stat {
 	unsigned int	counts[US_TOTAL];
 } UartStat;
 
+typedef struct task_stat {
+	unsigned int	boot_timestamp;
+	unsigned int	last_resume_timestamp;
+	unsigned int	active_time[TASK_MAX];
+} TaskStat;
+
 typedef struct kernel_global {
 	ReadyQueue	*ready_queue;
 	FreeList	*free_list;
@@ -30,6 +36,7 @@ typedef struct kernel_global {
 	Task		*task_array;
 	int			uart1_waiting_cts;
 	UartStat	uart_stat[2];
+	TaskStat	task_stat;
 } KernelGlobal;
 
 void kernelGlobalInitial(KernelGlobal *global);
@@ -41,5 +48,10 @@ void irqHandler(KernelGlobal *global);
 
 #define STAT_UART(kernel_global, uart_base, type) \
 	(kernel_global->uart_stat[(uart_base == UART1_BASE ? 0 : 1)].counts[type]++)
+#define STAT_TASK_BEGIN(kernel_global) \
+	((kernel_global)->task_stat.last_resume_timestamp = getTimerValue(TIMER3_BASE))
+#define STAT_TASK_END(kernel_global, tid) \
+	((kernel_global)->task_stat.active_time[tid]+=\
+	 ((kernel_global)->task_stat.last_resume_timestamp - getTimerValue(TIMER3_BASE)))
 
 #endif // _INTERRUPT_H_

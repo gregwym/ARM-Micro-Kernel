@@ -1,10 +1,16 @@
 #include <interrupt.h>
 #include <klib.h>
+#include <ts7200.h>
 
 void kernelGlobalInitial(KernelGlobal *global) {
-	global->uart1_waiting_cts = FALSE;
-
 	int i = 0, j = 0;
+
+	global->task_stat.boot_timestamp = getTimerValue(TIMER3_BASE);
+	for(i = 0; i < TASK_MAX; i++) {
+		global->task_stat.active_time[i] = 0;
+	}
+
+	global->uart1_waiting_cts = FALSE;
 	for(i = 0; i < 2; i++) {
 		for(j = 0; j < US_TOTAL; j++) {
 			global->uart_stat[i].counts[j] = 0;
@@ -13,6 +19,7 @@ void kernelGlobalInitial(KernelGlobal *global) {
 }
 
 void printStat(KernelGlobal *global) {
+	int i = 0, j = 0;
 	const char *uart_stat_name[US_TOTAL];
 	uart_stat_name[US_MI] = "US_MI";
 	uart_stat_name[US_RI] = "US_RI";
@@ -24,11 +31,15 @@ void printStat(KernelGlobal *global) {
 	uart_stat_name[US_TI_WAIT_CTS] = "US_TI_WAIT_CTS";
 	uart_stat_name[US_TI_NO_WAITING] = "US_TI_NO_WAITING";
 
-	int i = 0, j = 0;
+	bwprintf(COM2, "\e[15;1HJTOTAL TIME: %u\n", global->task_stat.boot_timestamp - getTimerValue(TIMER3_BASE));
+	for(i = 0; i < TASK_MAX; i++) {
+		bwprintf(COM2, "TASK%d: %u\n", i, global->task_stat.active_time[i]);
+	}
+
 	for(i = 0; i < 2; i++) {
 		bwprintf(COM2, "UART%d: \n", i);
 		for(j = 0; j < US_TOTAL; j++) {
-			bwprintf(COM2, "%s: %d\n", uart_stat_name[j], global->uart_stat[i].counts[j]);
+			bwprintf(COM2, "%s: %u\n", uart_stat_name[j], global->uart_stat[i].counts[j]);
 		}
 	}
 }
@@ -36,6 +47,7 @@ void printStat(KernelGlobal *global) {
 void handlerRedirection(void **parameters, KernelGlobal *global, UserTrapframe *user_sp) {
 	global->ready_queue->curtask->current_sp = user_sp;
 
+	STAT_TASK_END(global, global->ready_queue->curtask->tid);
 	DEBUG(DB_TASK, "| TASK:\tHANDLER SP: 0x%x SPSR: 0x%x ResumePoint: 0x%x\n",
 	      user_sp, user_sp->spsr, user_sp->resume_point);
 

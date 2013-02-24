@@ -119,28 +119,15 @@ int main() {
 	Task *first_task = createTask(&free_list, 0, umain);
 	insertTask(&ready_queue, first_task);
 
-	unsigned int p_start = getTimerValue(TIMER3_BASE);
-
-	int i;
-	unsigned int idle_time[TASK_MAX];
-	for (i = 0; i < TASK_MAX; i++) {
-		idle_time[i] = 0;
-	}
-	unsigned int start = getTimerValue(TIMER3_BASE);
-	int prev_id = 0;
-
 	/* Main syscall handling loop */
 	while(1){
 		// If no more task to run, break
 		if(!scheduleNextTask(&ready_queue)) break;
-		if (prev_id != ready_queue.head->tid) {
-			idle_time[prev_id] += (start - getTimerValue(TIMER3_BASE));
-			prev_id = ready_queue.head->tid;
-			start = getTimerValue(TIMER3_BASE);
-		}
 
 		UserTrapframe* user_sp = (UserTrapframe *)ready_queue.curtask->current_sp;
 		DEBUG(DB_TASK, "| TASK:\tEXITING SP: 0x%x SPSR: 0x%x ResumePoint: 0x%x\n", user_sp, user_sp->spsr, user_sp->resume_point);
+		STAT_TASK_BEGIN(&global);
+
 		// Exit kernel to let user program to execute
 		kernelExit(ready_queue.curtask->current_sp);
 
@@ -150,11 +137,6 @@ int main() {
 		    :"r0", "r2", "r3"
 		    );
 		asm("bl	handlerRedirection(PLT)");
-	}
-
-	bwprintf(COM2, "\e[15;1HJTOTAL TIME: %u\n", p_start - getTimerValue(TIMER3_BASE));
-	for (i = 0; i < TASK_MAX; i++) {
-		bwprintf(COM2, "TASK%d: %u\n", i, idle_time[i]);
 	}
 
 	printStat(&global);
