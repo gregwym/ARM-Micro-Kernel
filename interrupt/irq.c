@@ -57,7 +57,7 @@ void uartIrqHandler(KernelGlobal *global, unsigned int uart_base) {
 		if((*uart_flag_addr) & CTS_MASK) {
 			STAT_UART(global, uart_base, US_MI_CTS_TRUE);
 			// Stop waiting for cts, enable TX IRQ
-			global->uart1WaitingCTS = FALSE;
+			global->uart1_waiting_cts = FALSE;
 			setUARTControlBit(uart_base, TIEN_MASK, TRUE);
 			DEBUG(DB_IRQ, "| IRQ:\tCOM1 Clear to send\n");
 		}
@@ -106,7 +106,7 @@ void uartIrqHandler(KernelGlobal *global, unsigned int uart_base) {
 		DEBUG(DB_IRQ, "| IRQ:\tReceive 0x%x to task %d\n", data, tid);
 	}
 	// If is none above, and is waiting for cts
-	else if(uart_base == UART1_BASE && global->uart1WaitingCTS) {
+	else if(uart_base == UART1_BASE && global->uart1_waiting_cts) {
 		STAT_UART(global, uart_base, US_TI_WAIT_CTS);
 		// Disable TX IRQ
 		setUARTControlBit(uart_base, TIEN_MASK, FALSE);
@@ -146,7 +146,7 @@ void uartIrqHandler(KernelGlobal *global, unsigned int uart_base) {
 		// If it is UART1
 		if(uart_base == UART1_BASE) {
 			// Start waiting for cts and disable TX IRQ
-			global->uart1WaitingCTS = TRUE;
+			global->uart1_waiting_cts = TRUE;
 			setUARTControlBit(uart_base, TIEN_MASK, FALSE);
 		}
 

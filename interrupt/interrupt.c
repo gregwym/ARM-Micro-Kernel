@@ -2,7 +2,7 @@
 #include <klib.h>
 
 void kernelGlobalInitial(KernelGlobal *global) {
-	global->uart1WaitingCTS = FALSE;
+	global->uart1_waiting_cts = FALSE;
 
 	int i = 0, j = 0;
 	for(i = 0; i < 2; i++) {

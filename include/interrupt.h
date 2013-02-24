@@ -28,7 +28,7 @@ typedef struct kernel_global {
 	BlockedList	*event_blocked_lists;
 	MsgBuffer	*msg_array;
 	Task		*task_array;
-	int			uart1WaitingCTS;
+	int			uart1_waiting_cts;
 	UartStat	uart_stat[2];
 } KernelGlobal;
 
