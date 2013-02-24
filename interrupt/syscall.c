@@ -38,6 +38,8 @@ int sysSend(KernelGlobal *global, int tid, char *msg, int msglen, char *reply, i
 	Task	 	*task_array = global->task_array;
 
 	int cur_tid = ready_queue->curtask->tid;
+	int task_index = cur_tid % TASK_MAX;
+	int dst_index = tid % TASK_MAX;
 
 	// not a possible task id.
 	if (tid < 0) {
@@ -46,35 +48,35 @@ int sysSend(KernelGlobal *global, int tid, char *msg, int msglen, char *reply, i
 	}
 
 	// not an existing task
-	if (task_array[tid % TASK_MAX].tid != tid) {
+	if (task_array[dst_index].tid != tid) {
 		*rtn = -2;
 		return 0;
 	}
 
-	assert((msg_array[cur_tid]).msg == NULL, "msg_array is not NULL");
+	assert((msg_array[task_index]).msg == NULL, "msg_array is not NULL");
 
 	// if receiver task is already SendBlocked, unblock the receiver task and pass msg into receiver's buffer
-	if (task_array[tid % TASK_MAX].state == SendBlocked) {
-		DEBUG(DB_SYSCALL, "Sender writing to receiver tid buffer addr 0x%x\n", msg_array[tid % TASK_MAX].sender_tid_ref);
-		memcpy(msg_array[tid % TASK_MAX].receive, msg, msg_array[tid % TASK_MAX].receivelen);
-		*(msg_array[tid % TASK_MAX].sender_tid_ref) = cur_tid;
+	if (task_array[dst_index].state == SendBlocked) {
+		DEBUG(DB_SYSCALL, "Sender writing to receiver tid buffer addr 0x%x\n", msg_array[dst_index].sender_tid_ref);
+		memcpy(msg_array[dst_index].receive, msg, msg_array[dst_index].receivelen);
+		*(msg_array[dst_index].sender_tid_ref) = cur_tid;
 
 		// edit receiver task's return value
-		((UserTrapframe *)(task_array[tid % TASK_MAX].current_sp))->r0 = msglen;
+		((UserTrapframe *)(task_array[dst_index].current_sp))->r0 = msglen;
 
 		blockCurrentTask(ready_queue, ReplyBlocked, NULL, 0);
-		insertTask(ready_queue, &(task_array[tid % TASK_MAX]));
+		insertTask(ready_queue, &(task_array[dst_index]));
 	} else {
 		// link sender's msg to msg_array
-		(msg_array[cur_tid]).msg = msg;
-		(msg_array[cur_tid]).msglen = msglen;
+		(msg_array[task_index]).msg = msg;
+		(msg_array[task_index]).msglen = msglen;
 
 		// block current task and add it to blocklist
 		blockCurrentTask(ready_queue, ReceiveBlocked, receive_blocked_lists, tid % TASK_MAX);
 	}
 
-	(msg_array[cur_tid]).reply = reply;
-	(msg_array[cur_tid]).replylen = replylen;
+	(msg_array[task_index]).reply = reply;
+	(msg_array[task_index]).replylen = replylen;
 
 	*rtn = 0;
 	return 0;
@@ -87,7 +89,7 @@ int sysReceive(KernelGlobal *global, int *tid, char *msg, int msglen, int *rtn) 
 	MsgBuffer 	*msg_array = global->msg_array;
 	Task	 	*task_array = global->task_array;
 
-	int cur_tid = ready_queue->curtask->tid;
+	int task_index = ready_queue->curtask->tid % TASK_MAX;
 	int sender_tid = -1;
 	Task *sender_task = NULL;
 
@@ -96,9 +98,9 @@ int sysReceive(KernelGlobal *global, int *tid, char *msg, int msglen, int *rtn) 
 
 	if (sender_tid == -1) {
 		// no one send current task msg
-		msg_array[cur_tid].receive = msg;
-		msg_array[cur_tid].receivelen = msglen;
-		msg_array[cur_tid].sender_tid_ref = tid;
+		msg_array[task_index].receive = msg;
+		msg_array[task_index].receivelen = msglen;
+		msg_array[task_index].sender_tid_ref = tid;
 		blockCurrentTask(ready_queue, SendBlocked, NULL, 0);
 		return -1;
 	}
@@ -129,26 +131,28 @@ int sysReply(KernelGlobal *global, int tid, char *reply, int replylen, int *rtn)
 	MsgBuffer 	*msg_array = global->msg_array;
 	Task	 	*task_array = global->task_array;
 
+	int dst_index = tid % TASK_MAX;
+
 	// Not a possible task id
 	if (tid < 0) {
 		return -1;
 	}
 
 	// Not an existing task
-	if (task_array[tid % TASK_MAX].tid != tid) {
+	if (task_array[dst_index].tid != tid) {
 		return -2;
 	}
 
 	// Sender is no reply blocked
-	if (task_array[tid % TASK_MAX].state != ReplyBlocked) {
+	if (task_array[dst_index].state != ReplyBlocked) {
 		return -3;
 	}
 
-	Task *sender_task = &task_array[tid % TASK_MAX];
+	Task *sender_task = &task_array[dst_index];
 
 	// copy reply msg to reply buffer
-	memcpy(msg_array[tid % TASK_MAX].reply, reply, msg_array[tid % TASK_MAX].replylen);
-	msg_array[tid % TASK_MAX].msg = NULL;
+	memcpy(msg_array[dst_index].reply, reply, msg_array[dst_index].replylen);
+	msg_array[dst_index].msg = NULL;
 
 	// Set sender's return value to be the reply msg's length
 	UserTrapframe *sender_trapframe = (UserTrapframe *)sender_task->current_sp;
@@ -171,12 +175,12 @@ int sysAwaitEvent(KernelGlobal *global, int eventid, char *event, int eventlen, 
 		return -1;
 	}
 
-	int cur_tid = ready_queue->curtask->tid;
-	assert((msg_array[cur_tid]).event == NULL, "MsgBuffer.event is not NULL");
+	int task_index = ready_queue->curtask->tid % TASK_MAX;
+	assert((msg_array[task_index]).event == NULL, "MsgBuffer.event is not NULL");
 
 	// Link waiter's event and eventlen to msg_array
-	(msg_array[cur_tid]).event = event;
-	(msg_array[cur_tid]).eventlen = eventlen;
+	(msg_array[task_index]).event = event;
+	(msg_array[task_index]).eventlen = eventlen;
 
 	// Block current task and add it to blocklist
 	blockCurrentTask(ready_queue, EventBlocked, event_blocked_lists, eventid);
