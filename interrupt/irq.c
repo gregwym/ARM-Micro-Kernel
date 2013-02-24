@@ -61,7 +61,9 @@ void uartIrqHandler(KernelGlobal *global, unsigned int uart_base) {
 			STAT_UART(global, uart_base, US_MI_CTS_TRUE);
 			// Stop waiting for cts, enable TX IRQ
 			global->uart1_waiting_cts = FALSE;
-			setUARTControlBit(uart_base, TIEN_MASK, TRUE);
+			if(event_blocked_lists[tx_event].head != NULL)
+				setUARTControlBit(uart_base, TIEN_MASK, TRUE);
+
 			DEBUG(DB_IRQ, "| IRQ:\tCOM1 Clear to send\n");
 		}
 		// Clear modem interrupt
