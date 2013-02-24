@@ -150,8 +150,8 @@ void uartIrqHandler(KernelGlobal *global, unsigned int uart_base) {
 		if(uart_base == UART1_BASE) {
 			// Start waiting for cts and disable TX IRQ
 			global->uart1_waiting_cts = TRUE;
-			setUARTControlBit(uart_base, TIEN_MASK, FALSE);
 		}
+		setUARTControlBit(uart_base, TIEN_MASK, FALSE);
 
 		// Put the task back to the ready queue
 		insertTask(ready_queue, task);

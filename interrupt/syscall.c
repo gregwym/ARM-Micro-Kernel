@@ -58,22 +58,21 @@ int sysSend(KernelGlobal *global, int tid, char *msg, int msglen, char *reply, i
 		DEBUG(DB_SYSCALL, "Sender writing to receiver tid buffer addr 0x%x\n", msg_array[tid % TASK_MAX].sender_tid_ref);
 		memcpy(msg_array[tid % TASK_MAX].receive, msg, msg_array[tid % TASK_MAX].receivelen);
 		*(msg_array[tid % TASK_MAX].sender_tid_ref) = cur_tid;
-		
+
 		// edit receiver task's return value
 		((UserTrapframe *)(task_array[tid % TASK_MAX].current_sp))->r0 = msglen;
-		
+
 		blockCurrentTask(ready_queue, ReplyBlocked, NULL, 0);
 		insertTask(ready_queue, &(task_array[tid % TASK_MAX]));
 	} else {
 		// link sender's msg to msg_array
 		(msg_array[cur_tid]).msg = msg;
 		(msg_array[cur_tid]).msglen = msglen;
-		
+
 		// block current task and add it to blocklist
 		blockCurrentTask(ready_queue, ReceiveBlocked, receive_blocked_lists, tid % TASK_MAX);
 	}
-	
-	
+
 	(msg_array[cur_tid]).reply = reply;
 	(msg_array[cur_tid]).replylen = replylen;
 
@@ -189,7 +188,8 @@ int sysAwaitEvent(KernelGlobal *global, int eventid, char *event, int eventlen, 
 		case EVENT_COM2_RX:
 			setUARTControlBit(UART2_BASE, RIEN_MASK, TRUE);
 		case EVENT_COM1_TX:
-			setUARTControlBit(UART1_BASE, TIEN_MASK, TRUE);
+			if(!global->uart1_waiting_cts)
+				setUARTControlBit(UART1_BASE, TIEN_MASK, TRUE);
 		case EVENT_COM1_RX:
 			setUARTControlBit(UART1_BASE, RIEN_MASK, TRUE);
 		default:
