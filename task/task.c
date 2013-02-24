@@ -133,7 +133,7 @@ Task *createTask(FreeList *free_list, int priority, void (*code) ()) {
 	ret = free_list->head;
 	if(ret == NULL) return ret;
 
-	// assert(ret->state == Empty, "Invalid task space to use!");
+	assert(ret->state == Zombie, "Invalid task descriptor to use!");
 	ret->tid = ret->tid + TASK_MAX;
 	ret->state = Ready;
 	ret->priority = priority;
