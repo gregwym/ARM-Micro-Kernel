@@ -185,13 +185,17 @@ int sysAwaitEvent(KernelGlobal *global, int eventid, char *event, int eventlen, 
 	switch(eventid) {
 		case EVENT_COM2_TX:
 			setUARTControlBit(UART2_BASE, TIEN_MASK, TRUE);
+			break;
 		case EVENT_COM2_RX:
 			setUARTControlBit(UART2_BASE, RIEN_MASK, TRUE);
+			break;
 		case EVENT_COM1_TX:
 			if(!global->uart1_waiting_cts)
 				setUARTControlBit(UART1_BASE, TIEN_MASK, TRUE);
+			break;
 		case EVENT_COM1_RX:
 			setUARTControlBit(UART1_BASE, RIEN_MASK, TRUE);
+			break;
 		default:
 			break;
 	}
