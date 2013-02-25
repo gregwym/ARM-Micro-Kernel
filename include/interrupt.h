@@ -22,6 +22,8 @@ typedef struct uart_stat {
 } UartStat;
 
 typedef struct task_stat {
+	unsigned int	total_created;
+	unsigned int	max_tid;
 	unsigned int	boot_timestamp;
 	unsigned int	last_resume_timestamp;
 	unsigned int	active_time[TASK_MAX];

@@ -137,6 +137,7 @@ Task *createTask(FreeList *free_list, int priority, void (*code) ()) {
 	ret->tid = ret->tid + TASK_MAX;
 	ret->state = Ready;
 	ret->priority = priority;
+	assert(ret->tid >= 0, "Tid overflowed!");
 
 	free_list->head = free_list->head->next;
 
