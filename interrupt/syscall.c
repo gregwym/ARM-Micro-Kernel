@@ -5,9 +5,17 @@
 #include <kern/errno.h>
 #include <kern/unistd.h>
 
-int sysCreate(ReadyQueue *ready_queue, FreeList *free_list, int priority, void (*code) (), int *rtn) {
+int sysCreate(KernelGlobal *global, int priority, void (*code) (), int *rtn) {
+	ReadyQueue *ready_queue = global->ready_queue;
+	FreeList *free_list = global->free_list;
+
 	Task *task = createTask(free_list, priority, code);
 	if(task == NULL) return -1;
+
+	global->task_stat.total_created++;
+	if(task->tid > global->task_stat.max_tid) {
+		global->task_stat.max_tid = task->tid;
+	}
 
 	task->parent_tid = ready_queue->curtask->tid;
 	insertTask(ready_queue, task);
@@ -230,7 +238,7 @@ int syscallHandler(void **parameters, KernelGlobal *global) {
 			err = sysExit(ready_queue, free_list);
 			break;
 		case SYS_create:
-			err = sysCreate(ready_queue, free_list, *((int*)(parameters[1])), *((void **)(parameters[2])), &rtn);
+			err = sysCreate(global, *((int*)(parameters[1])), *((void **)(parameters[2])), &rtn);
 			break;
 		case SYS_myTid:
 			err = sysMyTid(ready_queue, &rtn);
