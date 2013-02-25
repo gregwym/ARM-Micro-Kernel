@@ -5,6 +5,8 @@
 void kernelGlobalInitial(KernelGlobal *global) {
 	int i = 0, j = 0;
 
+	global->task_stat.total_created = 0;
+	global->task_stat.max_tid = 0;
 	global->task_stat.boot_timestamp = getTimerValue(TIMER3_BASE);
 	for(i = 0; i < TASK_MAX; i++) {
 		global->task_stat.active_time[i] = 0;
@@ -37,6 +39,8 @@ void printStat(KernelGlobal *global) {
 	for(i = 0; i < TASK_MAX; i++) {
 		bwprintf(COM2, "TASK%d: %u\n", i, global->task_stat.active_time[i]);
 	}
+	bwprintf(COM2, "TASK CREATED: %d\n", global->task_stat.total_created);
+	bwprintf(COM2, "MAX TID: %d\n", global->task_stat.max_tid);
 
 	for(i = 0; i < 2; i++) {
 		bwprintf(COM2, "\nUART%d: \n", i);
