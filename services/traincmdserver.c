@@ -58,7 +58,7 @@ void reversetrain() {
 	cmd[0] = 0;
 	cmd[1] = tr_num;
 	Puts(COM1, cmd, 2);
-	Delay(100);
+	Delay(200);
 	cmd[0] = TRAIN_REVERSE;
 	cmd[1] = tr_num;
 	Puts(COM1, cmd, 2);
@@ -94,7 +94,7 @@ void changeswitch() {
 	int tid = -1;
 	Receive(&tid, (char *)&sw_msg, sizeof(SwitchQuery));
 	Reply(tid, NULL, 0);
-	
+
 	if (strcmp(sw_msg.state, "S") != 0 && strcmp(sw_msg.state, "C") != 0) {
 		return;
 	} else {
@@ -107,7 +107,7 @@ void changeswitch() {
 			cmd[1] = sw_msg.sw_num;
 			Puts(COM1, cmd, 2);
 		}
-		
+
 		if (sw_msg.sw_num < SWITCH_NAMING_MAX) {
 			switch_update[5] = '0' + (sw_msg.sw_num - 1)/9 + 6;
 			column_num = ((sw_msg.sw_num - 1)%9)*6 + 6;
@@ -127,14 +127,14 @@ void changeswitch() {
 			switch_update[10] = 'C';
 		}
 		Puts(COM2, switch_update, 14);
-		
+
 		Delay(40);
-		
+
 		Putc(COM1, 32);
 	}
 }
-		
-		
+
+
 
 int static send_cmd(char *input, const char **train_cmds) {
 	char cmd[3];
@@ -144,13 +144,13 @@ int static send_cmd(char *input, const char **train_cmds) {
 	int i = 0;
 	int argv1 = 0;
 	int argv2 = 0;
-	
+
 	for (i = 0; i < TrainCmd_Max; i++) {
 		if (strcmp(train_cmds[i], token) == 0) break;
 	}
-	
+
 	if (i == TrainCmd_Max) return -1;
-	
+
 	switch (i) {
 		case TrainCmd_TR:
 			input = str2token(input, token, 8);
@@ -159,7 +159,7 @@ int static send_cmd(char *input, const char **train_cmds) {
 			input = str2token(input, token, 8);
 			argv2 = tr_atoi(token);
 			if (argv2 < 0 || argv2 > 31) return -1;
-			
+
 			cmd[0] = argv2;
 			cmd[1] = argv1;
 			Puts(COM1, cmd, 2);
@@ -193,12 +193,12 @@ int static send_cmd(char *input, const char **train_cmds) {
 void traincmdserver() {
 	// char tr_name[] = TR_REG_NAME;
 	// assert(RegisterAs(cs_name) == 0, "Clockserver register failed");
-	
+
 	int ch;
 	char input_array[INPUT_BUFFER_SIZE];
 	input_array[0] = '\0';
 	int input_size = 0;
-	
+
 	const char *train_cmds[TrainCmd_Max];
 	train_cmds[TrainCmd_TR] = "tr";
 	train_cmds[TrainCmd_RV] = "rv";
