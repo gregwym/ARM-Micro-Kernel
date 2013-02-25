@@ -62,16 +62,21 @@ void comSendNotifier() {
 	ServerInfo serverInfo = receiveChannelInfo();
 	unsigned int eventId = (serverInfo.channel_id == COM1 ? EVENT_COM1_TX :
 															EVENT_COM2_TX);
-	char ch = '\0';
+
+	char send_buffer[COM_BUFFER_SIZE];
+	int send_size = 0;
 	char empty = '\0';
 	int result = -1;
+	int i;
 
 	while (1) {
-		result = Send(serverInfo.server_tid, &empty, sizeof(char), &ch, sizeof(char));
-		assert(result == sizeof(char), "Send Notifier got invalid reply size");
-
-		result = AwaitEvent(eventId , &ch, sizeof(char));
-		assert(result == 0, "Send Notifier wait event failed");
+		result = Send(serverInfo.server_tid, &empty, sizeof(char), send_buffer, COM_BUFFER_SIZE);
+		send_size = result;
+		assert(result > 0, "Send Notifier got invalid reply size");
+		for (i = 0; i < send_size; i++) {
+			result = AwaitEvent(eventId , &(send_buffer[i]), sizeof(char));
+			assert(result == 0, "Send Notifier wait event failed");
+		}
 	}
 }
 
@@ -159,12 +164,11 @@ void comserver() {
 	assert(RegisterAs(server_name) == 0, "COM server register failed");
 
 	// Create send and receive buffer
-	CircularBuffer send_buffer;
-	CircularBuffer receive_buffer;
 	char send_array[COM_BUFFER_SIZE];
-	char receive_array[COM_BUFFER_SIZE];
+	int send_size = 0;
 
-	bufferInitial(&send_buffer, CHARS, send_array, COM_BUFFER_SIZE);
+	CircularBuffer receive_buffer;
+	char receive_array[COM_BUFFER_SIZE];
 	bufferInitial(&receive_buffer, CHARS, receive_array, COM_BUFFER_SIZE);
 
 	// Create send and receive notifier
@@ -180,7 +184,6 @@ void comserver() {
 	// Prepare message and reply data structure
 	IOMsg message;
 	int reply;
-	char ch;
 
 	// Create getter buffer
 	CircularBuffer getter_buffer;
@@ -206,11 +209,15 @@ void comserver() {
 			bufferPushChar(&receive_buffer, message.ch);
 			// If is from COM2, echo it
 			if(channel_id == COM2) {
-				bufferPushChar(&send_buffer, message.ch);
+				send_array[send_size] = message.ch;
+				send_size++;
 				if (message.ch == '\b') {
-					bufferPushChar(&send_buffer, '\e');
-					bufferPushChar(&send_buffer, '[');
-					bufferPushChar(&send_buffer, 'K');
+					send_array[send_size] = '\e';
+					send_size++;
+					send_array[send_size] = '[';
+					send_size++;
+					send_array[send_size] = 'K';
+					send_size++;
 				}
 			}
 		}
@@ -221,7 +228,8 @@ void comserver() {
 		// Or is a putc msg,
 		else if (message.type == IO_QUERY_TYPE_PUTC) {
 			// Push the char to send_buffer, then reply
-			bufferPushChar(&send_buffer, message.putcQuery.ch);
+			send_array[send_size] = message.putcQuery.ch;
+			send_size++;
 			Reply(tid, NULL, 0);
 		}
 		// Or is a puts msg,
@@ -229,15 +237,16 @@ void comserver() {
 			// copy the whole string into send_buffer, then reply
 			int i = 0;
 			for (i = 0; i < message.putsQuery.msglen; i++) {
-				bufferPushChar(&send_buffer, message.putsQuery.msg[i]);
+				send_array[send_size] = message.putsQuery.msg[i];
+				send_size++;
 			}
 			Reply(tid, NULL, 0);
 		}
 		/* Serve waiting getter/send notifier */
-		if (send_notifier_is_waiting && send_buffer.current_size > 0) {
-			ch = (char) bufferPop(&send_buffer);
+		if (send_notifier_is_waiting && send_size > 0) {
 			send_notifier_is_waiting = 0;
-			Reply(send_notifier_tid, &ch, sizeof(char));
+			Reply(send_notifier_tid, send_array, send_size);
+			send_size = 0;
 		}
 		if (getter_buffer.current_size > 0 && receive_buffer.current_size > 0) {
 			reply = bufferPop(&receive_buffer);
