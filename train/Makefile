@@ -17,9 +17,9 @@ ASFLAGS	= -mcpu=arm920t -mapcs-32
 
 ARFLAGS = rcs
 
-OBJECTS = nameserver.o clockserver.o comserver.o
+OBJECTS = track_data.o trainclockserver.o trainsensorserver.o traincmdserver.o trainserver.o
 
-all:  services.a
+all:  train.a
 
 %.s: %.c
 	$(XCC) -S $(CFLAGS) -o $@ $<
@@ -27,9 +27,9 @@ all:  services.a
 $(OBJECTS): %.o: %.s
 	$(AS) $(ASFLAGS) -o $@ $<
 
-services.a: $(OBJECTS)
+train.a: $(OBJECTS)
 	$(AR) $(ARFLAGS) $@ $(OBJECTS)
-	cp *.a ../lib/libservices.a
+	cp *.a ../lib/libtrain.a
 
 clean:
 	-rm -f *.s *.a *.o
