@@ -1,6 +1,7 @@
 #include <services.h>
 #include <klib.h>
 #include <unistd.h>
+#include <train.h>
 
 void trainclockserver() {
 	
