@@ -35,7 +35,7 @@ void printStat(KernelGlobal *global) {
 	uart_stat_name[US_TI_WAIT_CTS] = "TI_WAIT_CTS";
 	uart_stat_name[US_TI_NO_WAITING] = "TI_NO_WAITING";
 
-	bwprintf(COM2, "\e[15;1HTOTAL TIME: %u\n", global->task_stat.boot_timestamp - getTimerValue(TIMER3_BASE));
+	bwprintf(COM2, "TOTAL TIME: %u\n", global->task_stat.boot_timestamp - getTimerValue(TIMER3_BASE));
 	for(i = 0; i < TASK_MAX; i++) {
 		bwprintf(COM2, "TASK%d: %u\n", i, global->task_stat.active_time[i]);
 	}
@@ -56,8 +56,8 @@ void handlerRedirection(void **parameters, KernelGlobal *global, UserTrapframe *
 	global->ready_queue->curtask->current_sp = user_sp;
 
 	STAT_TASK_END(global, global->ready_queue->curtask->tid);
-	DEBUG(DB_TASK, "| TASK:\tHANDLER SP: 0x%x SPSR: 0x%x ResumePoint: 0x%x\n",
-	      user_sp, user_sp->spsr, user_sp->resume_point);
+	DEBUG(DB_TASK, "| TASK:\tHANDLER SP: 0x%x SPSR: 0x%x ResumePoint: 0x%x Parameters: 0x%x\n",
+	      user_sp, user_sp->spsr, user_sp->resume_point, parameters);
 
 	// If is an IRQ
 	if (parameters == NULL) {
