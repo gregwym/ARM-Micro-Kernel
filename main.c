@@ -78,6 +78,7 @@ int main() {
 	enableCache();
 
 	/* Initialize ReadyQueue and Task related data structures */
+	KernelGlobal global;
 	ReadyQueue	ready_queue;
 	Heap		task_heap;
 	HeapNode	*task_heap_data[TASK_PRIORITY_MAX];
@@ -85,10 +86,10 @@ int main() {
 	FreeList	free_list;
 	Task		task_array[TASK_MAX];
 	TaskList	task_list[TASK_PRIORITY_MAX];
-	char		stacks[TASK_MAX * TASK_STACK_SIZE];
 	BlockedList	receive_blocked_lists[TASK_MAX];
 	BlockedList	event_blocked_lists[EVENT_MAX];
 	MsgBuffer	msg_array[TASK_MAX];
+	char		stacks[TASK_MAX * TASK_STACK_SIZE];
 
 	taskArrayInitial(task_array, stacks);
 	freeListInitial(&free_list, task_array);
@@ -105,7 +106,6 @@ int main() {
 	*irq_entry = (int) (TEXT_REG_BASE + irqEntry);
 
 	/* Setup kernel global variable structure */
-	KernelGlobal global;
 	global.ready_queue = &ready_queue;
 	global.free_list = &free_list;
 	global.receive_blocked_lists = receive_blocked_lists;
