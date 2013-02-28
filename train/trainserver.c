@@ -1,6 +1,7 @@
 #include <services.h>
 #include <klib.h>
 #include <unistd.h>
+#include <train.h>
 
 void trainserver() {
 
@@ -27,7 +28,18 @@ void trainserver() {
 	iprintf("\e[9;1HSensor Data:");
 	iprintf("\e[%d;%dH", 3, 1);
 	
-	Create(7, trainclockserver);
-	Create(7, traincmdserver);
-	Create(2, trainsensorserver);
+	track_node track_nodes[TRACK_MAX];
+	init_trackb(track_nodes);
+
+	TrainGlobal train_global;
+	train_global.track_nodes = track_nodes;
+
+	int tid;
+	tid = Create(7, trainclockserver);
+	tid = Create(7, traincmdserver);
+	tid = Create(2, trainsensorserver);
+
+	TrainGlobal *train_global_addr = &train_global;
+	Send(tid, (char *)(&train_global_addr), sizeof(TrainGlobal *), NULL, 0);
+	assert(0, "TrainServer exit");
 }

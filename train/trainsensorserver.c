@@ -1,6 +1,7 @@
 #include <services.h>
 #include <klib.h>
 #include <unistd.h>
+#include <train.h>
 
 #define SENSOR_AUTO_RESET 192
 #define SENSOR_READ_ONE 192
@@ -53,7 +54,7 @@ void requestSensorData(SensorData *sensorData){
 	Putc(COM1, command);
 }
 
-void saveDecoderData(unsigned int decoder_index, char new_data, SensorData *sensorData) {
+void saveDecoderData(unsigned int decoder_index, char new_data, SensorData *sensorData, track_node *track_nodes) {
 	// Save to sensorData->sensor_decoder_data
 	char old_data = sensorData->sensor_decoder_data[decoder_index];
 	sensorData->sensor_decoder_data[decoder_index] = new_data;
@@ -128,6 +129,9 @@ void saveDecoderData(unsigned int decoder_index, char new_data, SensorData *sens
 				print_buffer[13] = '0' + sensor_id % 10;
 				Puts(COM2, print_buffer, 18);
 				Puts(COM2, sensor_pointer, 25);
+				
+				int node_index = decoder_index /2 * 2 * SENSOR_BYTE_SIZE + sensor_id - 1;
+				iprintf("\e[s\e[17;1H(%s, %s)\e[u", track_nodes[node_index].name, track_nodes[node_index].edge[DIR_AHEAD].dest->name);				
 
 				sensorData->sensor_recent_next = (sensorData->sensor_recent_next + 1) % SENSOR_UI_BUFFER_LEN;
 			}
@@ -137,14 +141,14 @@ void saveDecoderData(unsigned int decoder_index, char new_data, SensorData *sens
 	}
 }
 
-void collectSensorData(SensorData *sensorData) {
+void collectSensorData(SensorData *sensorData, track_node *track_nodes) {
 	if(sensorData->sensor_request_cts == TRUE) {
 		requestSensorData(sensorData);
 	}
 
 	char new_data = Getc(COM1);
 	// Save the data
-	saveDecoderData(sensorData->sensor_decoder_next, new_data, sensorData);
+	saveDecoderData(sensorData->sensor_decoder_next, new_data, sensorData, track_nodes);
 
 	// Increment the counter
 	sensorData->sensor_decoder_next = (sensorData->sensor_decoder_next + 1) % (SENSOR_DECODER_TOTAL * SENSOR_BYTE_EACH);
@@ -156,9 +160,14 @@ void collectSensorData(SensorData *sensorData) {
 }
 
 void trainsensorserver() {
+	TrainGlobal *train_global;
+	int tid, result;
+	result = Receive(&tid, (char *)(&train_global), sizeof(TrainGlobal *));
+
 	SensorData sensorData;
 	sensorBootstrap(&sensorData);
+	
 	while(1) {
-		collectSensorData(&sensorData);
+		collectSensorData(&sensorData, train_global->track_nodes);
 	}
 }
