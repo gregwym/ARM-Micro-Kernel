@@ -1,7 +1,7 @@
 #include <services.h>
 #include <klib.h>
 #include <unistd.h>
-#include <track_data.h>
+#include <intern/track_data.h>
 
 void init_tracka(track_node *track) {
   memset(track, 0, TRACK_MAX*sizeof(track_node));

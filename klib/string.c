@@ -58,6 +58,12 @@ char *strncpy(char *dst, const char *src, size_t n) {
 	return start;
 }
 
+char *strncat(char *dst, const char *src, size_t n) {
+	size_t offset = strlen(dst);
+	strncpy(dst + offset, src, n - offset);
+	return dst;
+}
+
 size_t strlen(const char *s) {
   const char *eos = s;
   while (*eos++);
