@@ -11,6 +11,7 @@ void *memcpy(void *dst, const void *src, size_t len);
 void *memset(void *ptr, int ch, size_t len);
 int strcmp(const char *src, const char *dst);
 char *strncpy(char *dst, const char *src, size_t n);
+char *strncat(char *dst, const char *src, size_t n);
 size_t strlen(const char *s);
 
 /* Heap */
