@@ -8,7 +8,7 @@ typedef struct train_global {
 	track_node *track_nodes;
 } TrainGlobal;
 
-void trainserver();
+void trainBootstrap();
 void traincmdserver();
 void trainsensorserver();
 void trainclockserver();

@@ -18,6 +18,6 @@ void umain() {
 	tid = Create(4, comserver);
 	Send(tid, (char *)(&comserver_id), sizeof(int), NULL, 0);
 
-	tid = Create(6, trainserver);
+	tid = Create(6, trainBootstrap);
 	createIdleTask();
 }

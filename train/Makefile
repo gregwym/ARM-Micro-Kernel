@@ -17,7 +17,7 @@ ASFLAGS	= -mcpu=arm920t -mapcs-32
 
 ARFLAGS = rcs
 
-OBJECTS = track_data.o trainclockserver.o trainsensorserver.o traincmdserver.o trainserver.o
+OBJECTS = track_data.o trainclockserver.o trainsensorserver.o traincmdserver.o train_bootstrap.o
 
 all:  train.a
 

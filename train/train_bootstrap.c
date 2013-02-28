@@ -3,7 +3,7 @@
 #include <unistd.h>
 #include <train.h>
 
-void trainserver() {
+void trainBootstrap() {
 
 	/* initial UI */
 	iprintf("\e[2J");
@@ -15,19 +15,19 @@ void trainserver() {
 	for (i = 1; i < 10; i++) {
 		iprintf("00%d:? ", i);
 	}
-	
+
 	iprintf("\e[%d;%dH", 7, 2);
 	for (i = 10; i < 19; i++) {
 		iprintf("0%d:? ", i);
 	}
-	
+
 	iprintf("\e[%d;%dH", 8, 2);
 	for (i = 153; i < 157; i++) {
 		iprintf("%d:? ", i);
 	}
 	iprintf("\e[9;1HSensor Data:");
 	iprintf("\e[%d;%dH", 3, 1);
-	
+
 	track_node track_nodes[TRACK_MAX];
 	init_trackb(track_nodes);
 
