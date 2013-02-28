@@ -14,14 +14,14 @@ CFLAGS  = -c -fPIC -Wall -I. -I./include -mcpu=arm920t -msoft-float
 ASFLAGS	= -mcpu=arm920t -mapcs-32
 # -mapcs: always generate a complete stack frame
 
-LDFLAGS = -init main -Map main.map -N  -T orex.ld -L/u/wbcowan/gnuarm-4.0.2/lib/gcc/arm-elf/4.0.2 -L./lib
+LDFLAGS = -init main -Map train.map -N  -T orex.ld -L/u/wbcowan/gnuarm-4.0.2/lib/gcc/arm-elf/4.0.2 -L./lib
 
 OBJECTS = main.o train_control_panel.o
 LIBS = train.a services.a task.a interrupt.a klib.a
 LIBS_CLEAN = $(patsubst %.a,%.clean,$(LIBS))
 LIBS_INCLUDE = $(patsubst %.a,-l%,$(LIBS))
 
-all: main.elf
+all: train.elf
 
 %.s: %.c
 	$(XCC) -S $(CFLAGS) -o $@ $<
@@ -32,7 +32,7 @@ $(OBJECTS): %.o: %.s
 %.a: %
 	$(MAKE) -C $< all
 
-main.elf: $(LIBS) $(OBJECTS)
+train.elf: $(LIBS) $(OBJECTS)
 	$(LD) $(LDFLAGS) -o $@ $(OBJECTS) $(LIBS_INCLUDE) -lgcc
 
 test: $(LIBS)
@@ -43,7 +43,7 @@ test: $(LIBS)
 	$(MAKE) -C $< clean
 
 clean: $(LIBS_CLEAN)
-	-rm -f *.elf *.s $(OBJECTS) main.map
+	-rm -f *.elf *.s $(OBJECTS) train.map
 
 clean-test: clean
 	$(MAKE) -C ./test clean
