@@ -4,7 +4,7 @@
 #include <klib.h>
 
 #define TASK_MAX 30
-#define TASK_STACK_SIZE 8192
+#define TASK_STACK_SIZE 32768
 #define TASK_PRIORITY_MAX 10
 
 typedef enum TaskState {
