@@ -146,10 +146,93 @@ void format ( int channel, char *fmt, va_list va ) {
 }
 
 void iprintf( char *fmt, ... ) {
-        va_list va;
+	va_list va;
 
-        va_start(va,fmt);
-        format( COM2, fmt, va );
-        va_end(va);
+	va_start(va,fmt);
+	format( COM2, fmt, va );
+	va_end(va);
 }
 
+/* sprintf */
+
+char *sputc( char *dst, char ch ) {
+	*dst = ch;
+	return dst + 1;
+}
+
+char *sputw( char *dst, int n, char fc, char *bf ) {
+	char ch;
+	char *p = bf;
+
+	while( *p++ && n > 0 ) n--;
+	while( n-- > 0 ) dst = sputc( dst, fc );
+	while( ( ch = *bf++ ) ) dst = sputc( dst, ch );
+
+	return dst;
+}
+
+char *sformat( char *dst, char *fmt, va_list va ) {
+	char bf[12];
+	char ch, lz;
+	int w;
+
+	while ( ( ch = *(fmt++) ) ) {
+		if ( ch != '%' )
+			dst = sputc( dst, ch );
+		else {
+			lz = 0; w = 0;
+			ch = *(fmt++);
+			switch ( ch ) {
+			case '0':
+				lz = 1; ch = *(fmt++);
+				break;
+			case '1':
+			case '2':
+			case '3':
+			case '4':
+			case '5':
+			case '6':
+			case '7':
+			case '8':
+			case '9':
+				ch = a2i( ch, &fmt, 10, &w );
+				break;
+			}
+			switch( ch ) {
+			case 0: return dst;
+			case 'c':
+				dst = sputc( dst, va_arg( va, char ) );
+				break;
+			case 's':
+				dst = sputw( dst, w, 0, va_arg( va, char* ) );
+				break;
+			case 'u':
+				ui2a( va_arg( va, unsigned int ), 10, bf );
+				dst = sputw( dst, w, lz, bf );
+				break;
+			case 'd':
+				i2a( va_arg( va, int ), bf );
+				dst = sputw( dst, w, lz, bf );
+				break;
+			case 'x':
+				ui2a( va_arg( va, unsigned int ), 16, bf );
+				dst = sputw( dst, w, lz, bf );
+				break;
+			case '%':
+				dst = sputc( dst, ch );
+				break;
+			}
+		}
+	}
+	*dst = '\0';
+	return dst;
+}
+
+char *sprintf( char *dst, char *fmt, ... ) {
+	va_list va;
+
+	va_start(va,fmt);
+	char * rtn = sformat( dst, fmt, va );
+	va_end(va);
+	return rtn;
+}
