@@ -4,6 +4,10 @@
 #include <kern/callno.h>
 
 int Create(int priority, void (*code) ()) {
+	return CreateWithArgs(priority, code, 0, 0, 0, 0);
+}
+
+int CreateWithArgs(int priority, void (*code) (), int a1, int a2, int a3, int a4) {
 	int rtn = -1;
 	// If priority is invalid, return -1
 	if (priority < 0 || priority >= TASK_PRIORITY_MAX ) {
@@ -12,7 +16,9 @@ int Create(int priority, void (*code) ()) {
 
 	// Setup parameters and callno
 	int callno = SYS_create;
-	void *parameters[4] = {(&callno), (&priority), (&code), NULL};
+	int args_array[] = {a1, a2, a3, a4, 0};
+	int *args = args_array;
+	void *parameters[5] = {(&callno), (&priority), (&code), (&args), NULL};
 	asm("mov r0, %0"
 	    :
 	    :"r"(parameters));
@@ -102,7 +108,7 @@ int Receive( int *tid, char *msg, int msglen ) {
 	asm("mov %0, r0"
 	    :"=r"(rtn)
 	    :);
-	
+
 	assert(rtn >= 0, "Received with ERROR");
 
 	return rtn;
