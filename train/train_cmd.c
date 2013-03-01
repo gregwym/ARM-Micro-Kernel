@@ -56,7 +56,7 @@ int deliverCmd(char *input, const char **train_cmds, int tid) {
 
 			input = str2token(input, token, 8);
 			if(token[0] != 'C' && token[0] != 'S') return -1;
-			cmd_msg.value = token[0] == 'C' ? SWITCH_CUR : SWITCH_STR;
+			cmd_msg.value = token[0];
 			break;
 		case CMD_QUIT:
 			break;
@@ -95,7 +95,7 @@ void trainCmdNotifier() {
 				if (input_size > 0) {
 					delivered = deliverCmd(input_array, train_cmds, parent_tid);
 					if(delivered < 0) {
-						Puts(COM2, "Invalid Command", 0);
+						Puts(COM2, "Invalid Command\n", 0);
 					}
 					// Puts(COM2, "\e[3;1H\e[K", 0);
 					input_array[0] = '\0';

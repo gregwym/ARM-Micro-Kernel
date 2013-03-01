@@ -38,6 +38,18 @@ void handleSensorUpdate(char *new_data, char *saved_data, char *buf) {
 	}
 }
 
+void handleSwitchCommand(int id, int value, char *switch_data, char *buf) {
+	sprintf(buf, "sw: %d -> %c\n", id, value);
+
+	value = value == 'C' ? SWITCH_CUR : SWITCH_STR;
+
+	// Normalize the id
+	id = id > SWITCH_NAMING_MAX ? value - SWITCH_NAMING_MID_BASE + SWITCH_NAMING_MAX + 1 : id;
+
+	switch_data[id] = value;
+	Puts(COM2, buf, 0);
+}
+
 void trainCentral() {
 	/* TrainGlobal */
 	TrainGlobal *train_global;
@@ -55,6 +67,12 @@ void trainCentral() {
 		sensor_decoder_ids[i] = 'A' + i;
 	}
 
+	/* SwitchData */
+	char switch_data[SWITCH_TOTAL];
+	for(i = 0; i < SWITCH_TOTAL; i++) {
+		switch_data[i] = '?';
+	}
+
 	cmd_tid = Create(7, trainCmdNotifier);
 	sensor_tid = Create(7, trainSensorNotifier);
 
@@ -64,6 +82,9 @@ void trainCentral() {
 	while(1) {
 		result = Receive(&tid, (char *)(&msg), sizeof(TrainMsg));
 		assert(result >= 0, "TrainCentral receive failed");
+
+		sprintf(str_buf, "Got msg, type: %d\n", msg.type);
+		Puts(COM2, str_buf, 0);
 
 		switch (msg.type) {
 			case SENSOR_DATA:
@@ -81,11 +102,12 @@ void trainCentral() {
 				break;
 			case CMD_REVERSE:
 			case CMD_SWITCH:
+				Reply(tid, NULL, 0);
+				handleSwitchCommand(msg.cmd_msg.id, msg.cmd_msg.value, switch_data, str_buf);
 			default:
 				break;
 		}
-		sprintf(str_buf, "Got msg, type: %d\n", msg.type);
-		Puts(COM2, str_buf, 0);
+
 
 		str_buf[0] = '\0';
 	}
