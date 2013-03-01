@@ -50,7 +50,7 @@ typedef union train_msg {
 } TrainMsg;
 
 void trainBootstrap();
-void trainCentral();
+void trainCenter();
 void trainCmdNotifier();
 void trainSensorNotifier();
 void trainclockserver();

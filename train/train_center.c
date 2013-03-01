@@ -50,7 +50,7 @@ void handleSwitchCommand(int id, int value, char *switch_data, char *buf) {
 	Puts(COM2, buf, 0);
 }
 
-void trainCentral() {
+void trainCenter() {
 	/* TrainGlobal */
 	TrainGlobal *train_global;
 	int i, tid, cmd_tid, sensor_tid, result;
