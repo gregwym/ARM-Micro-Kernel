@@ -15,7 +15,7 @@ void umain() {
 	Send(tid, (char *)(&comserver_id), sizeof(int), NULL, 0);
 
 	comserver_id = COM2;
-	tid = Create(4, comserver);
+	tid = Create(3, comserver);
 	Send(tid, (char *)(&comserver_id), sizeof(int), NULL, 0);
 
 	tid = Create(6, trainBootstrap);

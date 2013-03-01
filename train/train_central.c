@@ -55,8 +55,8 @@ void trainCentral() {
 		sensor_decoder_ids[i] = 'A' + i;
 	}
 
-	// cmd_tid = Create(7, traincmdserver);
-	sensor_tid = Create(2, trainSensorNotifier);
+	cmd_tid = Create(7, trainCmdNotifier);
+	sensor_tid = Create(7, trainSensorNotifier);
 
 	TrainMsg msg;
 	char str_buf[1024];
@@ -65,15 +65,27 @@ void trainCentral() {
 		result = Receive(&tid, (char *)(&msg), sizeof(TrainMsg));
 		assert(result >= 0, "TrainCentral receive failed");
 
-		// If is sensor data
-		if (msg.type == SENSOR_DATA) {
-			// Reply first
-			Reply(tid, NULL, 0);
-			handleSensorUpdate(msg.sensor_msg.sensor_data, sensor_data, str_buf);
+		switch (msg.type) {
+			case SENSOR_DATA:
+				Reply(tid, NULL, 0);
+				handleSensorUpdate(msg.sensor_msg.sensor_data, sensor_data, str_buf);
+				break;
+			case CMD_SPEED:
+				Reply(tid, NULL, 0);
+				str_buf[0] = msg.cmd_msg.value;
+				str_buf[1] = msg.cmd_msg.id;
+				Puts(COM1, str_buf, 2);
+				break;
+			case CMD_QUIT:
+				Halt();
+				break;
+			case CMD_REVERSE:
+			case CMD_SWITCH:
+			default:
+				break;
 		}
-		else  {
-			iprintf("Got msg, type: %d\n", msg.type);
-		}
+		sprintf(str_buf, "Got msg, type: %d\n", msg.type);
+		Puts(COM2, str_buf, 0);
 
 		str_buf[0] = '\0';
 	}

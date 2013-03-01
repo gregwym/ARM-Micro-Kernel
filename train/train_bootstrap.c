@@ -35,8 +35,8 @@ void trainBootstrap() {
 	init_trackb(track_nodes);
 
 	int tid;
-	tid = Create(7, trainclockserver);
-	tid = Create(7, trainCentral);
+	tid = Create(8, trainclockserver);
+	tid = Create(8, trainCentral);
 
 	TrainGlobal train_global;
 	train_global.track_nodes = track_nodes;

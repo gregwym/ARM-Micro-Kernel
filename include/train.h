@@ -4,6 +4,10 @@
 /* Train Server */
 #include <intern/track_data.h>
 
+#define SWITCH_STR 33
+#define SWITCH_CUR 34
+#define SWITCH_OFF 32
+
 #define SENSOR_DECODER_TOTAL 5
 #define SENSOR_BYTES_TOTAL 10
 #define SENSOR_BYTE_SIZE 8
@@ -14,10 +18,11 @@ typedef struct train_global {
 } TrainGlobal;
 
 typedef enum train_msg_type {
-	TRAIN_SPEED = 0,
-	TRAIN_REVERSE,
-	TRACK_SWITCH,
-	SYSTEM_QUIT,
+	CMD_SPEED = 0,
+	CMD_REVERSE,
+	CMD_SWITCH,
+	CMD_QUIT,
+	CMD_MAX,
 	SENSOR_DATA,
 	TRAIN_MSG_MAX,
 } TrainMsgType;
@@ -27,14 +32,21 @@ typedef struct sensor_msg {
 	char			sensor_data[SENSOR_BYTES_TOTAL];
 } SensorMsg;
 
+typedef struct cmd_msg {
+	TrainMsgType	type;
+	int				id;
+	int				value;
+} CmdMsg;
+
 typedef union train_msg {
 	TrainMsgType	type;
 	SensorMsg		sensor_msg;
+	CmdMsg			cmd_msg;
 } TrainMsg;
 
 void trainBootstrap();
 void trainCentral();
-void traincmdserver();
+void trainCmdNotifier();
 void trainSensorNotifier();
 void trainclockserver();
 
