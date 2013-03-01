@@ -2,7 +2,6 @@
 #include <klib.h>
 #include <task.h>
 #include <kern/callno.h>
-#include <intern/va_list.h>
 
 int Create(int priority, void (*code) ()) {
 	return CreateWithArgs(priority, code, 0, 0, 0, 0);
