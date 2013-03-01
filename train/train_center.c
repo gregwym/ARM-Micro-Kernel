@@ -3,7 +3,6 @@
 #include <services.h>
 #include <train.h>
 
-#define DELAY_REVERSE 200
 #define DELAY_SWITCH 40
 
 /* Helpers */
@@ -24,22 +23,11 @@ void switchChanger(int switch_id, int direction) {
 	Putc(COM1, SWITCH_OFF);
 }
 
-void trainReverser(int train_id, int new_speed) {
-	char cmd[2];
-	cmd[0] = 0;
-	cmd[1] = train_id;
-	Puts(COM1, cmd, 2);
-
-	// Delay 2s then turn off the solenoid
-	Delay(DELAY_REVERSE);
-
-	// Reverse
-	cmd[0] = TRAIN_REVERSE;
-	Puts(COM1, cmd, 2);
-
-	// Re-accelerate
-	cmd[0] = new_speed;
-	Puts(COM1, cmd, 2);
+void cmdPostman(int tid, TrainMsgType type, int value) {
+	CmdMsg msg;
+	msg.type = type;
+	msg.value = value;
+	Send(tid, (char *)(&msg), sizeof(CmdMsg), NULL, 0);
 }
 
 /* Infomation Handlers */
@@ -82,36 +70,34 @@ inline void handleSwitchCommand(int id, int value, char *switch_table, char *buf
 	sprintf(buf, "sw: %d -> %c\n", id, value);
 
 	value = value == 'C' ? SWITCH_CUR : SWITCH_STR;
-	CreateWithArgs(1, switchChanger, id, value, 0, 0);
+	CreateWithArgs(2, switchChanger, id, value, 0, 0);
 
 	switch_table[switchIdToIndex(id)] = value;
 	Puts(COM2, buf, 0);
 }
 
 /* Train Center */
-void trainCenter() {
-	/* TrainGlobal */
-	TrainGlobal *train_global;
+void trainCenter(TrainGlobal *train_global) {
+
 	int i, tid, cmd_tid, sensor_tid, result;
-	result = Receive(&tid, (char *)(&train_global), sizeof(TrainGlobal *));
-	assert(result >= 0, "Train central failed to receive TrainGlobal");
 
 	/* SensorData */
-	char sensor_data[SENSOR_BYTES_TOTAL];
+	char sensor_data[SENSOR_BYTES_TOTAL] = { 0 };
 	char sensor_decoder_ids[SENSOR_DECODER_TOTAL];
-	for(i = 0; i < SENSOR_BYTES_TOTAL; i++) {
-		sensor_data[i] = 0;
-	}
 	for(i = 0; i < SENSOR_DECODER_TOTAL; i++) {
 		sensor_decoder_ids[i] = 'A' + i;
 	}
 
 	/* SwitchData */
-	char switch_table[SWITCH_TOTAL];
-	for(i = 0; i < SWITCH_TOTAL; i++) {
-		switch_table[i] = '?';
-	}
+	char switch_table[SWITCH_TOTAL] = { '?' };
 	train_global->switch_table = switch_table;
+
+	/* TrainDrivers */
+	TrainProperties train_properties[2];
+	train_properties[0].id = 35;
+
+	int train_driver_tids[2] = { 0 };
+	train_driver_tids[0] = CreateWithArgs(6, trainDriver, (int)train_global, (int)&(train_properties[0]), 0, 0);
 
 	cmd_tid = Create(7, trainCmdNotifier);
 	sensor_tid = Create(7, trainSensorNotifier);
@@ -130,15 +116,11 @@ void trainCenter() {
 				break;
 			case CMD_SPEED:
 				Reply(tid, NULL, 0);
-				// TODO: Send command to the train
-				str_buf[0] = msg.cmd_msg.value;
-				str_buf[1] = msg.cmd_msg.id;
-				Puts(COM1, str_buf, 2);
+				CreateWithArgs(2, cmdPostman, train_driver_tids[0], CMD_SPEED, msg.cmd_msg.value, 0);
 				break;
 			case CMD_REVERSE:
 				Reply(tid, NULL, 0);
-				// TODO: Send command to the train
-				CreateWithArgs(1, trainReverser, msg.cmd_msg.id, 10, 0, 0);
+				CreateWithArgs(2, cmdPostman, train_driver_tids[0], CMD_REVERSE, 0, 0);
 				break;
 			case CMD_SWITCH:
 				Reply(tid, NULL, 0);

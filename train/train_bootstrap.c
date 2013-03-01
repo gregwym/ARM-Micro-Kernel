@@ -34,15 +34,14 @@ void trainBootstrap() {
 	track_node track_nodes[TRACK_MAX];
 	init_trackb(track_nodes);
 
-	int tid;
-	tid = Create(8, trainclockserver);
-	tid = Create(8, trainCenter);
-
 	TrainGlobal train_global;
 	train_global.track_nodes = track_nodes;
 
-	TrainGlobal *train_global_addr = &train_global;
-	Send(tid, (char *)(&train_global_addr), sizeof(TrainGlobal *), NULL, 0);
+	Create(8, trainclockserver);
+	CreateWithArgs(6, trainCenter, (int)(&train_global), 0, 0, 0);
+
+	int tid;
+	Receive(&tid, NULL, 0);
 
 	assert(0, "TrainServer exit");
 }

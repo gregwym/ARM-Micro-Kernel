@@ -29,6 +29,10 @@ typedef struct train_global {
 	char		*switch_table;
 } TrainGlobal;
 
+typedef struct train_properties {
+	int			id;
+} TrainProperties;
+
 typedef enum train_msg_type {
 	CMD_SPEED = 0,
 	CMD_REVERSE,
@@ -57,9 +61,10 @@ typedef union train_msg {
 } TrainMsg;
 
 void trainBootstrap();
-void trainCenter();
+void trainCenter(TrainGlobal *train_global);
 void trainCmdNotifier();
 void trainSensorNotifier();
 void trainclockserver();
+void trainDriver(TrainGlobal *train_global, TrainProperties *train_properties);
 
 #endif // __TRAIN_H__
