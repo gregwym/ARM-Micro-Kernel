@@ -20,7 +20,7 @@ int sysCreate(KernelGlobal *global, int priority, void (*code) (), int *args, in
 	task->parent_tid = ready_queue->curtask->tid;
 	insertTask(ready_queue, task);
 
-	UserTrapframe *trapframe = task->current_sp;
+	UserTrapframe *trapframe = (UserTrapframe *)task->current_sp;
 	trapframe->r0 = args[0];
 	trapframe->r1 = args[1];
 	trapframe->r2 = args[2];
