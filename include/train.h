@@ -4,7 +4,10 @@
 /* Train Server */
 #include <intern/track_data.h>
 
+#define SENSOR_DECODER_TOTAL 5
 #define SENSOR_BYTES_TOTAL 10
+#define SENSOR_BYTE_SIZE 8
+#define SENSOR_BIT_MASK 0x1
 
 typedef struct train_global {
 	track_node	*track_nodes;
