@@ -6,6 +6,8 @@
 void trainBootstrap() {
 
 	/* initial UI */
+
+	/* Temporary disable the UI
 	iprintf("\e[2J");
 	iprintf("\e[1;1HTime: 00:00.0");
 	iprintf("\e[2;1HCommand:");
@@ -27,19 +29,20 @@ void trainBootstrap() {
 	}
 	iprintf("\e[9;1HSensor Data:");
 	iprintf("\e[%d;%dH", 3, 1);
+	*/
 
 	track_node track_nodes[TRACK_MAX];
 	init_trackb(track_nodes);
 
+	int tid;
+	tid = Create(7, trainclockserver);
+	tid = Create(7, trainCentral);
+
 	TrainGlobal train_global;
 	train_global.track_nodes = track_nodes;
 
-	int tid;
-	tid = Create(7, trainclockserver);
-	tid = Create(7, traincmdserver);
-	tid = Create(2, trainsensorserver);
-
 	TrainGlobal *train_global_addr = &train_global;
 	Send(tid, (char *)(&train_global_addr), sizeof(TrainGlobal *), NULL, 0);
+
 	assert(0, "TrainServer exit");
 }
