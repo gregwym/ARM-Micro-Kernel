@@ -67,9 +67,9 @@ inline void handleSensorUpdate(char *new_data, char *saved_data, char *buf) {
 }
 
 inline void handleSwitchCommand(int id, int value, char *switch_table, char *buf) {
-	sprintf(buf, "sw: %d -> %c\n", id, value);
+	sprintf(buf, "sw #%d[%d] %d -> %d\n", id, switchIdToIndex(id),
+	        switch_table[switchIdToIndex(id)], value);
 
-	value = value == 'C' ? SWITCH_CUR : SWITCH_STR;
 	CreateWithArgs(2, switchChanger, id, value, 0, 0);
 
 	switch_table[switchIdToIndex(id)] = value;
@@ -82,14 +82,16 @@ void trainCenter(TrainGlobal *train_global) {
 	int i, tid, cmd_tid, sensor_tid, result;
 
 	/* SensorData */
-	char sensor_data[SENSOR_BYTES_TOTAL] = { 0 };
+	char sensor_data[SENSOR_BYTES_TOTAL];
+	memset(sensor_data, 0, SENSOR_BYTES_TOTAL);
 	char sensor_decoder_ids[SENSOR_DECODER_TOTAL];
 	for(i = 0; i < SENSOR_DECODER_TOTAL; i++) {
 		sensor_decoder_ids[i] = 'A' + i;
 	}
 
 	/* SwitchData */
-	char switch_table[SWITCH_TOTAL] = { '?' };
+	char switch_table[SWITCH_TOTAL];
+	memset(switch_table, 0, SWITCH_TOTAL);
 	train_global->switch_table = switch_table;
 
 	/* TrainDrivers */

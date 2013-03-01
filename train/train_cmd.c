@@ -56,7 +56,7 @@ int deliverCmd(char *input, const char **train_cmds, int tid) {
 
 			input = str2token(input, token, 8);
 			if(token[0] != 'C' && token[0] != 'S') return -1;
-			cmd_msg.value = token[0];
+			cmd_msg.value = token[0] == 'C' ? SWITCH_CUR : SWITCH_STR;
 			break;
 		case CMD_QUIT:
 			break;
