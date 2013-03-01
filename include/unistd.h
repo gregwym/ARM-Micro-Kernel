@@ -4,6 +4,7 @@
 #include <kern/unistd.h>
 
 int Create(int priority, void (*code) ());
+int CreateWithArgs(int priority, void (*code) (), int a1, int a2, int a3, int a4);
 int MyTid();
 int MyParentTid();
 void Pass();

@@ -5,7 +5,7 @@
 #include <kern/errno.h>
 #include <kern/unistd.h>
 
-int sysCreate(KernelGlobal *global, int priority, void (*code) (), int *rtn) {
+int sysCreate(KernelGlobal *global, int priority, void (*code) (), int *args, int *rtn) {
 	ReadyQueue *ready_queue = global->ready_queue;
 	FreeList *free_list = global->free_list;
 
@@ -19,6 +19,13 @@ int sysCreate(KernelGlobal *global, int priority, void (*code) (), int *rtn) {
 
 	task->parent_tid = ready_queue->curtask->tid;
 	insertTask(ready_queue, task);
+
+	UserTrapframe *trapframe = task->current_sp;
+	trapframe->r0 = args[0];
+	trapframe->r1 = args[1];
+	trapframe->r2 = args[2];
+	trapframe->r3 = args[3];
+
 	*rtn = task->tid;
 	return 0;
 }
@@ -238,7 +245,7 @@ int syscallHandler(void **parameters, KernelGlobal *global) {
 			err = sysExit(ready_queue, free_list);
 			break;
 		case SYS_create:
-			err = sysCreate(global, *((int*)(parameters[1])), *((void **)(parameters[2])), &rtn);
+			err = sysCreate(global, *((int*)(parameters[1])), *((void **)(parameters[2])), *((int **)(parameters[3])), &rtn);
 			break;
 		case SYS_myTid:
 			err = sysMyTid(ready_queue, &rtn);
