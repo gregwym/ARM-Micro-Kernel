@@ -228,11 +228,11 @@ char *sformat( char *dst, char *fmt, va_list va ) {
 	return dst;
 }
 
-char *sprintf( char *dst, char *fmt, ... ) {
+int sprintf( char *dst, char *fmt, ... ) {
 	va_list va;
 
 	va_start(va,fmt);
-	char * rtn = sformat( dst, fmt, va );
+	char * now = sformat( dst, fmt, va );
 	va_end(va);
-	return rtn;
+	return now - dst;
 }
