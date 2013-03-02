@@ -173,11 +173,11 @@ void irqHandler(KernelGlobal *global) {
 		timerIrqHandler(global);
 		assert(!((*vic1_irq_st_addr) & VIC_TIMER1_MASK), "Failed to clear the timer interrupt");
 	}
-	else if ((*vic2_irq_st_addr) & VIC_UART2_MASK) {
-		uartIrqHandler(global, UART2_BASE);
-	}
 	else if ((*vic2_irq_st_addr) & VIC_UART1_MASK) {
 		uartIrqHandler(global, UART1_BASE);
+	}
+	else if ((*vic2_irq_st_addr) & VIC_UART2_MASK) {
+		uartIrqHandler(global, UART2_BASE);
 	}
 	else {
 		assert(0, "Unknown IRQ type");
