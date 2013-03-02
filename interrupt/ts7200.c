@@ -105,12 +105,51 @@ unsigned int enableVicInterrupt(int vic_base, int mask) {
 }
 
 void enableCache() {
-	int p15;
+	int p15_old, p15_new;
+
+	/* Enable ICache and DCache */
 	asm("MRC p15, 0, %0, c1, c0, 0"
-		:"=r"(p15)
+		:"=r"(p15_old)
 		:);
-	p15 = p15 | 0x1000;
+	p15_new = p15_old | 0x1004;
 	asm("MCR p15, 0, %0, c1, c0, 0"
 		:
-		:"r"(p15));
+		:"r"(p15_new));
+
+	/* Invalid Caches */
+	asm("MOV ip, #0");
+	asm("MCR p15, 0, ip, c7, c7, 0");
+}
+
+void speedUpCpu() {
+	/* Adjust FCLK */
+	int *clkset1_addr = (int *)0x80930020;
+	*clkset1_addr = (*clkset1_addr & 0xF1FFFFFF);
+
+	int p15_old, p15_new;
+
+	/* Switch CPU mode to Async */
+	asm("MRC p15, 0, %0, c1, c0, 0"
+		:"=r"(p15_old)
+		:);
+
+	p15_new = p15_old | 0xC0000000;
+
+	asm("MOV ip, %0"
+		:
+		:"r"(p15_new));
+
+	asm("nop");
+	asm("nop");
+	asm("nop");
+	asm("nop");
+	asm("nop");
+
+	asm("MCR p15, 0, ip, c1, c0, 0");
+
+	asm("nop");
+	asm("nop");
+	asm("nop");
+	asm("nop");
+	asm("nop");
 }
