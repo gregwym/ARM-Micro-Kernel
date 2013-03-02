@@ -124,32 +124,36 @@ void enableCache() {
 void speedUpCpu() {
 	/* Adjust FCLK */
 	int *clkset1_addr = (int *)0x80930020;
-	*clkset1_addr = (*clkset1_addr & 0xF1FFFFFF);
+	setRegister(clkset1_addr, 0, 0x02a4bb36);
 
-	int p15_old, p15_new;
+	// Set Synchronous Memory Refresh Timer
+	int sync_mem_addr = (int *)0x80060008;
+	setRegister(sync_mem_addr, 0, 0x30D);
 
 	/* Switch CPU mode to Async */
-	asm("MRC p15, 0, %0, c1, c0, 0"
-		:"=r"(p15_old)
-		:);
+	// int p15_old, p15_new;
 
-	p15_new = p15_old | 0xC0000000;
+	// asm("MRC p15, 0, %0, c1, c0, 0"
+	// 	:"=r"(p15_old)
+	// 	:);
 
-	asm("MOV ip, %0"
-		:
-		:"r"(p15_new));
+	// p15_new = p15_old | 0xC0000000;
 
-	asm("nop");
-	asm("nop");
-	asm("nop");
-	asm("nop");
-	asm("nop");
+	// asm("MOV ip, %0"
+	// 	:
+	// 	:"r"(p15_new));
 
-	asm("MCR p15, 0, ip, c1, c0, 0");
+	// asm("nop");
+	// asm("nop");
+	// asm("nop");
+	// asm("nop");
+	// asm("nop");
 
-	asm("nop");
-	asm("nop");
-	asm("nop");
-	asm("nop");
-	asm("nop");
+	// asm("MCR p15, 0, ip, c1, c0, 0");
+
+	// asm("nop");
+	// asm("nop");
+	// asm("nop");
+	// asm("nop");
+	// asm("nop");
 }
