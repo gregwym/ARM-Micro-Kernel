@@ -3,7 +3,8 @@
 #include <unistd.h>
 
 #define COM_BUFFER_SIZE			1000
-#define COM_NOTIFIER_PRIORITY	1
+#define SEND_NOTIFIER_PRIORITY	0
+#define RECEIVE_NOTIFIER_PRIORITY	0
 
 #define IO_QUERY_TYPE_GETC		0
 #define IO_QUERY_TYPE_PUTC		1
@@ -174,8 +175,8 @@ void comserver() {
 	// Create send and receive notifier
 	int send_notifier_tid;
 	int receive_notifier_tid;
-	send_notifier_tid = Create(COM_NOTIFIER_PRIORITY, comSendNotifier);
-	receive_notifier_tid = Create(COM_NOTIFIER_PRIORITY, comReceiveNotifier);
+	send_notifier_tid = Create(SEND_NOTIFIER_PRIORITY, comSendNotifier);
+	receive_notifier_tid = Create(RECEIVE_NOTIFIER_PRIORITY, comReceiveNotifier);
 
 	// Send server info to notifiers
 	Send(send_notifier_tid, (char *)(&channel_id), sizeof(int), NULL, 0);
