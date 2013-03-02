@@ -39,30 +39,8 @@ typedef union {
 	GetcQuery	getcQuery;
 } IOMsg;
 
-typedef struct server_info {
-	int server_tid;
-	int channel_id;
-} ServerInfo;
-
-ServerInfo receiveChannelInfo() {
-	int server_tid = -1;
-	int channel_id = -1;
-	int result = Receive(&server_tid, (char *)(&channel_id), sizeof(int));
-	assert(result > 0, "Notifier receive channel info failed");
-	assert(channel_id == COM1 || channel_id == COM2, "Notifier received invalid channel id");
-	Reply(server_tid, NULL, 0);
-
-	ServerInfo serverInfo;
-	serverInfo.server_tid = server_tid;
-	serverInfo.channel_id = channel_id;
-
-	return serverInfo;
-}
-
-void comSendNotifier() {
-	ServerInfo serverInfo = receiveChannelInfo();
-	unsigned int eventId = (serverInfo.channel_id == COM1 ? EVENT_COM1_TX :
-															EVENT_COM2_TX);
+void comSendNotifier(int server_tid, int channel_id) {
+	unsigned int eventId = (channel_id == COM1 ? EVENT_COM1_TX : EVENT_COM2_TX);
 
 	char send_buffer[COM_BUFFER_SIZE];
 	int send_size = 0;
@@ -71,7 +49,7 @@ void comSendNotifier() {
 	int i;
 
 	while (1) {
-		result = Send(serverInfo.server_tid, &empty, sizeof(char), send_buffer, COM_BUFFER_SIZE);
+		result = Send(server_tid, &empty, sizeof(char), send_buffer, COM_BUFFER_SIZE);
 		send_size = result;
 		assert(result > 0, "Send Notifier got invalid reply size");
 		for (i = 0; i < send_size; i++) {
@@ -81,10 +59,8 @@ void comSendNotifier() {
 	}
 }
 
-void comReceiveNotifier() {
-	ServerInfo serverInfo = receiveChannelInfo();
-	unsigned int eventId = (serverInfo.channel_id == COM1 ? EVENT_COM1_RX :
-															EVENT_COM2_RX);
+void comReceiveNotifier(int server_tid, int channel_id) {
+	unsigned int eventId = (channel_id == COM1 ? EVENT_COM1_RX : EVENT_COM2_RX);
 
 	char ch = '\0';
 	int result = -1;
@@ -93,7 +69,7 @@ void comReceiveNotifier() {
 		result = AwaitEvent(eventId , &ch, sizeof(char));
 		assert(result == 0, "Receive Notifier wait event failed");
 
-		result = Send(serverInfo.server_tid, &ch, sizeof(char), NULL, 0);
+		result = Send(server_tid, &ch, sizeof(char), NULL, 0);
 		assert(result == 0, "Receive Notifier sent to server failed");
 	}
 }
@@ -150,19 +126,10 @@ int Puts(int channel, char *msg, int msglen) {
 	return rtn;
 }
 
-void comserver() {
-	// Receive serving channel id
-	int tid;
-	int channel_id = -1;
-	Receive(&tid, (char *)(&channel_id), sizeof(int));
-	Reply(tid, NULL, 0);
-
-	// Define server_name and register
-	char server_name[COM_NAME_ARRAY_LEN] = "";
-	if(channel_id == COM1) strncpy(server_name, COM1_REG_NAME, COM_NAME_ARRAY_LEN);
-	else if(channel_id == COM2) strncpy(server_name, COM2_REG_NAME, COM_NAME_ARRAY_LEN);
-	assert(strlen(server_name) != 0, "Invalid COM server name");
-	assert(RegisterAs(server_name) == 0, "COM server register failed");
+void comserver(int channel_id) {
+	int tid = MyTid();
+	int result = RegisterAs(channel_id == COM1 ? COM1_REG_NAME : COM2_REG_NAME);
+	assert(result == 0, "COM server register failed");
 
 	// Create send and receive buffer
 	char send_array[COM_BUFFER_SIZE];
@@ -175,12 +142,8 @@ void comserver() {
 	// Create send and receive notifier
 	int send_notifier_tid;
 	int receive_notifier_tid;
-	send_notifier_tid = Create(SEND_NOTIFIER_PRIORITY, comSendNotifier);
-	receive_notifier_tid = Create(RECEIVE_NOTIFIER_PRIORITY, comReceiveNotifier);
-
-	// Send server info to notifiers
-	Send(send_notifier_tid, (char *)(&channel_id), sizeof(int), NULL, 0);
-	Send(receive_notifier_tid, (char *)(&channel_id), sizeof(int), NULL, 0);
+	send_notifier_tid = CreateWithArgs(SEND_NOTIFIER_PRIORITY, comSendNotifier, tid, channel_id, 0, 0);
+	receive_notifier_tid = CreateWithArgs(RECEIVE_NOTIFIER_PRIORITY, comReceiveNotifier, tid, channel_id, 0, 0);
 
 	// Prepare message and reply data structure
 	IOMsg message;
