@@ -24,14 +24,16 @@
 
 #define TRAIN_REVERSE 15
 
+typedef struct train_properties {
+	int			id;
+	int			tid;
+} TrainProperties;
+
 typedef struct train_global {
 	track_node	*track_nodes;
 	char		*switch_table;
+	TrainProperties *train_properties;
 } TrainGlobal;
-
-typedef struct train_properties {
-	int			id;
-} TrainProperties;
 
 typedef enum train_msg_type {
 	CMD_SPEED = 0,
@@ -40,6 +42,7 @@ typedef enum train_msg_type {
 	CMD_QUIT,
 	CMD_MAX,
 	SENSOR_DATA,
+	LOCATION_CHANGE,
 	TRAIN_MSG_MAX,
 } TrainMsgType;
 
@@ -54,10 +57,13 @@ typedef struct cmd_msg {
 	int				value;
 } CmdMsg;
 
+typedef CmdMsg LocationMsg;
+
 typedef union train_msg {
 	TrainMsgType	type;
 	SensorMsg		sensor_msg;
 	CmdMsg			cmd_msg;
+	LocationMsg		location_msg;
 } TrainMsg;
 
 void trainBootstrap();

@@ -31,6 +31,7 @@ inline void setTrainSpeed(int train_id, int speed) {
 }
 
 void trainDriver(TrainGlobal *train_global, TrainProperties *train_properties) {
+	track_node *track_nodes = train_global->track_nodes;
 	int tid, result;
 	int train_id = train_properties->id;
 	int speed = 0;
@@ -55,8 +56,19 @@ void trainDriver(TrainGlobal *train_global, TrainProperties *train_properties) {
 				Reply(tid, NULL, 0);
 				CreateWithArgs(2, trainReverser, train_id, speed, 0, 0);
 				break;
+			case LOCATION_CHANGE:
+				Reply(tid, NULL, 0);
+				if(msg.location_msg.value) {
+					sprintf(str_buf, "T#%d -> %s\n", train_id, track_nodes[msg.location_msg.id].name);
+					Puts(COM2, str_buf, 0);
+					if(msg.location_msg.id == 71) {
+						speed = 0;
+						setTrainSpeed(train_id, speed);
+					}
+				}
+				break;
 			default:
-				sprintf(str_buf, "Got unknown msg, type: %d\n", msg.type);
+				sprintf(str_buf, "Driver got unknown msg, type: %d\n", msg.type);
 				Puts(COM2, str_buf, 0);
 				break;
 		}

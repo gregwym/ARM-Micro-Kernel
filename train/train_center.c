@@ -4,18 +4,23 @@
 #include <train.h>
 
 #define DELAY_SWITCH 40
+#define NUM_TRAIN 1
 
 /* Helpers */
 inline int switchIdToIndex(int id) {
 	return id % SWITCH_INDEX_MOD - 1;
 }
 
-/* Workers */
-void switchChanger(int switch_id, int direction) {
+inline void changeSwitch(int switch_id, int direction) {
 	char cmd[2];
 	cmd[0] = direction;
 	cmd[1] = switch_id;
 	Puts(COM1, cmd, 2);
+}
+
+/* Workers */
+void switchChanger(int switch_id, int direction) {
+	changeSwitch(switch_id, direction);
 
 	// Delay 400ms then turn off the solenoid
 	Delay(DELAY_SWITCH);
@@ -30,8 +35,16 @@ void cmdPostman(int tid, TrainMsgType type, int value) {
 	Send(tid, (char *)(&msg), sizeof(CmdMsg), NULL, 0);
 }
 
+void locationPostman(int tid, int landmark_id, int value) {
+	LocationMsg msg;
+	msg.type = LOCATION_CHANGE;
+	msg.id = landmark_id;
+	msg.value = value;
+	Send(tid, (char *)(&msg), sizeof(LocationMsg), NULL, 0);
+}
+
 /* Infomation Handlers */
-inline void handleSensorUpdate(char *new_data, char *saved_data, char *buf) {
+inline void handleSensorUpdate(char *new_data, char *saved_data, char *buf, TrainGlobal *train_global) {
 	int i, j;
 	char old_byte, new_byte, old_bit, new_bit, decoder_id;
 
@@ -54,6 +67,9 @@ inline void handleSensorUpdate(char *new_data, char *saved_data, char *buf) {
 				if(old_bit != new_bit) {
 					int sensor_id = (SENSOR_BYTE_SIZE * (i % 2)) + (SENSOR_BYTE_SIZE - j);
 					buf_cursor += sprintf(buf_cursor, "%c%d -> %d, ", decoder_id, sensor_id, new_bit);
+					// Deliver location change to drivers
+					CreateWithArgs(2, locationPostman, train_global->train_properties[0].tid,
+					               (i + 1) * SENSOR_BYTE_SIZE - j - 1, new_bit, 0);
 				}
 				old_byte = old_byte >> 1;
 				new_byte = new_byte >> 1;
@@ -91,21 +107,29 @@ void trainCenter(TrainGlobal *train_global) {
 
 	/* SwitchData */
 	char switch_table[SWITCH_TOTAL];
-	memset(switch_table, 0, SWITCH_TOTAL);
+	memset(switch_table, SWITCH_CUR, SWITCH_TOTAL);
 	train_global->switch_table = switch_table;
 
-	/* TrainDrivers */
-	TrainProperties train_properties[2];
-	train_properties[0].id = 35;
+	for(i = 0; i < SWITCH_TOTAL; i++) {
+		changeSwitch(i < SWITCH_NAMING_MAX ? i + 1 :
+		             i - SWITCH_NAMING_MAX + SWITCH_NAMING_MID_BASE, SWITCH_CUR);
+	}
+	Delay(DELAY_SWITCH);
+	Putc(COM1, SWITCH_OFF);
 
-	int train_driver_tids[2] = { 0 };
-	train_driver_tids[0] = CreateWithArgs(6, trainDriver, (int)train_global, (int)&(train_properties[0]), 0, 0);
+	/* TrainDrivers */
+	TrainProperties train_properties[NUM_TRAIN];
+	train_properties[0].id = 35;
+	train_properties[0].tid = CreateWithArgs(6, trainDriver, (int)train_global, (int)&(train_properties[0]), 0, 0);
+	train_global->train_properties = train_properties;
 
 	cmd_tid = Create(7, trainCmdNotifier);
 	sensor_tid = Create(7, trainSensorNotifier);
 
 	TrainMsg msg;
 	char str_buf[1024];
+
+	Puts(COM2, "Initialized\n", 0);
 
 	while(1) {
 		result = Receive(&tid, (char *)(&msg), sizeof(TrainMsg));
@@ -114,15 +138,15 @@ void trainCenter(TrainGlobal *train_global) {
 		switch (msg.type) {
 			case SENSOR_DATA:
 				Reply(tid, NULL, 0);
-				handleSensorUpdate(msg.sensor_msg.sensor_data, sensor_data, str_buf);
+				handleSensorUpdate(msg.sensor_msg.sensor_data, sensor_data, str_buf, train_global);
 				break;
 			case CMD_SPEED:
 				Reply(tid, NULL, 0);
-				CreateWithArgs(2, cmdPostman, train_driver_tids[0], CMD_SPEED, msg.cmd_msg.value, 0);
+				CreateWithArgs(2, cmdPostman, train_properties[0].tid, CMD_SPEED, msg.cmd_msg.value, 0);
 				break;
 			case CMD_REVERSE:
 				Reply(tid, NULL, 0);
-				CreateWithArgs(2, cmdPostman, train_driver_tids[0], CMD_REVERSE, 0, 0);
+				CreateWithArgs(2, cmdPostman, train_properties[0].tid, CMD_REVERSE, 0, 0);
 				break;
 			case CMD_SWITCH:
 				Reply(tid, NULL, 0);
@@ -132,7 +156,7 @@ void trainCenter(TrainGlobal *train_global) {
 				Halt();
 				break;
 			default:
-				sprintf(str_buf, "Got unknown msg, type: %d\n", msg.type);
+				sprintf(str_buf, "Center got unknown msg, type: %d\n", msg.type);
 				Puts(COM2, str_buf, 0);
 				break;
 		}
