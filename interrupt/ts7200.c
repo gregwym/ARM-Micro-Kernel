@@ -122,7 +122,7 @@ void enableCache() {
 }
 
 void speedUpCpu() {
-	/* Adjust FCLK */
+	/* Adjust Clock speed */
 	int *clkset1_addr = (int *)0x80930020;
 	setRegister(clkset1_addr, 0, 0x02a4bb36);
 
@@ -131,29 +131,13 @@ void speedUpCpu() {
 	setRegister(sync_mem_addr, 0, 0x30D);
 
 	/* Switch CPU mode to Async */
-	// int p15_old, p15_new;
+	asm ("mrc p15, 0, r0, c1, c0, 0");
+	asm ("orr r0, r0, #0xc0000000");
+	asm ("mcr p15, 0, r0, c1, c0, 0");
 
-	// asm("MRC p15, 0, %0, c1, c0, 0"
-	// 	:"=r"(p15_old)
-	// 	:);
-
-	// p15_new = p15_old | 0xC0000000;
-
-	// asm("MOV ip, %0"
-	// 	:
-	// 	:"r"(p15_new));
-
-	// asm("nop");
-	// asm("nop");
-	// asm("nop");
-	// asm("nop");
-	// asm("nop");
-
-	// asm("MCR p15, 0, ip, c1, c0, 0");
-
-	// asm("nop");
-	// asm("nop");
-	// asm("nop");
-	// asm("nop");
-	// asm("nop");
+	asm("nop");
+	asm("nop");
+	asm("nop");
+	asm("nop");
+	asm("nop");
 }
