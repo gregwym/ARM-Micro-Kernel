@@ -36,6 +36,11 @@ void trainBootstrap() {
 
 	TrainGlobal train_global;
 	train_global.track_nodes = track_nodes;
+	train_global.com1_tid = WhoIs(COM1_REG_NAME);
+	train_global.com2_tid = WhoIs(COM2_REG_NAME);
+
+	assert(train_global.com1_tid >= 0, "Fail to get COM1 server tid");
+	assert(train_global.com2_tid >= 0, "Fail to get COM2 server tid");
 
 	Create(8, trainclockserver);
 	CreateWithArgs(6, trainCenter, (int)(&train_global), 0, 0, 0);

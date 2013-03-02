@@ -30,6 +30,8 @@ typedef struct train_properties {
 } TrainProperties;
 
 typedef struct train_global {
+	int com1_tid;
+	int com2_tid;
 	track_node	*track_nodes;
 	char		*switch_table;
 	TrainProperties *train_properties;
