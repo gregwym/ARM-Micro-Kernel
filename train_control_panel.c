@@ -9,15 +9,9 @@ void umain() {
 
 	tid = Create(5, nameserver);
 	tid = Create(3, clockserver);
-
-	int comserver_id = COM1;
-	tid = Create(3, comserver);
-	Send(tid, (char *)(&comserver_id), sizeof(int), NULL, 0);
-
-	comserver_id = COM2;
-	tid = Create(3, comserver);
-	Send(tid, (char *)(&comserver_id), sizeof(int), NULL, 0);
+	tid = CreateWithArgs(3, comserver, COM1, 0, 0, 0);
+	tid = CreateWithArgs(3, comserver, COM2, 0, 0, 0);
+	createIdleTask();
 
 	tid = Create(5, trainBootstrap);
-	createIdleTask();
 }
