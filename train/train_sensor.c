@@ -10,6 +10,8 @@
 void trainSensorNotifier() {
 	int i;
 	int parent_tid = MyParentTid();
+	int com1_tid = WhoIs(COM1_REG_NAME);
+
 	int sensor_next = 0;
 	int data_changed = FALSE;
 	char query = SENSOR_READ_MULTI + SENSOR_DECODER_TOTAL;
@@ -20,7 +22,7 @@ void trainSensorNotifier() {
 		msg.sensor_data[i] = 0;
 	}
 
-	Putc(COM1, SENSOR_AUTO_RESET);
+	Putc(com1_tid, SENSOR_AUTO_RESET);
 	while(1) {
 		if(sensor_next == 0) {
 			if(data_changed) {
@@ -29,11 +31,11 @@ void trainSensorNotifier() {
 				Send(parent_tid, (char *)(&msg), SENSOR_BYTES_TOTAL, NULL, 0);
 			}
 			// Request sensor data again
-			Putc(COM1, query);
+			Putc(com1_tid, query);
 		}
 
 		// Get and save new data
-		char new_data = Getc(COM1);
+		char new_data = Getc(com1_tid);
 		if(msg.sensor_data[sensor_next] != new_data) {
 			msg.sensor_data[sensor_next] = new_data;
 			data_changed = TRUE;
