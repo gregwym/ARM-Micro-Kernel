@@ -11,21 +11,21 @@ inline int switchIdToIndex(int id) {
 	return id % SWITCH_INDEX_MOD - 1;
 }
 
-inline void changeSwitch(int switch_id, int direction) {
+inline void changeSwitch(int switch_id, int direction, int com1_tid) {
 	char cmd[2];
 	cmd[0] = direction;
 	cmd[1] = switch_id;
-	Puts(COM1, cmd, 2);
+	Puts(com1_tid, cmd, 2);
 }
 
 /* Workers */
-void switchChanger(int switch_id, int direction) {
-	changeSwitch(switch_id, direction);
+void switchChanger(int switch_id, int direction, int com1_tid) {
+	changeSwitch(switch_id, direction, com1_tid);
 
 	// Delay 400ms then turn off the solenoid
 	Delay(DELAY_SWITCH);
 
-	Putc(COM1, SWITCH_OFF);
+	Putc(com1_tid, SWITCH_OFF);
 }
 
 void cmdPostman(int tid, TrainMsgType type, int value) {
@@ -78,25 +78,32 @@ inline void handleSensorUpdate(char *new_data, char *saved_data, char *buf, Trai
 	}
 	if(buf != buf_cursor) {
 		sprintf(buf_cursor, "\n");
-		Puts(COM2, buf, 0);
+		Puts(train_global->com2_tid, buf, 0);
 	}
 }
 
-inline void handleSwitchCommand(int id, int value, char *switch_table, char *buf) {
+inline void handleSwitchCommand(CmdMsg *msg, TrainGlobal *train_global, char *buf) {
+	int id = msg->id;
+	int value = msg->value;
+	char *switch_table = train_global->switch_table;
+
 	sprintf(buf, "sw #%d[%d] %d -> %d\n", id, switchIdToIndex(id),
 	        switch_table[switchIdToIndex(id)], value);
 
-	CreateWithArgs(2, switchChanger, id, value, 0, 0);
+	CreateWithArgs(2, switchChanger, id, value, train_global->com1_tid, 0);
 
 	switch_table[switchIdToIndex(id)] = value;
-	Puts(COM2, buf, 0);
+	Puts(train_global->com2_tid, buf, 0);
 }
 
 /* Train Center */
 void trainCenter(TrainGlobal *train_global) {
 
 	int i, tid, cmd_tid, sensor_tid, result;
-	Putc(COM1, SYSTEM_START);
+	int com1_tid = train_global->com1_tid;
+	int com2_tid = train_global->com2_tid;
+
+	Putc(com1_tid, SYSTEM_START);
 
 	/* SensorData */
 	char sensor_data[SENSOR_BYTES_TOTAL];
@@ -122,15 +129,15 @@ void trainCenter(TrainGlobal *train_global) {
 
 	for(i = 0; i < SWITCH_TOTAL; i++) {
 		changeSwitch(i < SWITCH_NAMING_MAX ? i + 1 :
-		             i - SWITCH_NAMING_MAX + SWITCH_NAMING_MID_BASE, SWITCH_CUR);
+		             i - SWITCH_NAMING_MAX + SWITCH_NAMING_MID_BASE, SWITCH_CUR, com1_tid);
 	}
 	Delay(DELAY_SWITCH);
-	Putc(COM1, SWITCH_OFF);
+	Putc(com1_tid, SWITCH_OFF);
 
 	TrainMsg msg;
 	char str_buf[1024];
 
-	Puts(COM2, "Initialized\n", 0);
+	Puts(com2_tid, "Initialized\n", 0);
 
 	while(1) {
 		result = Receive(&tid, (char *)(&msg), sizeof(TrainMsg));
@@ -151,14 +158,14 @@ void trainCenter(TrainGlobal *train_global) {
 				break;
 			case CMD_SWITCH:
 				Reply(tid, NULL, 0);
-				handleSwitchCommand(msg.cmd_msg.id, msg.cmd_msg.value, switch_table, str_buf);
+				handleSwitchCommand(&(msg.cmd_msg), train_global, str_buf);
 				break;
 			case CMD_QUIT:
 				Halt();
 				break;
 			default:
 				sprintf(str_buf, "Center got unknown msg, type: %d\n", msg.type);
-				Puts(COM2, str_buf, 0);
+				Puts(com2_tid, str_buf, 0);
 				break;
 		}
 

@@ -72,6 +72,7 @@ void trainCmdNotifier() {
 	char input_array[INPUT_BUFFER_SIZE] = "";
 	int input_size = 0;
 	int parent_tid = MyParentTid();
+	int com2_tid = WhoIs(COM2_REG_NAME);
 
 	const char *train_cmds[CMD_MAX];
 	train_cmds[CMD_SPEED] = "tr";
@@ -80,7 +81,7 @@ void trainCmdNotifier() {
 	train_cmds[CMD_QUIT] = "q";
 
 	while (1) {
-		ch = Getc(COM2);
+		ch = Getc(com2_tid);
 		assert(ch >= 0, "CmdNotifier got negative value from COM2");
 
 		switch((char)ch) {
@@ -95,9 +96,9 @@ void trainCmdNotifier() {
 				if (input_size > 0) {
 					delivered = deliverCmd(input_array, train_cmds, parent_tid);
 					if(delivered < 0) {
-						Puts(COM2, "Invalid Command\n", 0);
+						Puts(com2_tid, "Invalid Command\n", 0);
 					}
-					// Puts(COM2, "\e[3;1H\e[K", 0);
+					// Puts(com2_tid, "\e[3;1H\e[K", 0);
 					input_array[0] = '\0';
 					input_size = 0;
 				}

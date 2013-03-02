@@ -2,17 +2,13 @@
 #include <klib.h>
 #include <unistd.h>
 
-#define COM_BUFFER_SIZE			1000
+#define COM_BUFFER_SIZE			1024
 #define SEND_NOTIFIER_PRIORITY	0
 #define RECEIVE_NOTIFIER_PRIORITY	0
 
 #define IO_QUERY_TYPE_GETC		0
 #define IO_QUERY_TYPE_PUTC		1
 #define IO_QUERY_TYPE_PUTS		2
-
-#define COM1_REG_NAME 			"C1"
-#define COM2_REG_NAME 			"C2"
-#define COM_NAME_ARRAY_LEN		3
 
 #define GETTER_BUFFER_SIZE		10
 
@@ -39,7 +35,8 @@ typedef union {
 	GetcQuery	getcQuery;
 } IOMsg;
 
-void comSendNotifier(int server_tid, int channel_id) {
+void comSendNotifier(int channel_id) {
+	int server_tid = MyParentTid();
 	unsigned int eventId = (channel_id == COM1 ? EVENT_COM1_TX : EVENT_COM2_TX);
 
 	char send_buffer[COM_BUFFER_SIZE];
@@ -59,7 +56,8 @@ void comSendNotifier(int server_tid, int channel_id) {
 	}
 }
 
-void comReceiveNotifier(int server_tid, int channel_id) {
+void comReceiveNotifier(int channel_id) {
+	int server_tid = MyParentTid();
 	unsigned int eventId = (channel_id == COM1 ? EVENT_COM1_RX : EVENT_COM2_RX);
 
 	char ch = '\0';
@@ -74,21 +72,7 @@ void comReceiveNotifier(int server_tid, int channel_id) {
 	}
 }
 
-int serverTidForChannel(int channel_id) {
-	char server_name[COM_NAME_ARRAY_LEN] = "";
-	if(channel_id == COM1) strncpy(server_name, COM1_REG_NAME, COM_NAME_ARRAY_LEN);
-	else if(channel_id == COM2) strncpy(server_name, COM2_REG_NAME, COM_NAME_ARRAY_LEN);
-	assert(strlen(server_name) != 0, "Invalid COM server name");
-
-	int server_tid = WhoIs(server_name);
-	assert(server_tid >= 0, "Get COM server tid failed");
-
-	return server_tid;
-}
-
-int Getc(int channel) {
-	int server_tid = serverTidForChannel(channel);
-
+int Getc(int server_tid) {
 	int reply;
 	GetcQuery getc_query;
 	getc_query.type = IO_QUERY_TYPE_GETC;
@@ -98,9 +82,7 @@ int Getc(int channel) {
 	return rtn < 0 ? rtn : reply;
 }
 
-int Putc(int channel, char ch) {
-	int server_tid = serverTidForChannel(channel);
-
+int Putc(int server_tid, char ch) {
 	PutcQuery putc_query;
 	putc_query.type = IO_QUERY_TYPE_PUTC;
 	putc_query.ch = ch;
@@ -110,9 +92,7 @@ int Putc(int channel, char ch) {
 	return rtn;
 }
 
-int Puts(int channel, char *msg, int msglen) {
-	int server_tid = serverTidForChannel(channel);
-
+int Puts(int server_tid, char *msg, int msglen) {
 	PutsQuery puts_query;
 	puts_query.type = IO_QUERY_TYPE_PUTS;
 	puts_query.msg = msg;
@@ -127,7 +107,7 @@ int Puts(int channel, char *msg, int msglen) {
 }
 
 void comserver(int channel_id) {
-	int tid = MyTid();
+	int tid;
 	int result = RegisterAs(channel_id == COM1 ? COM1_REG_NAME : COM2_REG_NAME);
 	assert(result == 0, "COM server register failed");
 
@@ -142,8 +122,8 @@ void comserver(int channel_id) {
 	// Create send and receive notifier
 	int send_notifier_tid;
 	int receive_notifier_tid;
-	send_notifier_tid = CreateWithArgs(SEND_NOTIFIER_PRIORITY, comSendNotifier, tid, channel_id, 0, 0);
-	receive_notifier_tid = CreateWithArgs(RECEIVE_NOTIFIER_PRIORITY, comReceiveNotifier, tid, channel_id, 0, 0);
+	send_notifier_tid = CreateWithArgs(SEND_NOTIFIER_PRIORITY, comSendNotifier, channel_id, 0, 0, 0);
+	receive_notifier_tid = CreateWithArgs(RECEIVE_NOTIFIER_PRIORITY, comReceiveNotifier, channel_id, 0, 0, 0);
 
 	// Prepare message and reply data structure
 	IOMsg message;

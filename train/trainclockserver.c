@@ -4,7 +4,9 @@
 #include <train.h>
 
 void trainclockserver() {
-	
+
+	int com2_tid = WhoIs(COM2_REG_NAME);
+
 	char second[16];
 	// [11][12] is second data
 	second[0] = '\e';
@@ -55,7 +57,7 @@ void trainclockserver() {
 	misec[12] = '\e';
 	misec[13] = '[';
 	misec[14] = 'u';
-	
+
 	int tick = 0;
 	int min = 0;
 	int sec = 0;
@@ -63,18 +65,18 @@ void trainclockserver() {
 		tick += 10;
 		DelayUntil(tick);
 		misec[11] = '0' + (tick / 10) % 10;
-		Puts(COM2, misec, 15);
+		Puts(com2_tid, misec, 15);
 		if (sec != tick / 100) {
 			sec = tick / 100 % 60;
 			second[11] = '0' + sec / 10;
 			second[12] = '0' + sec % 10;
-			Puts(COM2, second, 16);
+			Puts(com2_tid, second, 16);
 		}
 		if (min != tick / 6000) {
 			min = tick / 6000;
 			minute[11] = '0' + min / 10;
 			minute[12] = '0' + min % 10;
-			Puts(COM2, minute, 16);
+			Puts(com2_tid, minute, 16);
 		}
 	}
 }
