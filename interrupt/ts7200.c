@@ -105,16 +105,11 @@ unsigned int enableVicInterrupt(int vic_base, int mask) {
 }
 
 void enableCache() {
-	int p15_old, p15_new;
-
 	/* Enable ICache and DCache */
-	asm("MRC p15, 0, %0, c1, c0, 0"
-		:"=r"(p15_old)
-		:);
-	p15_new = p15_old | 0x1004;
-	asm("MCR p15, 0, %0, c1, c0, 0"
-		:
-		:"r"(p15_new));
+	asm ("mrc p15, 0, r0, c1, c0, 0");
+	asm ("orr r0, r0, #0x1000");
+	asm ("orr r0, r0, #0x4");
+	asm ("mcr p15, 0, r0, c1, c0, 0");
 
 	/* Invalid Caches */
 	asm("MOV ip, #0");
@@ -124,11 +119,11 @@ void enableCache() {
 void speedUpCpu() {
 	/* Adjust Clock speed */
 	int *clkset1_addr = (int *)0x80930020;
-	setRegister(clkset1_addr, 0, 0x02a4bb36);
+	setRegister((int)clkset1_addr, 0, 0x02a4bb36);
 
 	// Set Synchronous Memory Refresh Timer
-	int sync_mem_addr = (int *)0x80060008;
-	setRegister(sync_mem_addr, 0, 0x30D);
+	int *sync_mem_addr = (int *)0x80060008;
+	setRegister((int)sync_mem_addr, 0, 0x30D);
 
 	/* Switch CPU mode to Async */
 	asm ("mrc p15, 0, r0, c1, c0, 0");
