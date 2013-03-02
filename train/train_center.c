@@ -96,6 +96,7 @@ inline void handleSwitchCommand(int id, int value, char *switch_table, char *buf
 void trainCenter(TrainGlobal *train_global) {
 
 	int i, tid, cmd_tid, sensor_tid, result;
+	Putc(COM1, SYSTEM_START);
 
 	/* SensorData */
 	char sensor_data[SENSOR_BYTES_TOTAL];
@@ -104,6 +105,15 @@ void trainCenter(TrainGlobal *train_global) {
 	for(i = 0; i < SENSOR_DECODER_TOTAL; i++) {
 		sensor_decoder_ids[i] = 'A' + i;
 	}
+
+	/* TrainDrivers */
+	TrainProperties train_properties[NUM_TRAIN];
+	train_properties[0].id = 35;
+	train_properties[0].tid = CreateWithArgs(6, trainDriver, (int)train_global, (int)&(train_properties[0]), 0, 0);
+	train_global->train_properties = train_properties;
+
+	cmd_tid = Create(7, trainCmdNotifier);
+	sensor_tid = Create(7, trainSensorNotifier);
 
 	/* SwitchData */
 	char switch_table[SWITCH_TOTAL];
@@ -116,15 +126,6 @@ void trainCenter(TrainGlobal *train_global) {
 	}
 	Delay(DELAY_SWITCH);
 	Putc(COM1, SWITCH_OFF);
-
-	/* TrainDrivers */
-	TrainProperties train_properties[NUM_TRAIN];
-	train_properties[0].id = 35;
-	train_properties[0].tid = CreateWithArgs(6, trainDriver, (int)train_global, (int)&(train_properties[0]), 0, 0);
-	train_global->train_properties = train_properties;
-
-	cmd_tid = Create(7, trainCmdNotifier);
-	sensor_tid = Create(7, trainSensorNotifier);
 
 	TrainMsg msg;
 	char str_buf[1024];

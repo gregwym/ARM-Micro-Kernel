@@ -3,7 +3,7 @@
 #include <unistd.h>
 
 #define COM_BUFFER_SIZE			1000
-#define SEND_NOTIFIER_PRIORITY	1
+#define SEND_NOTIFIER_PRIORITY	0
 #define RECEIVE_NOTIFIER_PRIORITY	0
 
 #define IO_QUERY_TYPE_GETC		0
