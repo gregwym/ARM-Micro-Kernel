@@ -56,6 +56,10 @@ int main() {
 	// Turn off interrupt
 	asm("msr 	CPSR_c, #0xd3");
 
+	// Tune up the system
+	enableCache();
+	// speedUpCpu();
+
 	// Setup UART2
 	setUARTLineControl(UART2_BASE, 3, FALSE, FALSE, FALSE, FALSE, FALSE, 115200);
 	setUARTControl(UART2_BASE, TRUE, FALSE, FALSE, FALSE, TRUE, FALSE);
@@ -73,9 +77,6 @@ int main() {
 	enableVicInterrupt(VIC1_BASE, VIC_TIMER1_MASK);
 	enableVicInterrupt(VIC2_BASE, VIC_UART2_MASK);
 	enableVicInterrupt(VIC2_BASE, VIC_UART1_MASK);
-
-	// Enable Cache
-	enableCache();
 
 	/* Initialize ReadyQueue and Task related data structures */
 	KernelGlobal global;

@@ -43,7 +43,7 @@ void trainBootstrap() {
 	assert(train_global.com2_tid >= 0, "Fail to get COM2 server tid");
 
 	Create(8, trainclockserver);
-	CreateWithArgs(6, trainCenter, (int)(&train_global), 0, 0, 0);
+	CreateWithArgs(8, trainCenter, (int)(&train_global), 0, 0, 0);
 
 	int tid;
 	Receive(&tid, NULL, 0);
