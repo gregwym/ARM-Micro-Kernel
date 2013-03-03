@@ -64,7 +64,7 @@ inline void handleSensorUpdate(char *new_data, char *saved_data, char *buf, Trai
 				new_bit = new_byte & SENSOR_BIT_MASK;
 
 				// If the bit changed
-				if(old_bit != new_bit) {
+				if(old_bit != new_bit && new_bit) {
 					int sensor_id = (SENSOR_BYTE_SIZE * (i % 2)) + (SENSOR_BYTE_SIZE - j);
 					buf_cursor += sprintf(buf_cursor, "%c%d -> %d, ", decoder_id, sensor_id, new_bit);
 					// Deliver location change to drivers
@@ -117,6 +117,22 @@ void trainCenter(TrainGlobal *train_global) {
 	TrainProperties train_properties[NUM_TRAIN];
 	train_properties[0].id = 35;
 	train_properties[0].tid = CreateWithArgs(6, trainDriver, (int)train_global, (int)&(train_properties[0]), 0, 0);
+	train_properties[0].velocities[0] = 0;
+	train_properties[0].velocities[1] = 0;
+	train_properties[0].velocities[2] = 0;
+	train_properties[0].velocities[3] = 0;
+	train_properties[0].velocities[4] = 0;
+	train_properties[0].velocities[5] = 992;
+	train_properties[0].velocities[6] = 1314;
+	train_properties[0].velocities[7] = 1598;
+	train_properties[0].velocities[8] = 1900;
+	train_properties[0].velocities[9] = 2366;
+	train_properties[0].velocities[10] = 2902;
+	train_properties[0].velocities[11] = 3747;
+	train_properties[0].velocities[12] = 4307;
+	train_properties[0].velocities[13] = 5014;
+	train_properties[0].velocities[14] = 5399;
+
 	train_global->train_properties = train_properties;
 
 	cmd_tid = Create(7, trainCmdNotifier);
@@ -124,15 +140,15 @@ void trainCenter(TrainGlobal *train_global) {
 
 	/* SwitchData */
 	char switch_table[SWITCH_TOTAL];
-	memset(switch_table, SWITCH_CUR, SWITCH_TOTAL);
+	memset(switch_table, SWITCH_STR, SWITCH_TOTAL);
 	train_global->switch_table = switch_table;
 
-	for(i = 0; i < SWITCH_TOTAL; i++) {
-		changeSwitch(i < SWITCH_NAMING_MAX ? i + 1 :
-		             i - SWITCH_NAMING_MAX + SWITCH_NAMING_MID_BASE, SWITCH_CUR, com1_tid);
-	}
-	Delay(DELAY_SWITCH);
-	Putc(com1_tid, SWITCH_OFF);
+	// for(i = 0; i < SWITCH_TOTAL; i++) {
+	// 	changeSwitch(i < SWITCH_NAMING_MAX ? i + 1 :
+	// 	             i - SWITCH_NAMING_MAX + SWITCH_NAMING_MID_BASE, SWITCH_STR, com1_tid);
+	// }
+	// Delay(500);
+	// Putc(com1_tid, SWITCH_OFF);
 
 	TrainMsg msg;
 	char str_buf[1024];

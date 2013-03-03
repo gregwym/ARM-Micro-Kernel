@@ -23,10 +23,12 @@
 #define SENSOR_BIT_MASK 0x1
 
 #define TRAIN_REVERSE 15
+#define TRAIN_SPEED_MAX 15
 
 typedef struct train_properties {
 	int			id;
 	int			tid;
+	int			velocities[TRAIN_SPEED_MAX];
 } TrainProperties;
 
 typedef struct train_global {
