@@ -102,20 +102,22 @@ void trainDriver(TrainGlobal *train_global, TrainProperties *train_properties) {
 					}
 					else if(msg.location_msg.id == 44) {
 						s1 = speed;
-						speed = 26;
+						speed = 27;
 						setTrainSpeed(train_id, speed, com1_tid);
 						time2 = getTimerValue(TIMER3_BASE);
 						unsigned int d = 469 << 14;
 						v = d / (time1 - time2);
 						// CreateWithArgs(2, trainDelayReaccelerator, train_id, speed++, com1_tid, 0);
 					}
-					else if(msg.location_msg.id == 70) {
+					else if(msg.location_msg.id == 54) {
+					// else if(msg.location_msg.id == 70) {
 						time3 = getTimerValue(TIMER3_BASE);
 						s2 = speed;
-						int v1 = train_properties->velocities[s1];
-						int v2 = train_properties->velocities[s2];
+						int v1 = train_properties->velocities[s1 % 16];
+						int v2 = train_properties->velocities[s2 % 16];
 						unsigned int diff = time2 - time3;
-						unsigned int d = 780 << 14;
+						// unsigned int d = 780 << 14;
+						unsigned int d = (780 + 376) << 14;
 						unsigned int t1 = (diff * v2 - d) / (v2 - v1);
 						unsigned int perdict_dist = (t1 * v1) + (diff - t1) * v2;
 						// int a = (d - (time2 - time3) * v) / ((time2 - time3) * (time2 - time3)) * 2;
