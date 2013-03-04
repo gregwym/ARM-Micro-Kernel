@@ -73,6 +73,7 @@ void comReceiveNotifier(int channel_id) {
 }
 
 int Getc(int server_tid) {
+	assert(server_tid >= 0, "Getc: Invalid server_tid");
 	int reply;
 	GetcQuery getc_query;
 	getc_query.type = IO_QUERY_TYPE_GETC;
@@ -83,6 +84,7 @@ int Getc(int server_tid) {
 }
 
 int Putc(int server_tid, char ch) {
+	assert(server_tid >= 0, "Putc: Invalid server_tid");
 	PutcQuery putc_query;
 	putc_query.type = IO_QUERY_TYPE_PUTC;
 	putc_query.ch = ch;
@@ -93,6 +95,7 @@ int Putc(int server_tid, char ch) {
 }
 
 int Puts(int server_tid, char *msg, int msglen) {
+	assert(server_tid >= 0, "Puts: Invalid server_tid");
 	PutsQuery puts_query;
 	puts_query.type = IO_QUERY_TYPE_PUTS;
 	puts_query.msg = msg;
