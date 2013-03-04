@@ -30,6 +30,35 @@ inline void setTrainSpeed(int train_id, int speed, int com1_tid) {
 	Puts(com1_tid, cmd, 2);
 }
 
+int calcDistance(track_node *src, track_node *dest, int depth, int distance) {
+	// If found return the distance
+	if(src == dest) {
+		return distance;
+	}
+	if(depth == 0) {
+		return -1;
+	}
+
+	int straight = -1;
+	int curved = -1;
+
+	switch(src->type) {
+		case NODE_ENTER:
+		case NODE_SENSOR:
+		case NODE_MERGE:
+			return calcDistance(src->edge[DIR_AHEAD].dest, dest, depth - 1, distance + src->edge[DIR_AHEAD].dist);
+		case NODE_BRANCH:
+			straight = calcDistance(src->edge[DIR_STRAIGHT].dest, dest, depth - 1, distance + src->edge[DIR_STRAIGHT].dist);
+			if(straight > 0) return straight;
+			curved = calcDistance(src->edge[DIR_CURVED].dest, dest, depth - 1, distance + src->edge[DIR_CURVED].dist);
+			return curved;
+		default:
+			return -1;
+	}
+
+	return -1;
+}
+
 void trainDriver(TrainGlobal *train_global, TrainProperties *train_properties) {
 	track_node *track_nodes = train_global->track_nodes;
 	int tid, result;
@@ -44,6 +73,10 @@ void trainDriver(TrainGlobal *train_global, TrainProperties *train_properties) {
 
 	// Initialize trian speed
 	setTrainSpeed(train_id, speed, com1_tid);
+
+	track_node *prev_landmark = &(track_nodes[0]);
+	track_node *cur_landmark = &(track_nodes[0]);
+	int dist_traveled = -1;
 
 	while(1) {
 		result = Receive(&tid, (char *)(&msg), sizeof(TrainMsg));
@@ -62,12 +95,11 @@ void trainDriver(TrainGlobal *train_global, TrainProperties *train_properties) {
 			case LOCATION_CHANGE:
 				Reply(tid, NULL, 0);
 				if(msg.location_msg.value) {
-					sprintf(str_buf, "T#%d -> %s\n", train_id, track_nodes[msg.location_msg.id].name);
+					cur_landmark = &(track_nodes[msg.location_msg.id]);
+					dist_traveled = calcDistance(prev_landmark, cur_landmark, 4, 0);
+					prev_landmark = cur_landmark;
+					sprintf(str_buf, "T#%d -> %s, traveled: %d\n", train_id, track_nodes[msg.location_msg.id].name, dist_traveled);
 					Puts(com2_tid, str_buf, 0);
-					if(msg.location_msg.id == 71) {
-						speed = 0;
-						setTrainSpeed(train_id, speed, com1_tid);
-					}
 				}
 				break;
 			default:

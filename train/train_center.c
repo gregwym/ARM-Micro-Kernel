@@ -11,6 +11,10 @@ inline int switchIdToIndex(int id) {
 	return id % SWITCH_INDEX_MOD - 1;
 }
 
+inline int sensorIdToLandmark(int byte_id, int bit_id) {
+	return (byte_id + 1) * SENSOR_BYTE_SIZE - bit_id - 1;
+}
+
 inline void changeSwitch(int switch_id, int direction, int com1_tid) {
 	char cmd[2];
 	cmd[0] = direction;
@@ -69,7 +73,7 @@ inline void handleSensorUpdate(char *new_data, char *saved_data, char *buf, Trai
 					buf_cursor += sprintf(buf_cursor, "%c%d -> %d, ", decoder_id, sensor_id, new_bit);
 					// Deliver location change to drivers
 					CreateWithArgs(2, locationPostman, train_global->train_properties[0].tid,
-					               (i + 1) * SENSOR_BYTE_SIZE - j - 1, new_bit, 0);
+					               sensorIdToLandmark(i, j), new_bit, 0);
 				}
 				old_byte = old_byte >> 1;
 				new_byte = new_byte >> 1;
