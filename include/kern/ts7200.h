@@ -50,8 +50,8 @@
 	#define LED_RED		0x2
 	#define LED_BOTH	0x3
 
-#define COM1	0
-#define COM2	1
+#define COM1	-10
+#define COM2	-11
 
 /* UART registers */
 
