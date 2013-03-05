@@ -13,7 +13,7 @@ void trainSensorNotifier() {
 	int com1_tid = WhoIs(COM1_REG_NAME);
 
 	int sensor_next = 0;
-	int data_changed = FALSE;
+	int data_changed = TRUE;
 	char query = SENSOR_READ_MULTI + SENSOR_DECODER_TOTAL;
 
 	SensorMsg msg;
@@ -21,6 +21,20 @@ void trainSensorNotifier() {
 	for(i = 0; i < SENSOR_BYTES_TOTAL; i++) {
 		msg.sensor_data[i] = 0;
 	}
+	
+	/* Filter out left over sensor data */
+	while(1) {
+		if(sensor_next == 0 && data_changed) Putc(com1_tid, query);
+		else break;
+
+		char new_data = Getc(com1_tid);
+		assert(new_data >= 0, "Fail to get");
+		if(new_data != 0) data_changed = TRUE;
+
+		sensor_next = (sensor_next + 1) % SENSOR_BYTES_TOTAL;
+	}
+
+	data_changed = FALSE;
 
 	Putc(com1_tid, SENSOR_AUTO_RESET);
 	while(1) {

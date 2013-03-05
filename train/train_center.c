@@ -72,7 +72,7 @@ inline void handleSensorUpdate(char *new_data, char *saved_data, char *buf, Trai
 				// If the bit changed
 				if(old_bit != new_bit) {
 					int sensor_id = (SENSOR_BYTE_SIZE * (i % 2)) + (SENSOR_BYTE_SIZE - j);
-					buf_cursor += sprintf(buf_cursor, "%c%d -> %d, ", decoder_id, sensor_id, new_bit);
+					// buf_cursor += sprintf(buf_cursor, "%c%d -> %d, ", decoder_id, sensor_id, new_bit);
 					// Deliver location change to drivers
 					for(k = 0; k < TRAIN_MAX; k++) {
 						CreateWithArgs(2, locationPostman, train_global->train_data[k].tid,
@@ -146,7 +146,7 @@ void trainCenter(TrainGlobal *train_global) {
 	cmd_tid = Create(7, trainCmdNotifier);
 	sensor_tid = Create(7, trainSensorNotifier);
 
-	Puts(com2_tid, "Initialized\n", 0);
+	Puts(com2_tid, "\e2JInitialized\n", 0);
 
 	while(1) {
 		result = Receive(&tid, (char *)(&msg), sizeof(TrainMsg));
