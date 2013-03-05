@@ -115,23 +115,39 @@ void trainCenter(TrainGlobal *train_global) {
 
 	/* TrainDrivers */
 	TrainProperties train_properties[NUM_TRAIN];
-	train_properties[0].id = 35;
+	// train_properties[0].id = 35;
+	train_properties[0].id = 37;
 	train_properties[0].tid = CreateWithArgs(6, trainDriver, (int)train_global, (int)&(train_properties[0]), 0, 0);
+	// train_properties[0].velocities[0] = 0;
+	// train_properties[0].velocities[1] = 0;
+	// train_properties[0].velocities[2] = 0;
+	// train_properties[0].velocities[3] = 0;
+	// train_properties[0].velocities[4] = 0;
+	// train_properties[0].velocities[5] = 992;
+	// train_properties[0].velocities[6] = 1314;
+	// train_properties[0].velocities[7] = 1598;
+	// train_properties[0].velocities[8] = 1900;
+	// train_properties[0].velocities[9] = 2366;
+	// train_properties[0].velocities[10] = 2902;
+	// train_properties[0].velocities[11] = 3747;
+	// train_properties[0].velocities[12] = 4307;
+	// train_properties[0].velocities[13] = 5014;
+	// train_properties[0].velocities[14] = 5399;
 	train_properties[0].velocities[0] = 0;
 	train_properties[0].velocities[1] = 0;
 	train_properties[0].velocities[2] = 0;
 	train_properties[0].velocities[3] = 0;
 	train_properties[0].velocities[4] = 0;
-	train_properties[0].velocities[5] = 992;
-	train_properties[0].velocities[6] = 1314;
-	train_properties[0].velocities[7] = 1598;
-	train_properties[0].velocities[8] = 1900;
-	train_properties[0].velocities[9] = 2366;
-	train_properties[0].velocities[10] = 2902;
-	train_properties[0].velocities[11] = 3747;
-	train_properties[0].velocities[12] = 4307;
-	train_properties[0].velocities[13] = 5014;
-	train_properties[0].velocities[14] = 5399;
+	train_properties[0].velocities[5] = 1429;
+	train_properties[0].velocities[6] = 1852;
+	train_properties[0].velocities[7] = 2300;
+	train_properties[0].velocities[8] = 2731;
+	train_properties[0].velocities[9] = 3098;
+	train_properties[0].velocities[10] = 3546;
+	train_properties[0].velocities[11] = 3921;
+	train_properties[0].velocities[12] = 4333;
+	train_properties[0].velocities[13] = 4733;
+	train_properties[0].velocities[14] = 5166;
 
 	train_global->train_properties = train_properties;
 
