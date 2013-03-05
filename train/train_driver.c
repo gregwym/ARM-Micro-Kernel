@@ -102,6 +102,11 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 					Puts(com2_tid, str_buf, 0);
 				}
 				break;
+			case CMD_GOTO:
+				Reply(tid, NULL, 0);
+				sprintf(str_buf, "T#%d routing to %s\n", train_id, track_nodes[msg.location_msg.value].name);
+				Puts(com2_tid, str_buf, 0);
+				break;
 			default:
 				sprintf(str_buf, "Driver got unknown msg, type: %d\n", msg.type);
 				Puts(com2_tid, str_buf, 0);

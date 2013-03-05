@@ -58,6 +58,14 @@ int deliverCmd(char *input, const char **train_cmds, int tid) {
 			if(token[0] != 'C' && token[0] != 'S') return -1;
 			cmd_msg.value = token[0] == 'C' ? SWITCH_CUR : SWITCH_STR;
 			break;
+		case CMD_GOTO:
+			input = str2token(input, token, 8);
+			cmd_msg.id = tr_atoi(token);
+
+			input = str2token(input, token, 8);
+			cmd_msg.value = tr_atoi(token);
+			if (cmd_msg.value < 0 || cmd_msg.value >= TRACK_MAX) return -1;
+			break;
 		case CMD_QUIT:
 			break;
 		default:
@@ -79,6 +87,7 @@ void trainCmdNotifier() {
 	train_cmds[CMD_REVERSE] = "rv";
 	train_cmds[CMD_SWITCH] = "sw";
 	train_cmds[CMD_QUIT] = "q";
+	train_cmds[CMD_GOTO] = "to";
 
 	while (1) {
 		ch = Getc(com2_tid);
