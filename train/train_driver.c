@@ -2,6 +2,7 @@
 #include <klib.h>
 #include <services.h>
 #include <train.h>
+#include <ts7200.h>
 
 #define DELAY_REVERSE 200
 
@@ -76,7 +77,9 @@ void trainDriver(TrainGlobal *train_global, TrainProperties *train_properties) {
 
 	track_node *prev_landmark = &(track_nodes[0]);
 	track_node *cur_landmark = &(track_nodes[0]);
-	int dist_traveled = -1;
+	unsigned int t1 = 0xffffffff;
+	unsigned int t2 = 0;
+	unsigned int dist_traveled = -1;
 
 	while(1) {
 		result = Receive(&tid, (char *)(&msg), sizeof(TrainMsg));
@@ -96,10 +99,13 @@ void trainDriver(TrainGlobal *train_global, TrainProperties *train_properties) {
 				Reply(tid, NULL, 0);
 				if(msg.location_msg.value) {
 					cur_landmark = &(track_nodes[msg.location_msg.id]);
+					t2 = getTimerValue(TIMER3_BASE);
 					dist_traveled = calcDistance(prev_landmark, cur_landmark, 4, 0);
-					prev_landmark = cur_landmark;
-					sprintf(str_buf, "T#%d -> %s, traveled: %d\n", train_id, track_nodes[msg.location_msg.id].name, dist_traveled);
+					dist_traveled = dist_traveled << 14;
+					sprintf(str_buf, "T#%d->%s\t%u\t%u\t%d\n", train_id, track_nodes[msg.location_msg.id].name, dist_traveled, dist_traveled / (t1 - t2), speed);
 					Puts(com2_tid, str_buf, 0);
+					prev_landmark = cur_landmark;
+					t1 = t2;
 				}
 				break;
 			default:

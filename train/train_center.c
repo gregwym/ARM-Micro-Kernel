@@ -70,7 +70,7 @@ inline void handleSensorUpdate(char *new_data, char *saved_data, char *buf, Trai
 				// If the bit changed
 				if(old_bit != new_bit) {
 					int sensor_id = (SENSOR_BYTE_SIZE * (i % 2)) + (SENSOR_BYTE_SIZE - j);
-					buf_cursor += sprintf(buf_cursor, "%c%d -> %d, ", decoder_id, sensor_id, new_bit);
+					// buf_cursor += sprintf(buf_cursor, "%c%d -> %d, ", decoder_id, sensor_id, new_bit);
 					// Deliver location change to drivers
 					CreateWithArgs(2, locationPostman, train_global->train_properties[0].tid,
 					               sensorIdToLandmark(i, j), new_bit, 0);
@@ -119,7 +119,7 @@ void trainCenter(TrainGlobal *train_global) {
 
 	/* TrainDrivers */
 	TrainProperties train_properties[NUM_TRAIN];
-	train_properties[0].id = 35;
+	train_properties[0].id = 37;
 	train_properties[0].tid = CreateWithArgs(6, trainDriver, (int)train_global, (int)&(train_properties[0]), 0, 0);
 	train_global->train_properties = train_properties;
 
