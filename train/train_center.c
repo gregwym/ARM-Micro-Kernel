@@ -3,8 +3,10 @@
 #include <services.h>
 #include <train.h>
 
-#define DELAY_SWITCH 40
-#define NUM_TRAIN 1
+#define SWITCH_DELAY		40
+#define SWITCH_INIT_DELAY	500
+#define TRAIN_NUM_MAX		50
+#define TRAIN_INIT_DELAY	200
 
 /* Helpers */
 inline int switchIdToIndex(int id) {
@@ -27,7 +29,7 @@ void switchChanger(int switch_id, int direction, int com1_tid) {
 	changeSwitch(switch_id, direction, com1_tid);
 
 	// Delay 400ms then turn off the solenoid
-	Delay(DELAY_SWITCH);
+	Delay(SWITCH_DELAY);
 
 	Putc(com1_tid, SWITCH_OFF);
 }
@@ -49,7 +51,7 @@ void locationPostman(int tid, int landmark_id, int value) {
 
 /* Infomation Handlers */
 inline void handleSensorUpdate(char *new_data, char *saved_data, char *buf, TrainGlobal *train_global) {
-	int i, j;
+	int i, j, k;
 	char old_byte, new_byte, old_bit, new_bit, decoder_id;
 
 	char *buf_cursor = buf;
@@ -72,8 +74,10 @@ inline void handleSensorUpdate(char *new_data, char *saved_data, char *buf, Trai
 					int sensor_id = (SENSOR_BYTE_SIZE * (i % 2)) + (SENSOR_BYTE_SIZE - j);
 					buf_cursor += sprintf(buf_cursor, "%c%d -> %d, ", decoder_id, sensor_id, new_bit);
 					// Deliver location change to drivers
-					CreateWithArgs(2, locationPostman, train_global->train_properties[0].tid,
-					               sensorIdToLandmark(i, j), new_bit, 0);
+					for(k = 0; k < TRAIN_MAX; k++) {
+						CreateWithArgs(2, locationPostman, train_global->train_data[k].tid,
+						               sensorIdToLandmark(i, j), new_bit, 0);
+					}
 				}
 				old_byte = old_byte >> 1;
 				new_byte = new_byte >> 1;
@@ -103,9 +107,12 @@ inline void handleSwitchCommand(CmdMsg *msg, TrainGlobal *train_global, char *bu
 /* Train Center */
 void trainCenter(TrainGlobal *train_global) {
 
-	int i, tid, cmd_tid, sensor_tid, result;
-	int com1_tid = train_global->com1_tid;
-	int com2_tid = train_global->com2_tid;
+	int i, tid, cmd_tid, sensor_tid, result, com1_tid, com2_tid;
+	TrainMsg msg;
+	char str_buf[1024];
+
+	com1_tid = train_global->com1_tid;
+	com2_tid = train_global->com2_tid;
 
 	Putc(com1_tid, SYSTEM_START);
 
@@ -117,29 +124,27 @@ void trainCenter(TrainGlobal *train_global) {
 		sensor_decoder_ids[i] = 'A' + i;
 	}
 
-	/* TrainDrivers */
-	TrainProperties train_properties[NUM_TRAIN];
-	train_properties[0].id = 35;
-	train_properties[0].tid = CreateWithArgs(6, trainDriver, (int)train_global, (int)&(train_properties[0]), 0, 0);
-	train_global->train_properties = train_properties;
+	/* Initialize Train Drivers */
+	TrainData *train_data = train_global->train_data;
+	int train_tid[TRAIN_NUM_MAX];
+	memset(train_tid, -1, sizeof(int) * TRAIN_NUM_MAX);
+	for(i = 0; i < TRAIN_MAX; i++) {
+		assert(train_data[i].id < TRAIN_NUM_MAX, "Exceed max train number");
+		train_data[i].tid = CreateWithArgs(9, trainDriver, (int)train_global, (int)&(train_data[i]), 0, 0);
+		train_tid[train_data[i].id] = train_data[i].tid;
+	}
+	Delay(TRAIN_INIT_DELAY);
 
-	cmd_tid = Create(7, trainCmdNotifier);
-	sensor_tid = Create(7, trainSensorNotifier);
-
-	/* SwitchData */
-	char switch_table[SWITCH_TOTAL];
-	memset(switch_table, SWITCH_CUR, SWITCH_TOTAL);
-	train_global->switch_table = switch_table;
-
+	/* Initialize switches */
 	for(i = 0; i < SWITCH_TOTAL; i++) {
 		changeSwitch(i < SWITCH_NAMING_MAX ? i + 1 :
 		             i - SWITCH_NAMING_MAX + SWITCH_NAMING_MID_BASE, SWITCH_CUR, com1_tid);
 	}
-	Delay(DELAY_SWITCH);
+	Delay(SWITCH_INIT_DELAY);
 	Putc(com1_tid, SWITCH_OFF);
 
-	TrainMsg msg;
-	char str_buf[1024];
+	cmd_tid = Create(7, trainCmdNotifier);
+	sensor_tid = Create(7, trainSensorNotifier);
 
 	Puts(com2_tid, "Initialized\n", 0);
 
@@ -154,11 +159,19 @@ void trainCenter(TrainGlobal *train_global) {
 				break;
 			case CMD_SPEED:
 				Reply(tid, NULL, 0);
-				CreateWithArgs(2, cmdPostman, train_properties[0].tid, CMD_SPEED, msg.cmd_msg.value, 0);
+				assert(msg.cmd_msg.id < TRAIN_NUM_MAX, "Exceed max train number");
+				tid = train_tid[msg.cmd_msg.id];
+				if(tid >= 0) {
+					CreateWithArgs(2, cmdPostman, train_tid[msg.cmd_msg.id], CMD_SPEED, msg.cmd_msg.value, 0);
+				}
 				break;
 			case CMD_REVERSE:
 				Reply(tid, NULL, 0);
-				CreateWithArgs(2, cmdPostman, train_properties[0].tid, CMD_REVERSE, 0, 0);
+				assert(msg.cmd_msg.id < TRAIN_NUM_MAX, "Exceed max train number");
+				tid = train_tid[msg.cmd_msg.id];
+				if(tid >= 0) {
+					CreateWithArgs(2, cmdPostman, train_tid[msg.cmd_msg.id], CMD_REVERSE, 0, 0);
+				}
 				break;
 			case CMD_SWITCH:
 				Reply(tid, NULL, 0);

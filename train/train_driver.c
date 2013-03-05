@@ -59,10 +59,10 @@ int calcDistance(track_node *src, track_node *dest, int depth, int distance) {
 	return -1;
 }
 
-void trainDriver(TrainGlobal *train_global, TrainProperties *train_properties) {
+void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 	track_node *track_nodes = train_global->track_nodes;
 	int tid, result;
-	int train_id = train_properties->id;
+	int train_id = train_data->id;
 	int speed = 0;
 
 	int com1_tid = train_global->com1_tid;
