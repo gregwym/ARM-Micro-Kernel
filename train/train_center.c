@@ -119,7 +119,7 @@ void trainCenter(TrainGlobal *train_global) {
 
 	/* TrainDrivers */
 	TrainProperties train_properties[NUM_TRAIN];
-	train_properties[0].id = 35;
+	train_properties[0].id = 37;
 	train_properties[0].tid = CreateWithArgs(6, trainDriver, (int)train_global, (int)&(train_properties[0]), 0, 0);
 	train_global->train_properties = train_properties;
 
@@ -131,12 +131,12 @@ void trainCenter(TrainGlobal *train_global) {
 	memset(switch_table, SWITCH_CUR, SWITCH_TOTAL);
 	train_global->switch_table = switch_table;
 
-	for(i = 0; i < SWITCH_TOTAL; i++) {
-		changeSwitch(i < SWITCH_NAMING_MAX ? i + 1 :
-		             i - SWITCH_NAMING_MAX + SWITCH_NAMING_MID_BASE, SWITCH_CUR, com1_tid);
-	}
-	Delay(DELAY_SWITCH);
-	Putc(com1_tid, SWITCH_OFF);
+	// for(i = 0; i < SWITCH_TOTAL; i++) {
+	// 	changeSwitch(i < SWITCH_NAMING_MAX ? i + 1 :
+	// 	             i - SWITCH_NAMING_MAX + SWITCH_NAMING_MID_BASE, SWITCH_CUR, com1_tid);
+	// }
+	// Delay(DELAY_SWITCH);
+	// Putc(com1_tid, SWITCH_OFF);
 
 	TrainMsg msg;
 	char str_buf[1024];

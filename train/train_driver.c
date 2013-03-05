@@ -100,6 +100,9 @@ void trainDriver(TrainGlobal *train_global, TrainProperties *train_properties) {
 					prev_landmark = cur_landmark;
 					sprintf(str_buf, "T#%d -> %s, traveled: %d\n", train_id, track_nodes[msg.location_msg.id].name, dist_traveled);
 					Puts(com2_tid, str_buf, 0);
+					if(msg.location_msg.id == 71) {
+						setTrainSpeed(train_id, 0, com1_tid);
+					}
 				}
 				break;
 			default:
