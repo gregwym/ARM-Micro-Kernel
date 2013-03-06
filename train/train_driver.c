@@ -2,6 +2,7 @@
 #include <klib.h>
 #include <services.h>
 #include <train.h>
+#include <ts7200.h>
 
 #define DELAY_REVERSE 200
 
@@ -144,6 +145,119 @@ void trainSecretary() {
 		Send(parent_tid, &ch, 0, NULL, 0);
 	}
 }
+
+inline void dijkstra_update(Heap *dist_heap, HeapNode *heap_nodes, track_node **previous,
+                            track_node *u, track_node *neighbour, int alter_dist) {
+	// Find the old distance
+	HeapNode *heap_node = &(heap_nodes[neighbour->index]);
+	int old_dist = heap_node->key;
+
+	// If it is a node not in the heap, or has a shorter alter distance
+	if(old_dist == -1 || alter_dist < old_dist) {
+		// Assign the new distance and previous
+		heap_node->key = alter_dist;
+		previous[neighbour->index] = u;
+		if(old_dist == -1) minHeapInsert(dist_heap, heap_node);
+		else minHeapResortNode(dist_heap, heap_node);
+	}
+}
+
+int dijkstra(const track_node *track_nodes, const track_node *src,
+              const track_node *dest, track_node **route) {
+	int i;
+	track_node *previous[TRACK_MAX];
+	memset(previous, (int) NULL, sizeof(track_node *) * TRACK_MAX);
+
+	Heap dist_heap;
+	HeapNode *heap_data[TRACK_MAX];
+	HeapNode heap_nodes[TRACK_MAX];
+
+	// Initialize the heap with -1 dist and landmark as datum
+	heapInitial(&dist_heap, heap_data, TRACK_MAX);
+	for(i = 0; i < TRACK_MAX; i++) {
+		heap_nodes[i].key =  -1;
+		heap_nodes[i].index = -1;
+		heap_nodes[i].datum = (void *)&(track_nodes[i]);
+	}
+
+	// Source's distance is 0, and insert into the min heap
+	heap_nodes[src->index].key = 0;
+	minHeapInsert(&dist_heap, &(heap_nodes[src->index]));
+
+	HeapNode *u_node = NULL;
+	int u_dist = -1;
+	track_node *u = NULL;
+	track_node *neighbour = NULL;
+	int alter_dist = -1;
+
+	while(dist_heap.heapsize > 0) {
+		// Pop the smallest distance vertex. Since node with infinit (-1) dist
+		// has not been inserted into the heap, no need to check distance
+		u_node = minHeapPop(&dist_heap);
+		u_dist = u_node->key;
+		u = u_node->datum;
+
+		// If find destination
+		if(u == dest) break;
+
+		switch(u->type) {
+			case NODE_ENTER:
+			case NODE_SENSOR:
+			case NODE_MERGE:
+				alter_dist = u_dist + u->edge[DIR_AHEAD].dist;
+				neighbour = u->edge[DIR_AHEAD].dest;
+				dijkstra_update(&dist_heap, heap_nodes, previous, u, neighbour, alter_dist);
+				break;
+			case NODE_BRANCH:
+				alter_dist = u_dist + u->edge[DIR_STRAIGHT].dist;
+				neighbour = u->edge[DIR_STRAIGHT].dest;
+				dijkstra_update(&dist_heap, heap_nodes, previous, u, neighbour, alter_dist);
+
+				alter_dist = u_dist + u->edge[DIR_CURVED].dist;
+				neighbour = u->edge[DIR_CURVED].dest;
+				dijkstra_update(&dist_heap, heap_nodes, previous, u, neighbour, alter_dist);
+				break;
+			default:
+				break;
+		}
+	}
+
+	assert(u == dest, "Dijkstra failed to find the destination");
+
+	for(i = TRACK_MAX - 1; previous[u->index] != NULL; i--) {
+		route[i] = u;
+		u = previous[u->index];
+	}
+	route[i] = src;
+
+	return i;
+}
+
+int changeNextSW(track_node **route, int check_point, char *switch_table, int com1_tid) {
+	char cmd[2];
+	for (; check_point < TRACK_MAX; check_point++) {
+		if (route[check_point]->type == NODE_BRANCH) {
+			
+			if (route[check_point + 1] == route[check_point]->edge[DIR_STRAIGHT].dest) {
+				if (switch_table[switchIdToIndex(route[check_point]->num)] != SWITCH_STR) {
+					switch_table[switchIdToIndex(route[check_point]->num)] = SWITCH_STR;
+					CreateWithArgs(2, switchChanger, route[check_point]->num, SWITCH_STR, com1_tid, 0);
+				}
+				return check_point;
+			} else if (route[check_point + 1] == route[check_point]->edge[DIR_CURVED].dest) {
+				if (switch_table[switchIdToIndex(route[check_point]->num)] != SWITCH_CUR) {
+					switch_table[switchIdToIndex(route[check_point]->num)] = SWITCH_CUR;
+					CreateWithArgs(2, switchChanger, route[check_point]->num, SWITCH_CUR, com1_tid, 0);
+				}
+				return check_point;
+			} else {
+				assert(0, "die ah sitra branch cannot find a dest");
+			}
+		}
+	}
+	return -1;
+}
+				
 		
 
 void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
@@ -166,7 +280,10 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 	unsigned int position_alarm = 0;
 	unsigned int stop_alarm = 0;
 	unsigned int reverse_alarm = 0;
+	int check_point = -1; 		// for finding route
 	
+	char *buf_cursor = str_buf;
+
 	// Initialize trian speed
 	setTrainSpeed(train_id, speed, com1_tid);
 
@@ -175,6 +292,9 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 	int dist_traveled = -1;
 	
 	int secretary_tid = Create(2, trainSecretary);
+
+	track_node *route[TRACK_MAX];
+	int route_start = TRACK_MAX;
 
 	while(1) {
 		result = Receive(&tid, (char *)(&msg), sizeof(TrainMsg));
@@ -188,6 +308,15 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 			}
 			if (position_alarm > timer) {
 				train_data->landmark = predict_dest;
+				
+				// switch change check
+				if (check_point != -1 && route[check_point] == train_data->landmark) {
+					check_point = changeNextSW(route, check_point + 1, train_global->switch_table, com1_tid);
+					if (check_point != -1) {
+						sprintf(str_buf, "branch change: %s\n", route[check_point]->name);
+						Puts(com2_tid, str_buf, 0);
+					}
+				}
 				sprintf(str_buf, "reach: %s\n", train_data->landmark->name);
 				Puts(com2_tid, str_buf, 0);
 				str_buf[0] = '\0';
@@ -225,10 +354,10 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 				}
 				reverse_alarm = 0;
 			}
-			if (forward_distance && train_data->velocity) {
-				sprintf(str_buf, "%d, %d\n", train_data->ahead_lm >> 14, forward_distance - (train_data->ahead_lm >> 14));
-				Puts(com2_tid, str_buf, 0);
-			}
+			// if (forward_distance && train_data->velocity) {
+				// sprintf(str_buf, "%d, %d\n", train_data->ahead_lm >> 14, forward_distance - (train_data->ahead_lm >> 14));
+				// Puts(com2_tid, str_buf, 0);
+			// }
 			continue;
 		}
 		switch (msg.type) {
@@ -279,8 +408,8 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 					
 					train_data->landmark = &(track_nodes[msg.location_msg.id]);
 					sprintf(str_buf, "reach: %s\n", train_data->landmark->name);
-					Puts(com2_tid, str_buf, 0);
 					train_data->ahead_lm = 0;
+					Puts(com2_tid, str_buf, 0);
 					if (train_data->velocity != 0) {
 					
 						// position prediction
@@ -300,6 +429,28 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 					}
 				}
 				break;
+			case CMD_GOTO:
+				Reply(tid, NULL, 0);
+				sprintf(str_buf, "T#%d routing to %s\n", train_id, track_nodes[msg.location_msg.value].name);
+				Puts(com2_tid, str_buf, 0);
+
+				route_start = dijkstra(track_nodes, train_data->landmark, &(track_nodes[msg.location_msg.value]), route);
+				check_point = route_start;
+				// buf_cursor += sprintf(buf_cursor, "%s -> ", train_data->landmark->name);
+				for(; route_start < TRACK_MAX; route_start++) {
+					buf_cursor += sprintf(buf_cursor, "%s -> ", route[route_start]->name);
+				}
+				buf_cursor += sprintf(buf_cursor, "\n");
+				Puts(com2_tid, str_buf, 0);
+				
+				check_point = changeNextSW(route, check_point + 1, train_global->switch_table, com1_tid);
+				str_buf[0] = '\0';
+				if (check_point != -1) {
+					sprintf(str_buf, "branch change: %s\n", route[check_point]->name);
+					Puts(com2_tid, str_buf, 0);
+				}
+				
+				break;
 			default:
 				sprintf(str_buf, "Driver got unknown msg, type: %d\n", msg.type);
 				Puts(com2_tid, str_buf, 0);
@@ -307,6 +458,7 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 		}
 
 		str_buf[0] = '\0';
+		buf_cursor = str_buf;
 	}
 }
 
