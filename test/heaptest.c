@@ -31,9 +31,14 @@ void test() {
 	minHeapInsert(&minheap, &hnode[9]);
 	minHeapInsert(&minheap, &hnode[0]);
 	
+	hnode[8].key = 1;
+	// for (i = 0; i < 10; i++) {
+		// bwprintf(COM2, "HeapIndex: %d\n", hnode[i].index);
+	// }
+	minHeapResortNode(&minheap, &hnode[8]);
+	
 	HeapNode *tmp = minHeapPop(&minheap);
 	while (tmp != NULL) {
-		bwprintf(COM2, "heap head: %d\n", ((testnode *)(tmp->datum))->value);
 		tmp = minHeapPop(&minheap);
 	}
 }
