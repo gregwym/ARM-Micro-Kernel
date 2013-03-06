@@ -5,9 +5,6 @@
 
 #define DELAY_REVERSE 200
 
-//UI
-#define LOCATION
-
 void trainReverser(int train_id, int new_speed, int com1_tid) {
 	char cmd[2];
 	cmd[0] = 0;
@@ -168,6 +165,7 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 	unsigned int velocity_alarm = 0;
 	unsigned int position_alarm = 0;
 	unsigned int stop_alarm = 0;
+	unsigned int reverse_alarm = 0;
 	
 	// Initialize trian speed
 	setTrainSpeed(train_id, speed, com1_tid);
@@ -217,6 +215,15 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 				train_data->velocity = 0;
 				speed = 0;
 				position_alarm = 0;
+				stop_alarm = 0;
+			}
+			if (reverse_alarm > timer) {
+				if (train_data->direction == FORWARD) {
+					train_data->direction = BACKWARD;
+				} else {
+					train_data->direction = FORWARD;
+				}
+				reverse_alarm = 0;
 			}
 			if (forward_distance && train_data->velocity) {
 				sprintf(str_buf, "%d, %d\n", train_data->ahead_lm >> 14, forward_distance - (train_data->ahead_lm >> 14));
@@ -240,11 +247,9 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 				position_alarm = 0;
 				forward_distance = 0;
 				stop_alarm = 0;
-				if (train_data->direction == FORWARD) {
-					train_data->direction = BACKWARD;
-				} else {
-					train_data->direction = FORWARD;
-				}
+				
+				start_time = getTimerValue(TIMER3_BASE);
+				reverse_alarm = start_time - 4000;
 				/*
 				track_node *tmp = train_data->landmark;
 				train_data->landmark = predict_dest->reverse;
