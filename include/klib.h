@@ -17,6 +17,7 @@ size_t strlen(const char *s);
 /* Heap */
 typedef struct heapnode {
 	int key;
+	int index;
 	void *datum;
 } HeapNode;
 
@@ -36,6 +37,7 @@ void minHeapInsert(Heap *heap, HeapNode *node);
 // pop from a min-heap
 HeapNode *minHeapPop(Heap *heap);
 
+void minHeapResortNode(Heap *heap, HeapNode *node);
 
 /* Circular Buffer */
 typedef enum buffer_type {
