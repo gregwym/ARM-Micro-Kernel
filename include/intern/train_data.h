@@ -17,12 +17,14 @@ typedef struct train_data {
 	/* Profile */
 	int			id;
 	int			stop_dist[TRAIN_SPEED_MAX];
-	int			velocity[TRAIN_SPEED_MAX];
+	int			velocities[TRAIN_SPEED_MAX];
 	// int			acc_t1[TRAIN_SPEED_MAX];
+	int			ht_length[2];
 
 	/* Volatile Data */
 	int				tid;
 	volatile int	speed;
+	volatile int	velocity;
 	volatile TrainDirection	direction;
 	volatile track_node* landmark;
 	volatile int	ahead_lm;

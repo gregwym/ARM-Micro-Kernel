@@ -70,5 +70,6 @@ void trainCmdNotifier();
 void trainSensorNotifier();
 void trainclockserver();
 void trainDriver(TrainGlobal *train_global, TrainData *train_data);
+int switchIdToIndex(int id);
 
 #endif // __TRAIN_H__
