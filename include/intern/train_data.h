@@ -19,6 +19,7 @@ typedef struct train_data {
 	int			stop_dist[TRAIN_SPEED_MAX];
 	int			velocities[TRAIN_SPEED_MAX];
 	// int			acc_t1[TRAIN_SPEED_MAX];
+	int			ht_length[2];
 
 	/* Volatile Data */
 	int				tid;

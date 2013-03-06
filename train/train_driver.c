@@ -84,6 +84,61 @@ int getNextNodeDist(track_node *cur_node, char *switch_table, int *direction) {
 	}
 }
 
+int exitCheck(track_node *cur_node, char *switch_table, int stop_distance) {
+	int distance = 0;
+	int next_distance = 0;
+	int direction;
+	track_node *checked_node = cur_node;
+	switch(checked_node->type) {
+		case NODE_SENSOR:
+		case NODE_MERGE:
+			next_distance += (checked_node->edge[DIR_AHEAD].dist << 14);
+			checked_node = checked_node->edge[DIR_AHEAD].dest;
+			break;
+		case NODE_BRANCH:
+			direction = switch_table[switchIdToIndex(checked_node->num)] - 33;
+			next_distance += (checked_node->edge[direction].dist << 14);
+			checked_node = checked_node->edge[direction].dest;
+			break;
+		default:
+			return 0;
+	}
+	
+	int hit_exit = 0;
+	while (distance < stop_distance && !hit_exit) {
+		switch(checked_node->type) {
+			case NODE_SENSOR:
+			case NODE_MERGE:
+				distance += (checked_node->edge[DIR_AHEAD].dist << 14);
+				checked_node = checked_node->edge[DIR_AHEAD].dest;
+				break;
+			case NODE_BRANCH:
+				direction = switch_table[switchIdToIndex(checked_node->num)] - 33;
+				distance += (checked_node->edge[direction].dist << 14);
+				checked_node = checked_node->edge[direction].dest;
+				break;
+			case NODE_EXIT:
+				hit_exit = 1;
+				break;
+			default:
+				bwprintf(COM2, "node type: %d\n", checked_node->type);
+				assert(0, "exitCheck function cannot find a valid node type");
+				break;
+		}
+	}
+	if (hit_exit) {
+		int safe_dist = stop_distance - distance;
+		if (safe_dist > next_distance) {
+			assert(0, "WARNING!   TRAIN IS GONNA CRASH!");
+			return 0;
+		} else {
+			return next_distance - safe_dist;
+		}
+	}
+	return -1;
+}
+	
+
 void trainSecretary() {
 	int parent_tid = MyParentTid();
 	char ch = '1'; 
@@ -112,6 +167,7 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 	
 	unsigned int velocity_alarm = 0;
 	unsigned int position_alarm = 0;
+	unsigned int stop_alarm = 0;
 	
 	// Initialize trian speed
 	setTrainSpeed(train_id, speed, com1_tid);
@@ -139,14 +195,30 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 				str_buf[0] = '\0';
 				train_data->ahead_lm = 0;
 				if (train_data->velocity != 0) {
+				
+					// position prediction
 					int direction;
 					start_time = getTimerValue(TIMER3_BASE);
 					forward_distance = getNextNodeDist(train_data->landmark, train_global->switch_table, &direction);
 					position_alarm = start_time - (forward_distance << 14) / train_data->velocity ;
 					predict_dest = train_data->landmark->edge[direction].dest;
+					
+					// exit prediction
+					if (!stop_alarm) {
+						int ret = exitCheck(train_data->landmark, train_global->switch_table, train_data->stop_dist[speed % 16] - (train_data->ht_length[train_data->direction] << 14));
+						if (ret >= 0) {
+							stop_alarm = start_time - ret / train_data->velocity;
+						}
+					}
 				}
 			}
-			if (forward_distance) {
+			if (stop_alarm > timer) {
+				setTrainSpeed(train_id, 0, com1_tid);
+				train_data->velocity = 0;
+				speed = 0;
+				position_alarm = 0;
+			}
+			if (forward_distance && train_data->velocity) {
 				sprintf(str_buf, "%d, %d\n", train_data->ahead_lm >> 14, forward_distance - (train_data->ahead_lm >> 14));
 				Puts(com2_tid, str_buf, 0);
 			}
@@ -156,12 +228,41 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 			case CMD_SPEED:
 				Reply(tid, NULL, 0);
 				speed = msg.cmd_msg.value;
-				train_data->velocity = train_data->velocities[speed];
+				train_data->velocity = train_data->velocities[speed % 16];
 				setTrainSpeed(train_id, speed, com1_tid);
+				if ((speed % 16) == 0) {
+					position_alarm = 0;
+				}
 				break;
 			case CMD_REVERSE:
 				Reply(tid, NULL, 0);
 				CreateWithArgs(2, trainReverser, train_id, speed, com1_tid, 0);
+				position_alarm = 0;
+				forward_distance = 0;
+				stop_alarm = 0;
+				if (train_data->direction == FORWARD) {
+					train_data->direction = BACKWARD;
+				} else {
+					train_data->direction = FORWARD;
+				}
+				/*
+				track_node *tmp = train_data->landmark;
+				train_data->landmark = predict_dest->reverse;
+				predict_dest = tmp->reverse;
+				train_data->ahead_lm = forward_distance << 14 - train_data->ahead_lm;
+				
+				// position prediction
+				start_time = getTimerValue(TIMER3_BASE);
+				position_alarm = start_time - (forward_distance << 14) / train_data->velocity;
+				stop_alarm = 0;
+				
+				// exit prediction
+				int ret = exitCheck(train_data->landmark, train_global->switch_table, train_data->stop_dist[speed % 16]);
+				if (ret >= 0) {
+					stop_alarm = start_time - (ret << 14) / train_data->velocity;
+				}
+				*/
+				
 				break;
 			case LOCATION_CHANGE:
 				Reply(tid, NULL, 0);
@@ -176,11 +277,21 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 					Puts(com2_tid, str_buf, 0);
 					train_data->ahead_lm = 0;
 					if (train_data->velocity != 0) {
+					
+						// position prediction
 						int direction;
 						start_time = getTimerValue(TIMER3_BASE);
 						forward_distance = getNextNodeDist(train_data->landmark, train_global->switch_table, &direction);
 						position_alarm = start_time - (forward_distance << 14) / train_data->velocity ;
 						predict_dest = train_data->landmark->edge[direction].dest;
+						
+						// exit prediction
+						if (!stop_alarm) {
+							int ret = exitCheck(train_data->landmark, train_global->switch_table, train_data->stop_dist[speed % 16] - (train_data->ht_length[train_data->direction] << 14));
+							if (ret >= 0) {
+								stop_alarm = start_time - ret / train_data->velocity;
+							}
+						}
 					}
 				}
 				break;

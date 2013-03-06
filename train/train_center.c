@@ -146,7 +146,7 @@ void trainCenter(TrainGlobal *train_global) {
 	cmd_tid = Create(7, trainCmdNotifier);
 	sensor_tid = Create(7, trainSensorNotifier);
 
-	Puts(com2_tid, "\e2JInitialized\n", 0);
+	Puts(com2_tid, "\e[2JInitialized\n", 0);
 
 	while(1) {
 		result = Receive(&tid, (char *)(&msg), sizeof(TrainMsg));

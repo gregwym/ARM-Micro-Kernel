@@ -35,6 +35,8 @@ void init_train37(TrainData *train) {
 	train->velocities[12] = 4333;
 	train->velocities[13] = 4733;
 	train->velocities[14] = 5166;
+	train->ht_length[0] = 20;
+	train->ht_length[1] = 120;
 
 	train->tid = -1;
 	train->speed = 0;
