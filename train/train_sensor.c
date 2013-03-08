@@ -24,7 +24,10 @@ void trainSensorNotifier() {
 	
 	/* Filter out left over sensor data */
 	while(1) {
-		if(sensor_next == 0 && data_changed) Putc(com1_tid, query);
+		if(sensor_next == 0 && data_changed) {
+			Putc(com1_tid, query);
+			data_changed = 0;
+		}
 		else break;
 
 		char new_data = Getc(com1_tid);
