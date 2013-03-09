@@ -2,6 +2,7 @@
 #include <services.h>
 #include <kern/ts7200.h>
 #include <intern/va_list.h>
+#include <intern/debug.h>
 
 char c2x( char ch ) {
 	if ( (ch <= 9) ) return '0' + ch;
@@ -145,14 +146,6 @@ void format ( int channel, char *fmt, va_list va ) {
 	}
 }
 
-void iprintf( char *fmt, ... ) {
-	va_list va;
-
-	va_start(va,fmt);
-	format( COM2, fmt, va );
-	va_end(va);
-}
-
 /* sprintf */
 
 char *sputc( char *dst, char ch ) {
@@ -235,4 +228,16 @@ int sprintf( char *dst, char *fmt, ... ) {
 	char * now = sformat( dst, fmt, va );
 	va_end(va);
 	return now - dst;
+}
+
+void iprintf( int server_tid, unsigned int expect_len, char *fmt, ... ) {
+	va_list va;
+
+	va_start(va,fmt);
+	char __tmp_str[expect_len];
+	char * now = sformat( __tmp_str, fmt, va );
+	va_end(va);
+
+	assert(now - __tmp_str < expect_len, "iprintf string buffer overflowed");
+	Puts(server_tid, __tmp_str, now - __tmp_str);
 }
