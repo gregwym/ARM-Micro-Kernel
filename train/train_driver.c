@@ -193,8 +193,8 @@ inline void dijkstra_update(Heap *dist_heap, HeapNode *heap_nodes, track_node **
 	}
 }
 
-int dijkstra(const track_node *track_nodes, const track_node *src,
-              const track_node *dest, track_node **route) {
+int dijkstra(track_node *track_nodes, track_node *src,
+              track_node *dest, track_node **route) {
 	if (src == NULL || dest == NULL) {
 		assert(0, "dijkstra get null src or dest");
 		return TRACK_MAX;
@@ -319,7 +319,6 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 	char str_buf[1024];
 	int forward_distance;	// zx unit
 	
-	unsigned int velocity_alarm = 0;
 	// unsigned int position_alarm = 0;
 	// unsigned int stop_alarm = 0;
 	int dist_before_stop = -1; 		// zx unit, distance from current landmark and stop point
@@ -344,7 +343,6 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 
 	// track_node *prev_landmark = &(track_nodes[0]);
 	// track_node *cur_landmark = &(track_nodes[0]);
-	int dist_traveled = -1;
 	
 	int secretary_tid = Create(2, trainSecretary);
 
@@ -475,7 +473,7 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 				speed = 0;
 				
 				start_time = getTimerValue(TIMER3_BASE);
-				reverse_alarm = start_time - 4000;
+				reverse_alarm = start_time - 4000 * (speed_before_reverse % 16) / 14;
 				
 				break;
 			case LOCATION_CHANGE:

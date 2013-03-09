@@ -30,7 +30,7 @@ void trainSensorNotifier() {
 		}
 		else break;
 
-		char new_data = Getc(com1_tid);
+		int new_data = Getc(com1_tid);
 		assert(new_data >= 0, "Fail to get");
 		if(new_data != 0) data_changed = TRUE;
 
@@ -52,9 +52,10 @@ void trainSensorNotifier() {
 		}
 
 		// Get and save new data
-		char new_data = Getc(com1_tid);
+		int new_data = Getc(com1_tid);
+		assert(new_data >= 0, "Fail to get");
 		if(msg.sensor_data[sensor_next] != new_data) {
-			msg.sensor_data[sensor_next] = new_data;
+			msg.sensor_data[sensor_next] = new_data & 0xff;
 			data_changed = TRUE;
 		}
 
