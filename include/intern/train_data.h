@@ -26,7 +26,7 @@ typedef struct train_data {
 	volatile int	speed;
 	volatile int	velocity;
 	volatile TrainDirection	direction;
-	volatile track_node* landmark;
+	track_node * volatile landmark;
 	volatile int	ahead_lm;
 } TrainData;
 

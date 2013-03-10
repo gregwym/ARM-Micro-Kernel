@@ -24,10 +24,13 @@ void trainSensorNotifier() {
 	
 	/* Filter out left over sensor data */
 	while(1) {
-		if(sensor_next == 0 && data_changed) Putc(com1_tid, query);
+		if(sensor_next == 0 && data_changed) {
+			Putc(com1_tid, query);
+			data_changed = 0;
+		}
 		else break;
 
-		char new_data = Getc(com1_tid);
+		int new_data = Getc(com1_tid);
 		assert(new_data >= 0, "Fail to get");
 		if(new_data != 0) data_changed = TRUE;
 
@@ -49,9 +52,10 @@ void trainSensorNotifier() {
 		}
 
 		// Get and save new data
-		char new_data = Getc(com1_tid);
+		int new_data = Getc(com1_tid);
+		assert(new_data >= 0, "Fail to get");
 		if(msg.sensor_data[sensor_next] != new_data) {
-			msg.sensor_data[sensor_next] = new_data;
+			msg.sensor_data[sensor_next] = new_data & 0xff;
 			data_changed = TRUE;
 		}
 
