@@ -82,33 +82,14 @@ int getNextNodeDist(track_node *cur_node, char *switch_table, int *direction) {
 	}
 }
 
-int stopCheck(track_node *cur_node, char *switch_table, int stop_distance, track_node *stop_node, track_node **route, int check_point, int com2_tid) {
-	
-	char str_buf[100];
-	sprintf(str_buf, "stop node distance: %d\n", stop_distance);
-	Puts(com2_tid, str_buf, 0);
-	str_buf[0] = '\0';
+int stopCheck(track_node *cur_node, int ahead, char *switch_table, int stop_distance, track_node *stop_node, track_node **route, int check_point, int com2_tid) {
 	
 	int distance = 0;
-	int next_distance = 0;
 	int direction;
 	track_node *checked_node = cur_node;
-	switch(checked_node->type) {
-		case NODE_SENSOR:
-		case NODE_MERGE:
-			next_distance += (checked_node->edge[DIR_AHEAD].dist << 14);
-			break;
-		case NODE_BRANCH:
-			direction = switch_table[switchIdToIndex(checked_node->num)] - 33;
-			next_distance += (checked_node->edge[direction].dist << 14);
-			break;
-		default:
-			return 0;
-	}
-	
 	int hit_exit = 0;
 	if (stop_node == NULL) {
-		while (distance < (stop_distance + next_distance) && !hit_exit) {
+		while (distance < (stop_distance + ahead) && !hit_exit) {
 			switch(checked_node->type) {
 				case NODE_SENSOR:
 				case NODE_MERGE:
@@ -130,7 +111,7 @@ int stopCheck(track_node *cur_node, char *switch_table, int stop_distance, track
 			}
 		}
 	} else {
-		for (; distance < (stop_distance + next_distance) && !hit_exit; check_point++) {
+		for (; distance < (stop_distance + ahead) && !hit_exit; check_point++) {
 			if (stop_node == route[check_point]) {
 				hit_exit = 1;
 				break;
@@ -157,14 +138,15 @@ int stopCheck(track_node *cur_node, char *switch_table, int stop_distance, track
 		// } else {
 			// return next_distance - safe_dist;
 		// }
-		if (distance < stop_distance) {
+		if ((stop_distance + ahead) - distance > (20 << 14)) {
 			assert(0, "WARNING!   TRAIN IS GONNA CRASH!");
-			return 0;
-		} else {
-			return distance - stop_distance;
 		}
+		char str_buf[50];
+		sprintf(str_buf, "stop dist: %d\n", stop_distance >> 14);
+		Puts(com2_tid, str_buf, 0);
+		return 1;
 	}
-	return -1;
+	return 0;
 }
 	
 
@@ -296,8 +278,25 @@ void changeNextSW(track_node **route, int check_point, char *switch_table, int c
 		}
 	}
 }
-				
-		
+
+int find_stop_dist(TrainData *train_data) {
+	int i = -1;
+	if (train_data->velocity >= train_data->velocities[7]) {
+		for (i = 7; i < 15; i++) {
+			if (train_data->velocities[i] > train_data->velocity) {
+				break;
+			}
+		}
+	} else {
+		for (i = 1; i < 7; i++) {
+			if (train_data->velocities[i] > train_data->velocity) {
+				break;
+			}
+		}
+	}
+	i -= 1;
+	return train_data->stop_dist[i] + (train_data->ht_length[train_data->direction] << 14);
+}
 
 void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 	track_node *track_nodes = train_global->track_nodes;
@@ -321,7 +320,6 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 	
 	// unsigned int position_alarm = 0;
 	// unsigned int stop_alarm = 0;
-	int dist_before_stop = -1; 		// zx unit, distance from current landmark and stop point
 	unsigned int reverse_alarm = 0;
 	// unsigned int freeze_point = 0;
 	int acceleration = 0;
@@ -369,21 +367,25 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 				if (train_data->velocity < train_data->velocities[speed % 16]) {
 					train_data->velocity = train_data->velocities[speed % 16];
 					acceleration = 0;
+					if (train_data->velocity == 0) {
+						stop_node = NULL;
+						check_point = -1;
+					}
 				}
 			}
 			
-			if (dist_before_stop != -1) {
-				if (train_data->ahead_lm > dist_before_stop) {
-					setTrainSpeed(train_id, 0, com1_tid);
-					sprintf(str_buf, "stop node %s, distance: %d\n", train_data->landmark->name, dist_before_stop >> 14);
-					Puts(com2_tid, str_buf, 0);
-					str_buf[0] = '\0';
-					dist_before_stop = -1;
-					speed = 0;
-					acceleration = -1;
+			if (speed % 16 != 0) {
+				if (stopCheck(train_data->landmark, train_data->ahead_lm, train_global->switch_table, 
+					find_stop_dist(train_data), stop_node, route, check_point, com2_tid)) {
+						setTrainSpeed(train_id, 0, com1_tid);
+						sprintf(str_buf, "stop node %s, distance: %d\n", train_data->landmark->name, train_data->ahead_lm >> 14);
+						Puts(com2_tid, str_buf, 0);
+						str_buf[0] = '\0';
+						speed = 0;
+						acceleration = -1;
 				}
 			}
-				
+			
 			if (train_data->ahead_lm > forward_distance && predict_dest->type == NODE_EXIT) {
 				train_data->landmark = predict_dest;
 				train_data->ahead_lm = 0;
@@ -404,12 +406,6 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 					predict_dest = train_data->landmark->edge[direction].dest;
 					if (predict_dest->type != NODE_SENSOR) {
 						predict_location = 1;
-					}
-				}
-				if (dist_before_stop == -1 && speed%16 != 0) {
-					int ret = stopCheck(train_data->landmark, train_global->switch_table, train_data->stop_dist[speed % 16] + (train_data->ht_length[train_data->direction] << 14), stop_node, route, check_point, com2_tid);
-					if (ret >= 0) {
-						dist_before_stop = ret;
 					}
 				}
 				if (check_point != -1) {
@@ -523,12 +519,6 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 					predict_dest = train_data->landmark->edge[direction].dest;
 					if (predict_dest->type != NODE_SENSOR) {
 						predict_location = 1;
-					}
-				}
-				if (dist_before_stop == -1 && speed%16 != 0) {
-					int ret = stopCheck(train_data->landmark, train_global->switch_table, train_data->stop_dist[speed % 16] + (train_data->ht_length[train_data->direction] << 14), stop_node, route, check_point, com2_tid);
-					if (ret >= 0) {
-						dist_before_stop = ret;
 					}
 				}
 				break;
