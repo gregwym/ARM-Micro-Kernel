@@ -83,7 +83,7 @@ int deliverCmd(char *input, const char **train_cmds, int tid) {
 				} else {
 					return -1;
 				}
-			} else if (token[0] = 'E' && token[1] == 'N' && token[2] >= '1' && token[2] <= '9') {
+			} else if (token[0] == 'E' && token[1] == 'N' && token[2] >= '1' && token[2] <= '9') {
 				int index = tr_atoi(&(token[2]));
 				if (index <= 7) {
 					cmd_msg.value = 124 + (index - 1) * 2;
@@ -92,7 +92,7 @@ int deliverCmd(char *input, const char **train_cmds, int tid) {
 				} else {
 					return -1;
 				}
-			} else if (token[0] = 'E' && token[1] == 'X' && token[2] >= '1' && token[2] <= '9') {
+			} else if (token[0] == 'E' && token[1] == 'X' && token[2] >= '1' && token[2] <= '9') {
 				int index = tr_atoi(&(token[2]));
 				if (index <= 7) {
 					cmd_msg.value = 124 + (index - 1) * 2 + 1;
