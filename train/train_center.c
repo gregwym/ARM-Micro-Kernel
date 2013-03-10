@@ -70,8 +70,8 @@ inline void handleSensorUpdate(char *new_data, char *saved_data, char *buf, Trai
 				new_bit = new_byte & SENSOR_BIT_MASK;
 
 				// If the bit changed
-				if(old_bit != new_bit) {
-					int sensor_id = (SENSOR_BYTE_SIZE * (i % 2)) + (SENSOR_BYTE_SIZE - j);
+				if(old_bit != new_bit && new_bit) {
+					// int sensor_id = (SENSOR_BYTE_SIZE * (i % 2)) + (SENSOR_BYTE_SIZE - j);
 					// buf_cursor += sprintf(buf_cursor, "%c%d -> %d, ", decoder_id, sensor_id, new_bit);
 					// Deliver location change to drivers
 					for(k = 0; k < TRAIN_MAX; k++) {
@@ -158,11 +158,12 @@ void trainCenter(TrainGlobal *train_global) {
 				handleSensorUpdate(msg.sensor_msg.sensor_data, sensor_data, str_buf, train_global);
 				break;
 			case CMD_SPEED:
+			case CMD_GOTO:
 				Reply(tid, NULL, 0);
 				assert(msg.cmd_msg.id < TRAIN_NUM_MAX, "Exceed max train number");
 				tid = train_tid[msg.cmd_msg.id];
 				if(tid >= 0) {
-					CreateWithArgs(2, cmdPostman, train_tid[msg.cmd_msg.id], CMD_SPEED, msg.cmd_msg.value, 0);
+					CreateWithArgs(2, cmdPostman, train_tid[msg.cmd_msg.id], msg.type, msg.cmd_msg.value, 0);
 				}
 				break;
 			case CMD_REVERSE:

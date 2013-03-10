@@ -38,6 +38,7 @@ typedef enum train_msg_type {
 	CMD_REVERSE,
 	CMD_SWITCH,
 	CMD_QUIT,
+	CMD_GOTO,
 	CMD_MAX,
 	SENSOR_DATA,
 	LOCATION_CHANGE,
@@ -71,5 +72,7 @@ void trainSensorNotifier();
 void trainclockserver();
 void trainDriver(TrainGlobal *train_global, TrainData *train_data);
 int switchIdToIndex(int id);
+void switchChanger();
+void changeSwitch(int switch_id, int direction, int com1_tid);
 
 #endif // __TRAIN_H__

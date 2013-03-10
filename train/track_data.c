@@ -3,8 +3,18 @@
 #include <unistd.h>
 #include <intern/track_data.h>
 
+inline void init_track(track_node *track) {
+  int i;
+  for(i = 0; i < TRACK_MAX; i++) {
+    track[i].index = i;
+    track[i].type = NODE_NONE;
+	track[i].name = "DEADBEEF";
+  }
+}
+
 void init_tracka(track_node *track) {
   memset(track, 0, TRACK_MAX*sizeof(track_node));
+  init_track(track);
   track[0].name = "A1";
   track[0].type = NODE_SENSOR;
   track[0].num = 0;
@@ -1189,6 +1199,7 @@ void init_tracka(track_node *track) {
 
 void init_trackb(track_node *track) {
   memset(track, 0, TRACK_MAX*sizeof(track_node));
+  init_track(track);
   track[0].name = "A1";
   track[0].type = NODE_SENSOR;
   track[0].num = 0;
