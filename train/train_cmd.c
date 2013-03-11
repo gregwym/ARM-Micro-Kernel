@@ -85,8 +85,10 @@ int deliverCmd(char *input, const char **train_cmds, int tid) {
 				}
 			} else if (token[0] == 'E' && token[1] == 'N' && token[2] >= '1' && token[2] <= '9') {
 				int index = tr_atoi(&(token[2]));
-				if (index <= 7) {
+				if (index <= 5) {
 					cmd_msg.value = 124 + (index - 1) * 2;
+				} else if (index == 7) {
+					cmd_msg.value = 134;
 				} else if (index == 9 || index == 10) {
 					cmd_msg.value = 136 + (index - 9) * 2;
 				} else {
@@ -94,8 +96,10 @@ int deliverCmd(char *input, const char **train_cmds, int tid) {
 				}
 			} else if (token[0] == 'E' && token[1] == 'X' && token[2] >= '1' && token[2] <= '9') {
 				int index = tr_atoi(&(token[2]));
-				if (index <= 7) {
+				if (index <= 5) {
 					cmd_msg.value = 124 + (index - 1) * 2 + 1;
+				} else if (index == 7) {
+					cmd_msg.value = 135;
 				} else if (index == 9 || index == 10) {
 					cmd_msg.value = 136 + (index - 9) * 2 + 1;
 				} else {

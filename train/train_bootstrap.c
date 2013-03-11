@@ -44,7 +44,7 @@ void trainBootstrap() {
 
 	iprintf(train_global.com2_tid, 10, "\e[%d;%dH", 8, 2);
 	for (i = 153; i < 157; i++) {
-		iprintf(train_global.com2_tid, 10, "%d:? ", i);
+		iprintf(train_global.com2_tid, 10, "%d:C ", i);
 	}
 	
 	iprintf(train_global.com2_tid, 30, "\e[%d;%dHTrain Position:", 10, 2);
