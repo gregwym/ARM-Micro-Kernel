@@ -64,19 +64,22 @@ void trainclockserver() {
 	while (1) {
 		tick += 10;
 		DelayUntil(tick);
-		misec[11] = '0' + (tick / 10) % 10;
-		Puts(com2_tid, misec, 15);
+		iprintf(com2_tid, 20, "\e[s\e[%d;%dH%d\e[u", 1, 13, (tick / 10) % 10);
 		if (sec != tick / 100) {
 			sec = tick / 100 % 60;
-			second[11] = '0' + sec / 10;
-			second[12] = '0' + sec % 10;
-			Puts(com2_tid, second, 16);
+			if (sec >= 10) { 
+				iprintf(com2_tid, 20, "\e[s\e[%d;%dH%d\e[u", 1, 10, sec);
+			} else {
+				iprintf(com2_tid, 20, "\e[s\e[%d;%dH0%d\e[u", 1, 10, sec);
+			}
 		}
 		if (min != tick / 6000) {
 			min = tick / 6000;
-			minute[11] = '0' + min / 10;
-			minute[12] = '0' + min % 10;
-			Puts(com2_tid, minute, 16);
+			if (min >= 10) {
+				iprintf(com2_tid, 20, "\e[s\e[%d;%dH%d\e[u", 1, 7, min);
+			} else {
+				iprintf(com2_tid, 20, "\e[s\e[%d;%dH0%d\e[u", 1, 7, min);
+			}
 		}
 	}
 }

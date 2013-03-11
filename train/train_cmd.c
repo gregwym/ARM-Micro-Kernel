@@ -146,10 +146,10 @@ void trainCmdNotifier() {
 			case '\r':
 				if (input_size > 0) {
 					delivered = deliverCmd(input_array, train_cmds, parent_tid);
-					if(delivered < 0) {
-						Puts(com2_tid, "Invalid Command\n", 0);
-					}
-					// Puts(com2_tid, "\e[3;1H\e[K", 0);
+					// if(delivered < 0) {
+						// Puts(com2_tid, "Invalid Command\n", 0);
+					// }
+					Puts(com2_tid, "\e[3;1H\e[K", 0);
 					input_array[0] = '\0';
 					input_size = 0;
 				}

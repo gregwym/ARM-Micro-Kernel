@@ -113,13 +113,13 @@ void minHeapResortNode(Heap *heap, HeapNode *node){
 	int left = getLeftChild(index);
 	int right = getRightChild(index);
 	if (left <= heap->heapsize) {
-		if (data[left]->key < data[index]->key) {
-			assert(0, "node need bobble down");
-		}
-		if (right <= heap->heapsize) {
-			if (data[right]->key < data[index]->key) {
-				assert(0, "node need bobble down");
-			}
-		}
+		// if (data[left]->key < data[index]->key) {
+			// assert(0, "node need bobble down");
+		// }
+		// if (right <= heap->heapsize) {
+			// if (data[right]->key < data[index]->key) {
+				// assert(0, "node need bobble down");
+			// }
+		// }
 	}
 }
