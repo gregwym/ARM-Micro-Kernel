@@ -546,7 +546,7 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 							stop_node = NULL;
 						}
 					}
-						
+					iprintf(com2_tid, 30, "\e[s\e[%d;%dH-%d  \e[u", 17, 15, (forward_distance - train_data->ahead_lm) >> 14);
 					train_data->ahead_lm = 0;
 					
 					forward_distance = getNextNodeDist(train_data->landmark, train_global->switch_table, &direction);
@@ -557,7 +557,7 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 					iprintf(com2_tid, 30, "\e[s\e[%d;%dH%s  \e[u", 11, 20, train_data->landmark->name);
 					iprintf(com2_tid, 30, "\e[s\e[%d;%dH%s  \e[u", 12, 17, predict_dest->name);
 				} else {
-					
+					iprintf(com2_tid, 30, "\e[s\e[%d;%dH%d  \e[u", 17, 15, train_data->ahead_lm >> 14);
 					train_data->ahead_lm = 0;
 				}
 				break;

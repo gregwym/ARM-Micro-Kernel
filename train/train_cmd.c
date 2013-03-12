@@ -42,7 +42,7 @@ int deliverCmd(char *input, const char **train_cmds, int tid) {
 
 			input = str2token(input, token, 8);
 			cmd_msg.value = tr_atoi(token);
-			if (cmd_msg.value < 0 || cmd_msg.value > 31) return -1;
+			if (cmd_msg.value < 0 || cmd_msg.value > 30 || cmd_msg.value == 15) return -1;
 			break;
 		case CMD_REVERSE:
 			input = str2token(input, token, 8);
