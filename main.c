@@ -5,7 +5,7 @@
 #include <kern/md_const.h>
 #include <services.h>
 
-#define TIMER_TICK_SIZE	20
+#define TIMER_TICK_SIZE	5080
 
 // Prototype for the user program main function
 void umain();
@@ -70,7 +70,7 @@ int main() {
 
 	// Setup timer
 	setTimerLoadValue(TIMER1_BASE, TIMER_TICK_SIZE);
-	setTimerControl(TIMER1_BASE, TRUE, TRUE, FALSE);
+	setTimerControl(TIMER1_BASE, TRUE, TRUE, TRUE);
 	setTimerControl(TIMER3_BASE, TRUE, FALSE, FALSE);
 
 	// Enable interrupt
