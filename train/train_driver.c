@@ -423,9 +423,9 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 					speed = 0;
 					acceleration = -4;
 				}
-				if (ret == ENTERING_EXIT) {
-					iprintf(com2_tid, 30, "\e[s\e[%d;%dHex node: %s  \e[u", 25, 2, exit_node->name);
-				}
+				// if (ret == ENTERING_EXIT) {
+					// iprintf(com2_tid, 30, "\e[s\e[%d;%dHex node: %s  \e[u", 25, 2, exit_node->name);
+				// }
 			}
 			
 			if (train_data->ahead_lm > forward_distance && predict_dest->type == NODE_EXIT) {
