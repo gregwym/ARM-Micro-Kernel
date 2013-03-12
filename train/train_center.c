@@ -164,18 +164,22 @@ void trainCenter(TrainGlobal *train_global) {
 			case CMD_SPEED:
 			case CMD_GOTO:
 				Reply(tid, NULL, 0);
-				assert(msg.cmd_msg.id < TRAIN_NUM_MAX, "Exceed max train number");
-				tid = train_tid[msg.cmd_msg.id];
-				if(tid >= 0) {
-					CreateWithArgs(2, cmdPostman, train_tid[msg.cmd_msg.id], msg.type, msg.cmd_msg.value, 0);
+				// assert(msg.cmd_msg.id < TRAIN_NUM_MAX, "Exceed max train number");
+				if (msg.cmd_msg.id < TRAIN_NUM_MAX) {
+					tid = train_tid[msg.cmd_msg.id];
+					if(tid >= 0) {
+						CreateWithArgs(2, cmdPostman, train_tid[msg.cmd_msg.id], msg.type, msg.cmd_msg.value, 0);
+					}
 				}
 				break;
 			case CMD_REVERSE:
 				Reply(tid, NULL, 0);
-				assert(msg.cmd_msg.id < TRAIN_NUM_MAX, "Exceed max train number");
-				tid = train_tid[msg.cmd_msg.id];
-				if(tid >= 0) {
-					CreateWithArgs(2, cmdPostman, train_tid[msg.cmd_msg.id], CMD_REVERSE, 0, 0);
+				// assert(msg.cmd_msg.id < TRAIN_NUM_MAX, "Exceed max train number");
+				if (msg.cmd_msg.id < TRAIN_NUM_MAX) {
+					tid = train_tid[msg.cmd_msg.id];
+					if(tid >= 0) {
+						CreateWithArgs(2, cmdPostman, train_tid[msg.cmd_msg.id], CMD_REVERSE, 0, 0);
+					}
 				}
 				break;
 			case CMD_SWITCH:

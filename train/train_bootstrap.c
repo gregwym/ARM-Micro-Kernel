@@ -62,6 +62,9 @@ void trainBootstrap() {
 	iprintf(train_global.com2_tid, 30, "\e[%d;%dHDestination: ", 15, 2);
 	// Destination node 15;15
 	
+	iprintf(train_global.com2_tid, 30, "\e[%d;%dHPred - Real: ", 17, 2);
+	// Dist diff : 17;15
+	
 	iprintf(train_global.com2_tid, 10, "\e[%d;%dH\e[s", 3, 1);
 	
 	Create(8, trainclockserver);
