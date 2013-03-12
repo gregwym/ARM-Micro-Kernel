@@ -25,7 +25,13 @@ inline void changeSwitch(int switch_id, int direction, int com1_tid) {
 }
 
 /* Workers */
-void switchChanger(int switch_id, int direction, int com1_tid) {
+void switchChanger(int switch_id, int direction, int com1_tid, int com2_tid) {
+	char state = (direction == 33 ? 'S' : 'C');
+	if (switch_id <= 18) {
+		iprintf(com2_tid, 20, "\e[s\e[%d;%dH%c\e[u", switch_id/9 + 6, ((switch_id - 1)%9)*6 + 6, state);
+	} else if (switch_id >= 153 && switch_id <= 156) {
+		iprintf(com2_tid, 20, "\e[s\e[%d;%dH%c\e[u", 8, ((switch_id - 153)%9)*6 + 6, state);
+	}
 	changeSwitch(switch_id, direction, com1_tid);
 
 	// Delay 400ms then turn off the solenoid
@@ -95,13 +101,13 @@ inline void handleSwitchCommand(CmdMsg *msg, TrainGlobal *train_global, char *bu
 	int value = msg->value;
 	char *switch_table = train_global->switch_table;
 
-	sprintf(buf, "sw #%d[%d] %d -> %d\n", id, switchIdToIndex(id),
-	        switch_table[switchIdToIndex(id)], value);
+	// sprintf(buf, "sw #%d[%d] %d -> %d\n", id, switchIdToIndex(id),
+	        // switch_table[switchIdToIndex(id)], value);
 
-	CreateWithArgs(2, switchChanger, id, value, train_global->com1_tid, 0);
+	CreateWithArgs(2, switchChanger, id, value, train_global->com1_tid, train_global->com2_tid);
 
 	switch_table[switchIdToIndex(id)] = value;
-	Puts(train_global->com2_tid, buf, 0);
+	// Puts(train_global->com2_tid, buf, 0);
 }
 
 /* Train Center */
@@ -145,8 +151,6 @@ void trainCenter(TrainGlobal *train_global) {
 
 	cmd_tid = Create(7, trainCmdNotifier);
 	sensor_tid = Create(7, trainSensorNotifier);
-
-	Puts(com2_tid, "\e[2JInitialized\n", 0);
 
 	while(1) {
 		result = Receive(&tid, (char *)(&msg), sizeof(TrainMsg));
