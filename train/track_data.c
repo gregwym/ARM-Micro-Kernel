@@ -2346,7 +2346,7 @@ void init_trackb(track_node *track) {
   track[136].edge[DIR_AHEAD].reverse = &track[25].edge[DIR_AHEAD];
   track[136].edge[DIR_AHEAD].src = &track[136];
   track[136].edge[DIR_AHEAD].dest = &track[24];
-  track[136].edge[DIR_AHEAD].dist = 50;
+  track[136].edge[DIR_AHEAD].dist = 40;
   track[137].name = "EX9";
   track[137].type = NODE_EXIT;
   track[137].reverse = &track[136];
