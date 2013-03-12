@@ -110,29 +110,30 @@ int stopCheck(track_node *cur_node, track_node **exit_node, int ahead, char *swi
 				distance += (route[check_point]->edge[DIR_AHEAD].dist << 14);
 			}
 		}
-	}
+	} else {
 	
-	while (distance < (stop_distance + ahead) && !hit_exit) {
-		switch(checked_node->type) {
-			case NODE_SENSOR:
-			case NODE_MERGE:
-			case NODE_ENTER:
-				distance += (checked_node->edge[DIR_AHEAD].dist << 14);
-				checked_node = checked_node->edge[DIR_AHEAD].dest;
-				break;
-			case NODE_BRANCH:
-				direction = switch_table[switchIdToIndex(checked_node->num)] - 33;
-				distance += (checked_node->edge[direction].dist << 14);
-				checked_node = checked_node->edge[direction].dest;
-				break;
-			case NODE_EXIT:
-				*exit_node = checked_node;
-				return ENTERING_EXIT;
-				break;
-			default:
-				bwprintf(COM2, "node type: %d\n", checked_node->type);
-				assert(0, "stopCheck function cannot find a valid node type(1)");
-				break;
+		while (distance < (stop_distance + ahead) && !hit_exit) {
+			switch(checked_node->type) {
+				case NODE_SENSOR:
+				case NODE_MERGE:
+				case NODE_ENTER:
+					distance += (checked_node->edge[DIR_AHEAD].dist << 14);
+					checked_node = checked_node->edge[DIR_AHEAD].dest;
+					break;
+				case NODE_BRANCH:
+					direction = switch_table[switchIdToIndex(checked_node->num)] - 33;
+					distance += (checked_node->edge[direction].dist << 14);
+					checked_node = checked_node->edge[direction].dest;
+					break;
+				case NODE_EXIT:
+					*exit_node = checked_node;
+					return ENTERING_EXIT;
+					break;
+				default:
+					bwprintf(COM2, "node type: %d\n", checked_node->type);
+					assert(0, "stopCheck function cannot find a valid node type(1)");
+					break;
+			}
 		}
 	}
 	
@@ -415,16 +416,16 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 			if (speed % 16 != 0) {
 				int ret = stopCheck(train_data->landmark, &exit_node, train_data->ahead_lm, train_global->switch_table, 
 					find_stop_dist(train_data), stop_node, route, check_point, com2_tid);
-					iprintf(com2_tid, 30, "\e[s\e[%d;%dHret: %d  \e[u", 24, 2, ret);
+					// iprintf(com2_tid, 30, "\e[s\e[%d;%dHret: %d  \e[u", 24, 2, ret);
 				if (ret == ENTERING_EXIT || ret == ENTERING_DEST) {
 					stop_type = ret;
 					setTrainSpeed(train_id, 0, com1_tid);
 					speed = 0;
 					acceleration = -4;
 				}
-				if (ret == ENTERING_EXIT) {
-					iprintf(com2_tid, 30, "\e[s\e[%d;%dHex node: %s  \e[u", 25, 2, exit_node->name);
-				}
+				// if (ret == ENTERING_EXIT) {
+					// iprintf(com2_tid, 30, "\e[s\e[%d;%dHex node: %s  \e[u", 25, 2, exit_node->name);
+				// }
 			}
 			
 			if (train_data->ahead_lm > forward_distance && predict_dest->type == NODE_EXIT) {
@@ -546,7 +547,7 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 							stop_node = NULL;
 						}
 					}
-						
+					iprintf(com2_tid, 30, "\e[s\e[%d;%dH-%d  \e[u", 17, 15, (forward_distance - train_data->ahead_lm) >> 14);
 					train_data->ahead_lm = 0;
 					
 					forward_distance = getNextNodeDist(train_data->landmark, train_global->switch_table, &direction);
@@ -557,7 +558,7 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 					iprintf(com2_tid, 30, "\e[s\e[%d;%dH%s  \e[u", 11, 20, train_data->landmark->name);
 					iprintf(com2_tid, 30, "\e[s\e[%d;%dH%s  \e[u", 12, 17, predict_dest->name);
 				} else {
-					
+					iprintf(com2_tid, 30, "\e[s\e[%d;%dH%d  \e[u", 17, 15, train_data->ahead_lm >> 14);
 					train_data->ahead_lm = 0;
 				}
 				break;
