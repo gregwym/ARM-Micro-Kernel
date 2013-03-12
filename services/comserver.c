@@ -2,7 +2,7 @@
 #include <klib.h>
 #include <unistd.h>
 
-#define COM_BUFFER_SIZE			1024
+#define COM_BUFFER_SIZE			4096
 #define SEND_NOTIFIER_PRIORITY	0
 #define RECEIVE_NOTIFIER_PRIORITY	0
 
