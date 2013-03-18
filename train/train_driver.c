@@ -52,7 +52,7 @@ inline void setTrainSpeed(int train_id, int speed, int com1_tid) {
 }
 
 inline int distToCM(int dist) {
-	return (dist >> 14) / 10;
+	return (dist >> 18) / 10;
 }
 
 int calcDistance(track_node *src, track_node *dest, int depth, int distance) {
@@ -108,39 +108,40 @@ int stopCheck(track_node *cur_node, track_node **exit_node, int ahead, char *swi
 	int direction;
 	track_node *checked_node = cur_node;
 	int hit_exit = 0;
-	int ck = check_point;
 
 	if (stop_node != NULL) {
 		for (; distance < (stop_distance + ahead) && !hit_exit && check_point < TRACK_MAX; check_point++) {
+			if (route[check_point]->type == NODE_EXIT) {
+				*exit_node = route[check_point];
+				return ENTERING_EXIT;
+			}
 			if (stop_node == route[check_point]) {
 				return ENTERING_DEST;
-				break;
 			}
 			if (route[check_point]->type == NODE_BRANCH && check_point + 1 < TRACK_MAX) {
 				if (route[check_point + 1] == route[check_point]->edge[DIR_STRAIGHT].dest) {
-					distance += ((route[check_point]->edge[DIR_STRAIGHT].dist) << 14);
+					distance += ((route[check_point]->edge[DIR_STRAIGHT].dist) << 18);
 				} else if (route[check_point + 1] == route[check_point]->edge[DIR_CURVED].dest) {
-					distance += ((route[check_point]->edge[DIR_CURVED].dist) << 14);
+					distance += ((route[check_point]->edge[DIR_CURVED].dist) << 18);
 				} else {
 					assert(0, "die ah sitra branch cannot find a dest");
 				}
 			} else {
-				distance += (route[check_point]->edge[DIR_AHEAD].dist << 14);
+				distance += (route[check_point]->edge[DIR_AHEAD].dist << 18);
 			}
 		}
 	} else {
-
 		while (distance < (stop_distance + ahead) && !hit_exit) {
 			switch(checked_node->type) {
 				case NODE_SENSOR:
 				case NODE_MERGE:
 				case NODE_ENTER:
-					distance += (checked_node->edge[DIR_AHEAD].dist << 14);
+					distance += (checked_node->edge[DIR_AHEAD].dist << 18);
 					checked_node = checked_node->edge[DIR_AHEAD].dest;
 					break;
 				case NODE_BRANCH:
 					direction = switch_table[switchIdToIndex(checked_node->num)] - 33;
-					distance += (checked_node->edge[direction].dist << 14);
+					distance += (checked_node->edge[direction].dist << 18);
 					checked_node = checked_node->edge[direction].dest;
 					break;
 				case NODE_EXIT:
@@ -157,7 +158,7 @@ int stopCheck(track_node *cur_node, track_node **exit_node, int ahead, char *swi
 
 	// iprintf(com2_tid, 70, "\e[s\e[31;2Hcheck_point: %d  %s \e[u", check_point, route[check_point]->name);
 	// if (hit_exit) {
-		// if ((stop_distance + ahead) - distance > (20 << 14)) {
+		// if ((stop_distance + ahead) - distance > (20 << 18)) {
 			// assert(0, "WARNING!   TRAIN IS GONNA CRASH!");
 		// }
 		// iprintf(com2_tid, 70, "\e[s\e[30;2Hdistance: %d, ahead+stop_distance: %d \e[u" , distance, ahead+stop_distance);
@@ -313,7 +314,7 @@ int find_stop_dist(TrainData *train_data) {
 		}
 	}
 	i -= 1;
-	return train_data->stop_dist[i] + (train_data->ht_length[train_data->direction] << 14);
+	return train_data->stop_dist[i] + (train_data->ht_length[train_data->direction] << 18);
 }
 
 void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
@@ -349,7 +350,7 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 	// train location initialize:
 	train_data->landmark = &(track_nodes[0]);
 	int direction;
-	forward_distance = (getNextNodeDist(train_data->landmark, train_global->switch_table, &direction)) << 14;
+	forward_distance = (getNextNodeDist(train_data->landmark, train_global->switch_table, &direction)) << 18;
 	predict_dest = train_data->landmark->edge[direction].dest;
 
 	// int predict_location = 0;
@@ -380,7 +381,7 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 			train_data->ahead_lm = train_data->ahead_lm + train_data->velocity * (prev_timer - timer);
 			cnt++;
 			if (cnt == 8) cnt = 0;
-			train_data->velocity = train_data->velocity + ((prev_timer - timer) / 4) * acceleration;
+			train_data->velocity = train_data->velocity + (prev_timer - timer) * acceleration;
 			if (cnt == 0) {
 				iprintf(com2_tid, 30, "\e[s\e[%d;%dH%d   \e[u", 14, 12, train_data->velocity);
 			}
@@ -400,7 +401,7 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 							train_data->ahead_lm = 0;
 							forward_distance = getNextNodeDist(train_data->landmark, train_global->switch_table, &direction);
 							if (forward_distance >= 0) {
-								forward_distance = forward_distance << 14;
+								forward_distance = forward_distance << 18;
 								predict_dest = train_data->landmark->edge[direction].dest;
 							} else {
 								predict_dest = stop_node;
@@ -413,7 +414,7 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 							train_data->ahead_lm = 0;
 							forward_distance = getNextNodeDist(train_data->landmark, train_global->switch_table, &direction);
 							if (forward_distance >= 0) {
-								forward_distance = forward_distance << 14;
+								forward_distance = forward_distance << 18;
 								predict_dest = train_data->landmark->edge[direction].dest;
 							} else {
 								predict_dest = exit_node;
@@ -439,11 +440,11 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 					stop_type = ret;
 					setTrainSpeed(train_id, 0, com1_tid);
 					speed = 0;
-					acceleration = -4;
+					acceleration = -16;
 				}
-				// if (ret == ENTERING_EXIT) {
-					// iprintf(com2_tid, 30, "\e[s\e[%d;%dHex node: %s  \e[u", 25, 2, exit_node->name);
-				// }
+				if (ret == ENTERING_EXIT) {
+					iprintf(com2_tid, 30, "\e[s\e[%d;%dHex node: %s  \e[u", 25, 2, exit_node->name);
+				}
 			}
 
 			if (train_data->ahead_lm > forward_distance && predict_dest->type == NODE_EXIT) {
@@ -466,14 +467,14 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 				train_data->ahead_lm = 0;
 				forward_distance = getNextNodeDist(train_data->landmark, train_global->switch_table, &direction);
 				if (forward_distance >= 0) {
-					forward_distance = forward_distance << 14;
+					forward_distance = forward_distance << 18;
 					predict_dest = train_data->landmark->edge[direction].dest;
 				} else {
 					iprintf(com2_tid, 30, "\e[s\e[%d;%dHlocation -1 %s\e[u", 36, 2, train_data->landmark->name);
 				}
 				iprintf(com2_tid, 30, "\e[s\e[%d;%dH%s  \e[u", 11, 20, train_data->landmark->name);
 				iprintf(com2_tid, 30, "\e[s\e[%d;%dH%s  \e[u", 12, 17, predict_dest->name);
-				// iprintf(com2_tid, 30, "\e[s\e[37;2Hfd: %d\e[u", forward_distance >> 14);
+				// iprintf(com2_tid, 30, "\e[s\e[37;2Hfd: %d\e[u", forward_distance >> 18);
 			}
 
 			if (reverse_alarm > timer) {
@@ -491,13 +492,13 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 					train_data->ahead_lm = forward_distance - train_data->ahead_lm;
 				} else {
 					train_data->landmark = train_data->landmark->reverse;
-					forward_distance = (getNextNodeDist(train_data->landmark, train_global->switch_table, &direction) << 14);
+					forward_distance = (getNextNodeDist(train_data->landmark, train_global->switch_table, &direction) << 18);
 					predict_dest = train_data->landmark->edge[direction].dest;
 				}
 
 				speed = speed_before_reverse;
 				if (speed > 0) {
-					acceleration = 3;
+					acceleration = 12;
 				}
 				reverse_alarm = 0;
 			}
@@ -505,8 +506,8 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 			prev_timer = timer;
 
 			if (!cnt) {
-				iprintf(com2_tid, 30, "\e[s\e[%d;%dH%d  \e[u", 11, 40, train_data->ahead_lm >> 14);
-				iprintf(com2_tid, 30, "\e[s\e[%d;%dH%d  \e[u", 12, 38, (forward_distance - train_data->ahead_lm) >> 14);
+				iprintf(com2_tid, 30, "\e[s\e[%d;%dH%d  \e[u", 11, 40, train_data->ahead_lm >> 18);
+				iprintf(com2_tid, 30, "\e[s\e[%d;%dH%d  \e[u", 12, 38, (forward_distance - train_data->ahead_lm) >> 18);
 			}
 			continue;
 		}
@@ -518,9 +519,9 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 				speed = msg.cmd_msg.value;
 
 				if (speed % 16 > old_speed % 16) {
-					acceleration = 3;
+					acceleration = 12;
 				} else if (speed % 16 < old_speed % 16) {
-					acceleration = -4;
+					acceleration = -16;
 				}
 
 				setTrainSpeed(train_id, speed, com1_tid);
@@ -529,7 +530,7 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 				delay_time = (4000 * (speed % 16)) / 14;
 				CreateWithArgs(2, trainReverser, train_id, speed, com1_tid, delay_time);
 				Reply(tid, NULL, 0);
-				acceleration = -4;
+				acceleration = -16;
 				speed_before_reverse = speed;
 				speed = 0;
 
@@ -565,7 +566,7 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 							stop_node = NULL;
 						}
 					}
-					iprintf(com2_tid, 30, "\e[s\e[%d;%dH-%d  \e[u", 17, 15, (forward_distance - train_data->ahead_lm) >> 14);
+					iprintf(com2_tid, 30, "\e[s\e[%d;%dH-%d  \e[u", 17, 15, (forward_distance - train_data->ahead_lm) >> 18);
 					train_data->ahead_lm = 0;
 
 					forward_distance = getNextNodeDist(train_data->landmark, train_global->switch_table, &direction);
@@ -576,7 +577,7 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 					iprintf(com2_tid, 30, "\e[s\e[%d;%dH%s  \e[u", 11, 20, train_data->landmark->name);
 					iprintf(com2_tid, 30, "\e[s\e[%d;%dH%s  \e[u", 12, 17, predict_dest->name);
 				} else {
-					iprintf(com2_tid, 30, "\e[s\e[%d;%dH%d  \e[u", 17, 15, train_data->ahead_lm >> 14);
+					iprintf(com2_tid, 30, "\e[s\e[%d;%dH%d  \e[u", 17, 15, train_data->ahead_lm >> 18);
 					train_data->ahead_lm = 0;
 				}
 
@@ -624,7 +625,7 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 						changeNextSW(route, check_point, train_global->switch_table, com1_tid, com2_tid);
 						CreateWithArgs(2, trainReverser, train_id, speed, com1_tid, 0);
 						// Reply(tid, NULL, 0);
-						// acceleration = -4;
+						// acceleration = -16;
 						// speed_before_reverse = speed;
 						// speed = 0;
 
