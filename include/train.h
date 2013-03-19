@@ -28,6 +28,7 @@
 typedef struct train_global {
 	int com1_tid;
 	int com2_tid;
+	int center_tid;
 	track_node	*track_nodes;
 	char		*switch_table;
 	TrainData	*train_data;
