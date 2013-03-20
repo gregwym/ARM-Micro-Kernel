@@ -28,9 +28,11 @@
 typedef struct train_global {
 	int com1_tid;
 	int com2_tid;
+	int center_tid;
 	track_node	*track_nodes;
 	char		*switch_table;
 	TrainData	*train_data;
+	int			*track_reservation;
 } TrainGlobal;
 
 typedef enum train_msg_type {
@@ -42,6 +44,9 @@ typedef enum train_msg_type {
 	CMD_MAX,
 	SENSOR_DATA,
 	LOCATION_CHANGE,
+	TRACK_RESERVE,
+	TRACK_RESERVE_FAIL,
+	TRACK_RESERVE_SUCCEED,
 	TRAIN_MSG_MAX,
 } TrainMsgType;
 
@@ -50,19 +55,27 @@ typedef struct sensor_msg {
 	char			sensor_data[SENSOR_BYTES_TOTAL];
 } SensorMsg;
 
-typedef struct cmd_msg {
+struct pair_msg {
 	TrainMsgType	type;
 	int				id;
 	int				value;
-} CmdMsg;
+};
+typedef struct pair_msg CmdMsg;
+typedef struct pair_msg LocationMsg;
 
-typedef CmdMsg LocationMsg;
+typedef struct {
+	TrainMsgType	type;
+	int				train_id;
+	int				landmark_id;
+	int				distance;
+} ReservationMsg;
 
 typedef union train_msg {
 	TrainMsgType	type;
 	SensorMsg		sensor_msg;
 	CmdMsg			cmd_msg;
 	LocationMsg		location_msg;
+	ReservationMsg	reservation_msg;
 } TrainMsg;
 
 void trainBootstrap();

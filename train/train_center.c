@@ -5,7 +5,7 @@
 
 #define SWITCH_DELAY		40
 #define SWITCH_INIT_DELAY	500
-#define TRAIN_NUM_MAX		50
+
 #define TRAIN_INIT_DELAY	200
 
 /* Helpers */
@@ -110,6 +110,106 @@ inline void handleSwitchCommand(CmdMsg *msg, TrainGlobal *train_global, char *bu
 	// Puts(train_global->com2_tid, buf, 0);
 }
 
+void reserveTrack(TrainGlobal *train_global, int train_id, int landmark_id, int distance) {
+	int *track_reservation = train_global->track_reservation;
+	track_node *track_nodes = train_global->track_nodes;
+	track_node *current = &(track_nodes[landmark_id]);
+
+	// Reserve current landmark
+	track_reservation[current->index] = train_id;
+	track_reservation[current->reverse->index] = train_id;
+
+	// Reserve along the way until run out of distance or reach a Branch/Exit
+	while(distance >= 0 && current->type != NODE_BRANCH && current->type != NODE_EXIT) {
+		// Deduct current the distance to the next landmark
+		distance -= current->edge[DIR_AHEAD].dist;
+
+		// Set current to the next
+		current = current->edge[DIR_AHEAD].dest;
+
+		// Reserve both direction node
+		track_reservation[current->index] = train_id;
+		track_reservation[current->reverse->index] = train_id;
+	}
+
+	if(distance < 0 || current->type == NODE_EXIT) return;
+
+	// If reach a branch
+	reserveTrack(train_global, train_id, current->edge[DIR_STRAIGHT].dest->index, distance - current->edge[DIR_STRAIGHT].dist);
+	reserveTrack(train_global, train_id, current->edge[DIR_CURVED].dest->index, distance - current->edge[DIR_CURVED].dist);
+}
+
+int trackAvailability(TrainGlobal *train_global, int train_id, int landmark_id, int distance) {
+	int *track_reservation = train_global->track_reservation;
+	track_node *track_nodes = train_global->track_nodes;
+	track_node *current = &(track_nodes[landmark_id]);
+
+	DEBUG(DB_RESERVE, "%s\t%d\n", current->name, distance);
+
+	// Check current landmark
+	if(track_reservation[current->index] != -1 &&
+	   track_reservation[current->index] != train_id) {
+	   	DEBUG(DB_RESERVE, "%s\tF\n", current->name);
+		return FALSE;
+	}
+
+	// Check along the way until run out of distance or reach a Branch/Exit
+	while(distance >= 0 && current->type != NODE_BRANCH && current->type != NODE_EXIT) {
+		// Deduct current the distance to the next landmark
+		distance -= current->edge[DIR_AHEAD].dist;
+
+		// Set current to the next
+		current = current->edge[DIR_AHEAD].dest;
+
+		DEBUG(DB_RESERVE, "%s\t%d\n", current->name, distance);
+		// Check both direction node
+		if(track_reservation[current->index] != -1 &&
+		   track_reservation[current->index] != train_id) {
+		   	bwprintf(COM2, "%s\tF\n", current->name);
+			return FALSE;
+		}
+	}
+
+	if(distance < 0 || current->type == NODE_EXIT) {
+		DEBUG(DB_RESERVE, "%s\tT\n", current->name);
+		return TRUE;
+	}
+
+	// If reach a branch
+	return trackAvailability(train_global, train_id, current->edge[DIR_STRAIGHT].dest->index, distance - current->edge[DIR_STRAIGHT].dist) &&
+	trackAvailability(train_global, train_id, current->edge[DIR_CURVED].dest->index, distance - current->edge[DIR_CURVED].dist);
+}
+
+inline TrainMsgType handleTrackReserve(TrainGlobal *train_global, int train_id, int landmark_id, int distance) {
+	TrainData *train_data = train_global->train_data;
+	TrainData *train = NULL;
+	int i;
+
+	for(i = 0; i < TRAIN_MAX; i++) {
+		if(train_data[i].id == train_id) {
+			train = &(train_data[i]);
+			break;
+		}
+	}
+	assert(train != NULL, "handleTrackReserve: Unable to find train_id");
+
+	if(!trackAvailability(train_global, train_id, landmark_id, distance)) {
+		return TRACK_RESERVE_FAIL;
+	}
+
+	// Clear previous reservation
+	reserveTrack(train_global, -1, train->reservation_record.landmark_id, train->reservation_record.distance);
+
+	// Reserve for this time
+	reserveTrack(train_global, train_id, landmark_id, distance);
+
+	// Save reservation record
+	train->reservation_record.landmark_id = landmark_id;
+	train->reservation_record.distance = distance;
+
+	return TRACK_RESERVE_SUCCEED;
+}
+
 /* Train Center */
 void trainCenter(TrainGlobal *train_global) {
 
@@ -163,6 +263,7 @@ void trainCenter(TrainGlobal *train_global) {
 				break;
 			case CMD_SPEED:
 			case CMD_GOTO:
+			case CMD_REVERSE:
 				Reply(tid, NULL, 0);
 				// assert(msg.cmd_msg.id < TRAIN_NUM_MAX, "Exceed max train number");
 				if (msg.cmd_msg.id < TRAIN_NUM_MAX) {
@@ -172,22 +273,16 @@ void trainCenter(TrainGlobal *train_global) {
 					}
 				}
 				break;
-			case CMD_REVERSE:
-				Reply(tid, NULL, 0);
-				// assert(msg.cmd_msg.id < TRAIN_NUM_MAX, "Exceed max train number");
-				if (msg.cmd_msg.id < TRAIN_NUM_MAX) {
-					tid = train_tid[msg.cmd_msg.id];
-					if(tid >= 0) {
-						CreateWithArgs(2, cmdPostman, train_tid[msg.cmd_msg.id], CMD_REVERSE, 0, 0);
-					}
-				}
-				break;
 			case CMD_SWITCH:
 				Reply(tid, NULL, 0);
 				handleSwitchCommand(&(msg.cmd_msg), train_global, str_buf);
 				break;
 			case CMD_QUIT:
 				Halt();
+				break;
+			case TRACK_RESERVE:
+				msg.type = handleTrackReserve(train_global, msg.reservation_msg.train_id, msg.reservation_msg.landmark_id, msg.reservation_msg.distance);
+				Reply(tid, (char *)(&(msg.type)), sizeof(TrainMsgType));
 				break;
 			default:
 				sprintf(str_buf, "Center got unknown msg, type: %d\n", msg.type);

@@ -5,7 +5,7 @@
 
 void trainBootstrap() {
 
-	/* initial UI */
+	int tid;
 
 	/* Track Data */
 	track_node track_nodes[TRACK_MAX];
@@ -19,6 +19,10 @@ void trainBootstrap() {
 	TrainData train_data[TRAIN_MAX];
 	init_train37(&(train_data[0]));
 
+	/* Track Reservation */
+	int track_reservation[TRACK_MAX];
+	memset(track_reservation, -1, sizeof(int) * TRACK_MAX);
+
 	/* Train Global */
 	TrainGlobal train_global;
 	train_global.com1_tid = WhoIs(COM1_REG_NAME);
@@ -26,7 +30,9 @@ void trainBootstrap() {
 	train_global.track_nodes = track_nodes;
 	train_global.switch_table = switch_table;
 	train_global.train_data = train_data;
+	train_global.track_reservation = track_reservation;
 
+	/* initial UI */
 	iprintf(train_global.com2_tid, 10, "\e[2J");
 	iprintf(train_global.com2_tid, 30, "\e[1;1HTime: 00:00.0");
 	iprintf(train_global.com2_tid, 20, "\e[2;1HCommand:");
@@ -46,9 +52,9 @@ void trainBootstrap() {
 	for (i = 153; i < 157; i++) {
 		iprintf(train_global.com2_tid, 10, "%d:C ", i);
 	}
-	
+
 	iprintf(train_global.com2_tid, 30, "\e[%d;%dHTrain Position:", 10, 2);
-	
+
 	iprintf(train_global.com2_tid, 30, "\e[%d;%dHCurrent Location:", 11, 2);
 	// current node name 11;20
 	iprintf(train_global.com2_tid, 30, "\e[%d;%dHHas Gone:\e[%d;%dHmm", 11, 30, 11, 46);
@@ -61,16 +67,16 @@ void trainBootstrap() {
 	// velocity 14;12
 	iprintf(train_global.com2_tid, 30, "\e[%d;%dHDestination: ", 15, 2);
 	// Destination node 15;15
-	
+
 	iprintf(train_global.com2_tid, 30, "\e[%d;%dHPred - Real: ", 17, 2);
 	// Dist diff : 17;15
-	
-	iprintf(train_global.com2_tid, 10, "\e[%d;%dH\e[s", 3, 1);
-	
-	Create(8, trainclockserver);
-	CreateWithArgs(8, trainCenter, (int)(&train_global), 0, 0, 0);
 
-	int tid;
+	iprintf(train_global.com2_tid, 10, "\e[%d;%dH\e[s", 3, 1);
+
+	Create(8, trainclockserver);
+	tid = CreateWithArgs(8, trainCenter, (int)(&train_global), 0, 0, 0);
+	train_global.center_tid = tid;
+
 	Receive(&tid, NULL, 0);
 
 	assert(0, "Train Bootstrap exit");
