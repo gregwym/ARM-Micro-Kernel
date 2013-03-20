@@ -19,6 +19,10 @@ void trainBootstrap() {
 	TrainData train_data[TRAIN_MAX];
 	init_train37(&(train_data[0]));
 
+	/* Track Reservation */
+	int track_reservation[TRACK_MAX];
+	memset(track_reservation, -1, sizeof(int) * TRACK_MAX);
+
 	/* Train Global */
 	TrainGlobal train_global;
 	train_global.com1_tid = WhoIs(COM1_REG_NAME);
@@ -26,6 +30,7 @@ void trainBootstrap() {
 	train_global.track_nodes = track_nodes;
 	train_global.switch_table = switch_table;
 	train_global.train_data = train_data;
+	train_global.track_reservation = track_reservation;
 
 	/* initial UI */
 	iprintf(train_global.com2_tid, 10, "\e[2J");

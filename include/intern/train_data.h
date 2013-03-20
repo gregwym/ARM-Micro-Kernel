@@ -7,11 +7,17 @@
 #define TRAIN_SPEED_MAX	16
 
 #define TRAIN_MAX		1
+#define TRAIN_NUM_MAX	64
 
 typedef enum {
 	FORWARD,
 	BACKWARD
 } TrainDirection;
+
+typedef struct reservation {
+	int				landmark_id;
+	int				distance;
+} Reservation;
 
 typedef struct train_data {
 	/* Profile */
@@ -28,8 +34,8 @@ typedef struct train_data {
 	volatile TrainDirection	direction;
 	track_node * volatile landmark;
 	volatile int	ahead_lm;
+	Reservation		reservation_record;
 } TrainData;
-
 
 void init_train37(TrainData *train);
 

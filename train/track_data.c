@@ -8,7 +8,7 @@ inline void init_track(track_node *track) {
   for(i = 0; i < TRACK_MAX; i++) {
     track[i].index = i;
     track[i].type = NODE_NONE;
-	track[i].name = "DEADBEEF";
+    track[i].name = "DEADBEEF";
   }
 }
 
