@@ -100,9 +100,9 @@ void trainDriver(TrainGlobal *train_global, TrainProperties *train_properties) {
 				if(msg.location_msg.value) {
 					cur_landmark = &(track_nodes[msg.location_msg.id]);
 					t2 = getTimerValue(TIMER3_BASE);
-					dist_traveled = calcDistance(prev_landmark, cur_landmark, 4, 0);
-					dist_traveled = dist_traveled << 14;
-					sprintf(str_buf, "T#%d->%s\t%u\t%u\t%d\n", train_id, track_nodes[msg.location_msg.id].name, dist_traveled, dist_traveled / (t1 - t2), speed);
+					dist_traveled = calcDistance(prev_landmark, cur_landmark, 5, 0);
+					dist_traveled = dist_traveled << 18;
+					sprintf(str_buf, "T#%d->%s\t%d\t%u\t%u\n", train_id, track_nodes[msg.location_msg.id].name, speed, dist_traveled / (t1 - t2), dist_traveled);
 					Puts(com2_tid, str_buf, 0);
 					prev_landmark = cur_landmark;
 					t1 = t2;

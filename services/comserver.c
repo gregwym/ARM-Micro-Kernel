@@ -155,18 +155,18 @@ void comserver(int channel_id) {
 			Reply(tid, NULL, 0);
 			bufferPushChar(&receive_buffer, message.ch);
 			// If is from COM2, echo it
-			if(channel_id == COM2) {
-				send_array[send_size] = message.ch;
-				send_size++;
-				if (message.ch == '\b') {
-					send_array[send_size] = '\e';
-					send_size++;
-					send_array[send_size] = '[';
-					send_size++;
-					send_array[send_size] = 'K';
-					send_size++;
-				}
-			}
+			// if(channel_id == COM2) {
+			// 	send_array[send_size] = message.ch;
+			// 	send_size++;
+			// 	if (message.ch == '\b') {
+			// 		send_array[send_size] = '\e';
+			// 		send_size++;
+			// 		send_array[send_size] = '[';
+			// 		send_size++;
+			// 		send_array[send_size] = 'K';
+			// 		send_size++;
+			// 	}
+			// }
 		}
 		// Or is a getc msg, set char_getter_is_waiting and save its tid
 		else if (message.type == IO_QUERY_TYPE_GETC) {
