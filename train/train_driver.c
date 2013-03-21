@@ -108,6 +108,7 @@ int stopCheck(track_node *cur_node, track_node **exit_node, int ahead, char *swi
 	int direction;
 	track_node *checked_node = cur_node;
 	int hit_exit = 0;
+	int i;
 
 	if (stop_node != NULL && offset == -1) {
 		for (; distance < (stop_distance + ahead) && !hit_exit && check_point < TRACK_MAX; check_point++) {
@@ -132,7 +133,10 @@ int stopCheck(track_node *cur_node, track_node **exit_node, int ahead, char *swi
 			}
 		}
 	} else if (stop_node != NULL && offset != -1) {
-		while (distance < (stop_distance + ahead) && !hit_exit) {
+		while (distance + offset < (stop_distance + ahead) && !hit_exit) {
+			if (stop_node == checked_node) {
+				return ENTERING_DEST;
+			}
 			switch(checked_node->type) {
 				case NODE_SENSOR:
 				case NODE_MERGE:
@@ -141,9 +145,25 @@ int stopCheck(track_node *cur_node, track_node **exit_node, int ahead, char *swi
 					checked_node = checked_node->edge[DIR_AHEAD].dest;
 					break;
 				case NODE_BRANCH:
-					direction = switch_table[switchIdToIndex(checked_node->num)] - 33;
-					distance += (checked_node->edge[direction].dist << DIST_SHIFT);
-					checked_node = checked_node->edge[direction].dest;
+					for (; check_point < TRACK_MAX - 1; check_point++) {
+						if (route[check_point] == checked_node) {
+							if (route[check_point + 1] == route[check_point]->edge[DIR_STRAIGHT].dest) {
+								distance += ((route[check_point]->edge[DIR_STRAIGHT].dist) << DIST_SHIFT);
+								checked_node = checked_node->edge[DIR_STRAIGHT].dest;
+							} else if (route[check_point + 1] == route[check_point]->edge[DIR_CURVED].dest) {
+								distance += ((route[check_point]->edge[DIR_CURVED].dist) << DIST_SHIFT);
+								checked_node = checked_node->edge[DIR_CURVED].dest;
+							} else {
+								assert(0, "die ah sitra branch cannot find a dest(1)");
+							}
+							break;
+						}
+					}
+					if (check_point == TRACK_MAX - 1) {
+						direction = switch_table[switchIdToIndex(checked_node->num)] - 33;
+						distance += (checked_node->edge[direction].dist << DIST_SHIFT);
+						checked_node = checked_node->edge[direction].dest;
+					}
 					break;
 				case NODE_EXIT:
 					*exit_node = checked_node;
@@ -329,6 +349,25 @@ void changeNextSW(track_node **route, int check_point, char *switch_table, int c
 					CreateWithArgs(2, switchChanger, route[check_point]->num, SWITCH_CUR, com1_tid, com2_tid);
 				}
 				distance += route[check_point]->edge[DIR_CURVED].dist;
+			} else {
+				assert(0, "fail to change switch");
+			}
+		} else if (route[check_point]->type == NODE_MERGE) {
+			if (route[check_point + 1] != route[check_point]->edge[DIR_AHEAD].dest) {
+				if (route[check_point]->reverse->edge[DIR_STRAIGHT].dest == route[check_point + 1]) {
+					CreateWithArgs(2, switchChanger, route[check_point]->num, SWITCH_STR, com1_tid, com2_tid);
+					distance += (route[check_point]->reverse->edge)[DIR_STRAIGHT].dist;
+				} else if (route[check_point]->reverse->edge[DIR_CURVED].dest == route[check_point + 1]) {
+					CreateWithArgs(2, switchChanger, route[check_point]->num, SWITCH_CUR, com1_tid, com2_tid);
+					distance += (route[check_point]->reverse->edge)[DIR_CURVED].dist;
+				} else {
+					assert(0, "fail to change switch (1)");
+				}
+				if (route[check_point]->edge[DIR_AHEAD].dest->type == NODE_MERGE && route[check_point]->edge[DIR_AHEAD].dist < 240) {
+					CreateWithArgs(2, switchChanger, route[check_point]->edge[DIR_AHEAD].dest->num, SWITCH_STR, com1_tid, com2_tid);
+				}
+			} else {
+				distance += route[check_point]->edge[DIR_AHEAD].dist;
 			}
 		} else {
 			distance += route[check_point]->edge[DIR_AHEAD].dist;
@@ -355,7 +394,7 @@ int find_stop_dist(TrainData *train_data) {
 	return train_data->stop_dist[i] + (train_data->ht_length[train_data->direction] << DIST_SHIFT);
 }
 
-track_node *find_reverse_node(track_node **route, int check_point, char *switch_table, int *offset) {
+track_node *find_reverse_node(track_node **route, int check_point, char *switch_table, int *offset, track_node **merge_node) {
 	for (; check_point < TRACK_MAX - 1; check_point++) {
 		if (route[check_point]->type == NODE_MERGE && 
 			route[check_point]->edge[DIR_AHEAD].dest != route[check_point + 1]) {
@@ -366,6 +405,7 @@ track_node *find_reverse_node(track_node **route, int check_point, char *switch_
 		// find the reverse node and offset
 		int dist = 0;
 		track_node *checked_node = route[check_point];
+		*merge_node = route[check_point];
 		int continue_loop = 1;
 		int direction;
 		while (continue_loop) {
@@ -373,7 +413,7 @@ track_node *find_reverse_node(track_node **route, int check_point, char *switch_
 				case NODE_ENTER:
 				case NODE_SENSOR:
 				case NODE_MERGE:
-					if (dist + checked_node->edge[DIR_AHEAD].dist > 200){
+					if (dist + checked_node->edge[DIR_AHEAD].dist > 240){
 						continue_loop = 0;
 						break;
 					} else {
@@ -383,7 +423,7 @@ track_node *find_reverse_node(track_node **route, int check_point, char *switch_
 					}
 				case NODE_BRANCH:
 					direction = switch_table[switchIdToIndex(checked_node->num)] - 33;
-					if (dist + checked_node->edge[direction].dist > 200){
+					if (dist + checked_node->edge[direction].dist > 240){
 						continue_loop = 0;
 						break;
 					} else {
@@ -395,7 +435,7 @@ track_node *find_reverse_node(track_node **route, int check_point, char *switch_
 					assert(0, "find_reverse_node checked an exit node");
 			}
 		}
-		*offset = (200 - dist) << DIST_SHIFT;
+		*offset = (240 - dist) << DIST_SHIFT;
 		iprintf(4, 50, "\e[s\e[20;2H reverse node: %s, offset: %d\e[u", checked_node->name, (*offset) >> 18);
 		return checked_node;
 	} else {
@@ -527,7 +567,7 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 
 	// tmp deaccelerate
 	// train location initialize:
-	train_data->landmark = &(track_nodes[0]);
+	train_data->landmark = &(track_nodes[132]);
 	
 	// initialize start position
 	int tmp_direction;
@@ -553,6 +593,9 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 	int on_route = 0;
 
 	int cnt = 0;
+	
+	int reversing = 0;
+	track_node *merge_node = NULL;
 	
 	// iprintf(com2_tid, 10, "\e[s\e[20;2Hcom2: %d \e[u", com2_tid);
 	
@@ -615,7 +658,48 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 						stop_type = 0;
 						exit_node = NULL;
 						check_point = -1;
+						if (reversing) {
+							if (train_data->direction == FORWARD) {
+								train_data->direction = BACKWARD;
+							} else {
+								train_data->direction = FORWARD;
+							}
+							reversing = 0;
+							speed = speed_before_reverse;
+							CreateWithArgs(2, trainReverser, train_id, speed, com1_tid, 0);
+							if (speed > 0) {
+								acceleration = 12;
+							}
+							
+							
+							if (stop_node != NULL) {
+								updateCurrentLandmark(train_data, merge_node->reverse, train_global->switch_table, com2_tid);
+								merge_node = NULL;
+								int need_reverse = 1;
+								route_start = findRoute(track_nodes, train_data, stop_node, route, &need_reverse);
+								on_route = 1;
+								assert(need_reverse == 0, "need another reverse");
+								check_point = route_start;
+								reverse_node = find_reverse_node(route, check_point, train_global->switch_table, &reverse_node_offset, &merge_node);
+								changeNextSW(route, check_point, train_global->switch_table, com1_tid, com2_tid);
+							} else {
+								if (train_data->landmark->type != NODE_EXIT) {
+									track_node *tmp;
+									tmp = train_data->landmark;
+									train_data->landmark = train_data->predict_dest->reverse;
+									train_data->predict_dest = tmp->reverse;
+									train_data->ahead_lm = train_data->forward_distance - train_data->ahead_lm;
+								} else {
+									train_data->landmark = train_data->landmark->reverse;
+									train_data->forward_distance = (getNextNodeDist(train_data->landmark, train_global->switch_table, &tmp_direction) <<  DIST_SHIFT);
+									train_data->predict_dest = train_data->landmark->edge[tmp_direction].dest;
+								}
+							}
+							iprintf(com2_tid, 40, "\e[s\e[%d;%dH%s  \e[u", 11, 20, train_data->landmark->name);
+							iprintf(com2_tid, 40, "\e[s\e[%d;%dH%s  \e[u", 12, 17, train_data->predict_dest->name);
+						}
 					}
+					
 				}
 			}
 			
@@ -633,18 +717,20 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 					}
 					else if (ret == ENTERING_DEST) {
 						on_route = 0;
-						delay_time = (4000 * (speed % 16)) / 14;
-						CreateWithArgs(2, trainReverser, train_id, speed, com1_tid, delay_time);
+						// delay_time = (4000 * (speed % 16)) / 14;
+						// CreateWithArgs(2, trainReverser, train_id, speed, com1_tid, delay_time);
 						acceleration = -16;
 						speed_before_reverse = speed;
 						speed = 0;
 						reverse_node = NULL;
 						reverse_node_offset = 0;
-						iprintf(4, 40, "\e[s\e[20;2H reverse node:               \e[u");
+						setTrainSpeed(train_id, 0, com1_tid);
+						iprintf(4, 60, "\e[s\e[20;2H reverse node:             \e[u");
+						reversing = 1;
 					}
 				} else {
 					ret = stopCheck(train_data->landmark, &exit_node, train_data->ahead_lm, train_global->switch_table, 
-					find_stop_dist(train_data), stop_node, 0, route, check_point, com2_tid);
+					find_stop_dist(train_data), stop_node, -1, route, check_point, com2_tid);
 					if (ret == ENTERING_EXIT || ret == ENTERING_DEST) {
 						stop_type = ret;
 						setTrainSpeed(train_id, 0, com1_tid);
@@ -665,43 +751,43 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 			}
 			
 			// reverse checking
-			if (reverse_alarm > timer) {
-				if (train_data->direction == FORWARD) {
-					train_data->direction = BACKWARD;
-				} else {
-					train_data->direction = FORWARD;
-				}
+			// if (reverse_alarm > timer) {
+				// if (train_data->direction == FORWARD) {
+					// train_data->direction = BACKWARD;
+				// } else {
+					// train_data->direction = FORWARD;
+				// }
 
-				if (train_data->landmark->type != NODE_EXIT) {
-					track_node *tmp;
-					tmp = train_data->landmark;
-					train_data->landmark = train_data->predict_dest->reverse;
-					train_data->predict_dest = tmp->reverse;
-					train_data->ahead_lm = train_data->forward_distance - train_data->ahead_lm;
-				} else {
-					train_data->landmark = train_data->landmark->reverse;
-					train_data->forward_distance = (getNextNodeDist(train_data->landmark, train_global->switch_table, &tmp_direction) <<  DIST_SHIFT);
-					train_data->predict_dest = train_data->landmark->edge[tmp_direction].dest;
-				}
+				// if (train_data->landmark->type != NODE_EXIT) {
+					// track_node *tmp;
+					// tmp = train_data->landmark;
+					// train_data->landmark = train_data->predict_dest->reverse;
+					// train_data->predict_dest = tmp->reverse;
+					// train_data->ahead_lm = train_data->forward_distance - train_data->ahead_lm;
+				// } else {
+					// train_data->landmark = train_data->landmark->reverse;
+					// train_data->forward_distance = (getNextNodeDist(train_data->landmark, train_global->switch_table, &tmp_direction) <<  DIST_SHIFT);
+					// train_data->predict_dest = train_data->landmark->edge[tmp_direction].dest;
+				// }
 
-				speed = speed_before_reverse;
-				if (speed > 0) {
-					acceleration = 12;
-				}
-				reverse_alarm = 0;
+				// speed = speed_before_reverse;
+				// if (speed > 0) {
+					// acceleration = 12;
+				// }
+				// reverse_alarm = 0;
 				
-				if (stop_node != NULL) {
-					int need_reverse = 1;
-					route_start = findRoute(track_nodes, train_data, stop_node, route, &need_reverse);
-					on_route = 1;
-					assert(need_reverse == 0, "need another reverse");
-					check_point = route_start;
-					reverse_node = find_reverse_node(route, check_point, train_global->switch_table, &reverse_node_offset);
-					changeNextSW(route, check_point, train_global->switch_table, com1_tid, com2_tid);
-				}
-				iprintf(com2_tid, 30, "\e[s\e[%d;%dH%s  \e[u", 11, 20, train_data->landmark->name);
-				iprintf(com2_tid, 30, "\e[s\e[%d;%dH%s  \e[u", 12, 17, train_data->predict_dest->name);
-			}
+				// if (stop_node != NULL) {
+					// int need_reverse = 1;
+					// route_start = findRoute(track_nodes, train_data, stop_node, route, &need_reverse);
+					// on_route = 1;
+					// assert(need_reverse == 0, "need another reverse");
+					// check_point = route_start;
+					// reverse_node = find_reverse_node(route, check_point, train_global->switch_table, &reverse_node_offset);
+					// changeNextSW(route, check_point, train_global->switch_table, com1_tid, com2_tid);
+				// }
+				// iprintf(com2_tid, 30, "\e[s\e[%d;%dH%s  \e[u", 11, 20, train_data->landmark->name);
+				// iprintf(com2_tid, 30, "\e[s\e[%d;%dH%s  \e[u", 12, 17, train_data->predict_dest->name);
+			// }
 
 			prev_timer = timer;
 
@@ -727,14 +813,15 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 				setTrainSpeed(train_id, speed, com1_tid);
 				break;
 			case CMD_REVERSE:
-				delay_time = (4000 * (speed % 16)) / 14;
-				CreateWithArgs(2, trainReverser, train_id, speed, com1_tid, delay_time);
+				// delay_time = (4000 * (speed % 16)) / 14;
+				// CreateWithArgs(2, trainReverser, train_id, speed, com1_tid, delay_time);
 				Reply(tid, NULL, 0);
 				acceleration = -16;
 				speed_before_reverse = speed;
 				speed = 0;
-
-				reverse_alarm = getTimerValue(TIMER3_BASE) - delay_time;
+				reversing = 1;
+				setTrainSpeed(train_id, 0, com1_tid);
+				// reverse_alarm = getTimerValue(TIMER3_BASE) - delay_time;
 
 				break;
 			case LOCATION_CHANGE:
@@ -753,18 +840,20 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 							on_route = 1;
 							if (need_reverse) {
 								on_route = 0;
-								delay_time = (4000 * (speed % 16)) / 14;
-								CreateWithArgs(2, trainReverser, train_id, speed, com1_tid, delay_time);
+								// delay_time = (4000 * (speed % 16)) / 14;
+								// CreateWithArgs(2, trainReverser, train_id, speed, com1_tid, delay_time);
 								acceleration = -16;
 								speed_before_reverse = speed;
 								speed = 0;
-								reverse_alarm = getTimerValue(TIMER3_BASE) - delay_time;
+								// reverse_alarm = getTimerValue(TIMER3_BASE) - delay_time;
+								reversing = 1;
+								setTrainSpeed(train_id, 0, com1_tid);
 							}
 							
 							assert(route_start != TRACK_MAX, "route_start == TRACK_MAX");
 							stop_node = route[TRACK_MAX - 1];
 							check_point = route_start;
-							reverse_node = find_reverse_node(route, check_point, train_global->switch_table, &reverse_node_offset);
+							reverse_node = find_reverse_node(route, check_point, train_global->switch_table, &reverse_node_offset, &merge_node);
 				
 							changeNextSW(route, check_point, train_global->switch_table, com1_tid, com2_tid);
 							// if (check_point != -1) {
@@ -791,12 +880,14 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 				on_route = 1;
 				if (need_reverse) {
 					on_route = 0;
-					delay_time = (4000 * (speed % 16)) / 14;
-					CreateWithArgs(2, trainReverser, train_id, speed, com1_tid, delay_time);
+					// delay_time = (4000 * (speed % 16)) / 14;
+					// CreateWithArgs(2, trainReverser, train_id, speed, com1_tid, delay_time);
 					acceleration = -16;
 					speed_before_reverse = speed;
 					speed = 0;
-					reverse_alarm = getTimerValue(TIMER3_BASE) - delay_time;
+					// reverse_alarm = getTimerValue(TIMER3_BASE) - delay_time;
+					reversing = 1;
+					setTrainSpeed(train_id, 0, com1_tid);
 				}
 				
 				assert(route_start != TRACK_MAX, "route_start == TRACK_MAX");
@@ -810,7 +901,7 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 				buf_cursor += sprintf(buf_cursor, "                       \n\e[u");
 				Puts(com2_tid, str_buf, 0);
 				str_buf[0] = '\0';
-				reverse_node = find_reverse_node(route, check_point, train_global->switch_table, &reverse_node_offset);
+				reverse_node = find_reverse_node(route, check_point, train_global->switch_table, &reverse_node_offset, &merge_node);
 				
 				changeNextSW(route, check_point, train_global->switch_table, com1_tid, com2_tid);
 				// if (check_point != -1) {
