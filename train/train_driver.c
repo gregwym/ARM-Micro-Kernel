@@ -528,26 +528,41 @@ int updateCheckPoint(TrainData *train_data, track_node **route, int check_point,
 }
 
 //update current landmark
-void updateCurrentLandmark(TrainData *train_data, track_node *sensor_node, char *switch_table, int com2_tid) {
+void updateCurrentLandmark(TrainData *train_data, track_node *sensor_node, char *switch_table, int com2_tid, int reverse) {
 	int direction;
-	if (sensor_node != NULL) {
-		train_data->landmark = sensor_node;
-	} else {
-		train_data->landmark = train_data->predict_dest;
-	}
-	if (train_data->landmark->type != NODE_EXIT) {
-		train_data->ahead_lm = 0;
-		train_data->forward_distance = getNextNodeDist(train_data->landmark, switch_table, &direction);
-		if (train_data->forward_distance >= 0) {
-			train_data->forward_distance = train_data->forward_distance << DIST_SHIFT;
-			train_data->predict_dest = train_data->landmark->edge[direction].dest;
+	if (!reverse) {
+		if (sensor_node != NULL) {
+			train_data->landmark = sensor_node;
 		} else {
-			iprintf(com2_tid, 30, "\e[s\e[%d;%dHlocation -1 %s\e[u", 36, 2, train_data->landmark->name);
+			train_data->landmark = train_data->predict_dest;
+		}
+		if (train_data->landmark->type != NODE_EXIT) {
+			train_data->ahead_lm = 0;
+			train_data->forward_distance = getNextNodeDist(train_data->landmark, switch_table, &direction);
+			if (train_data->forward_distance >= 0) {
+				train_data->forward_distance = train_data->forward_distance << DIST_SHIFT;
+				train_data->predict_dest = train_data->landmark->edge[direction].dest;
+			} else {
+				iprintf(com2_tid, 30, "\e[s\e[%d;%dHlocation -1 %s\e[u", 36, 2, train_data->landmark->name);
+			}
+		} else {
+			train_data->ahead_lm = 0;
+			train_data->forward_distance = 0;
 		}
 	} else {
-		train_data->ahead_lm = 0;
-		train_data->forward_distance = 0;
+		if (train_data->landmark->type != NODE_EXIT) {
+			track_node *tmp;
+			tmp = train_data->landmark;
+			train_data->landmark = train_data->predict_dest->reverse;
+			train_data->predict_dest = tmp->reverse;
+			train_data->ahead_lm = train_data->forward_distance - train_data->ahead_lm;
+		} else {
+			train_data->landmark = train_data->landmark->reverse;
+			train_data->forward_distance = (getNextNodeDist(train_data->landmark, switch_table, &direction) << DIST_SHIFT);
+			train_data->predict_dest = train_data->landmark->edge[direction].dest;
+		}
 	}
+		
 	iprintf(com2_tid, 30, "\e[s\e[%d;%dH%s  \e[u", 11, 20, train_data->landmark->name);
 	iprintf(com2_tid, 30, "\e[s\e[%d;%dH%s  \e[u", 12, 17, train_data->predict_dest->name);
 	
@@ -637,7 +652,7 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 			// location update
 			train_data->ahead_lm = train_data->ahead_lm + train_data->velocity * (prev_timer - timer);
 			if (train_data->ahead_lm > train_data->forward_distance) {
-				updateCurrentLandmark(train_data, NULL, train_global->switch_table, com2_tid);
+				updateCurrentLandmark(train_data, NULL, train_global->switch_table, com2_tid, FALSE);
 				if (stop_type == Entering_None && (action == Goto_Merge || action == Goto_Dest)) {
 					int tmp = updateCheckPoint(train_data, route, check_point, route_start);
 					if (tmp != -1) {
@@ -718,25 +733,26 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 								break;
 							case Entering_Merge:
 								stop_type = Entering_None;
-								// updateCurrentLandmark(train_data, merge_node->reverse, train_global->switch_table, com2_tid);
+								updateCurrentLandmark(train_data, NULL, train_global->switch_table, com2_tid, TRUE);
 								// train_data->forward_distance = (getNextNodeDist(reverse_node, train_global->switch_table, &tmp_direction) << DIST_SHIFT);
 								// train_data->landmark = reverse_node->edge[tmp_direction].dest->reverse;
 								// train_data->predict_dest = reverse_node->reverse;
 								// train_data->ahead_lm = train_data->forward_distance - reverse_node_offset;
 								
-								if (train_data->landmark->type != NODE_EXIT) {
-									track_node *tmp;
-									tmp = train_data->landmark;
-									train_data->landmark = train_data->predict_dest->reverse;
-									train_data->predict_dest = tmp->reverse;
-									train_data->ahead_lm = train_data->forward_distance - train_data->ahead_lm;
-								} else {
-									train_data->landmark = train_data->landmark->reverse;
-									train_data->forward_distance = (getNextNodeDist(train_data->landmark, train_global->switch_table, &tmp_direction) << DIST_SHIFT);
-									train_data->predict_dest = train_data->landmark->edge[tmp_direction].dest;
-								}
-								iprintf(com2_tid, 30, "\e[s\e[%d;%dH%s  \e[u", 11, 20, train_data->landmark->name);
-								iprintf(com2_tid, 30, "\e[s\e[%d;%dH%s  \e[u", 12, 17, train_data->predict_dest->name);
+								// if (train_data->landmark->type != NODE_EXIT) {
+									// track_node *tmp;
+									// tmp = train_data->landmark;
+									// train_data->landmark = train_data->predict_dest->reverse;
+									// train_data->predict_dest = tmp->reverse;
+									// train_data->ahead_lm = train_data->forward_distance - train_data->ahead_lm;
+								// } else {
+									// train_data->landmark = train_data->landmark->reverse;
+									// train_data->forward_distance = (getNextNodeDist(train_data->landmark, train_global->switch_table, &tmp_direction) << DIST_SHIFT);
+									// train_data->predict_dest = train_data->landmark->edge[tmp_direction].dest;
+								// }
+								
+								// iprintf(com2_tid, 30, "\e[s\e[%d;%dH%s  \e[u", 11, 20, train_data->landmark->name);
+								// iprintf(com2_tid, 30, "\e[s\e[%d;%dH%s  \e[u", 12, 17, train_data->predict_dest->name);
 								reverse_node = NULL;
 								reverse_node_offset = 0; 
 								int need_reverse = 1;
@@ -777,19 +793,21 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 								break;
 							case Reversing:
 								stop_type = Entering_None;
-								if (train_data->landmark->type != NODE_EXIT) {
-									track_node *tmp;
-									tmp = train_data->landmark;
-									train_data->landmark = train_data->predict_dest->reverse;
-									train_data->predict_dest = tmp->reverse;
-									train_data->ahead_lm = train_data->forward_distance - train_data->ahead_lm;
-								} else {
-									train_data->landmark = train_data->landmark->reverse;
-									train_data->forward_distance = (getNextNodeDist(train_data->landmark, train_global->switch_table, &tmp_direction) << DIST_SHIFT);
-									train_data->predict_dest = train_data->landmark->edge[tmp_direction].dest;
-								}
-								iprintf(com2_tid, 30, "\e[s\e[%d;%dH%s  \e[u", 11, 20, train_data->landmark->name);
-								iprintf(com2_tid, 30, "\e[s\e[%d;%dH%s  \e[u", 12, 17, train_data->predict_dest->name);
+								updateCurrentLandmark(train_data, NULL, train_global->switch_table, com2_tid, TRUE);
+
+								// if (train_data->landmark->type != NODE_EXIT) {
+									// track_node *tmp;
+									// tmp = train_data->landmark;
+									// train_data->landmark = train_data->predict_dest->reverse;
+									// train_data->predict_dest = tmp->reverse;
+									// train_data->ahead_lm = train_data->forward_distance - train_data->ahead_lm;
+								// } else {
+									// train_data->landmark = train_data->landmark->reverse;
+									// train_data->forward_distance = (getNextNodeDist(train_data->landmark, train_global->switch_table, &tmp_direction) << DIST_SHIFT);
+									// train_data->predict_dest = train_data->landmark->edge[tmp_direction].dest;
+								// }
+								// iprintf(com2_tid, 30, "\e[s\e[%d;%dH%s  \e[u", 11, 20, train_data->landmark->name);
+								// iprintf(com2_tid, 30, "\e[s\e[%d;%dH%s  \e[u", 12, 17, train_data->predict_dest->name);
 								cmd[0] = TRAIN_REVERSE;
 								cmd[1] = train_id;
 								Puts(com1_tid, cmd, 2);
@@ -931,7 +949,7 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 					// inaccuracy print
 					// iprintf(com2_tid, 30, "\e[s\e[%d;%dH-%d  \e[u", 17, 15, (train_data->forward_distance - train_data->ahead_lm) >> DIST_SHIFT);
 					
-					updateCurrentLandmark(train_data, &(track_nodes[msg.location_msg.id]), train_global->switch_table, com2_tid);
+					updateCurrentLandmark(train_data, &(track_nodes[msg.location_msg.id]), train_global->switch_table, com2_tid, FALSE);
 					
 					if (stop_type == Entering_None && (action == Goto_Merge || action == Goto_Dest)) {
 						check_point = updateCheckPoint(train_data, route, check_point, route_start);
