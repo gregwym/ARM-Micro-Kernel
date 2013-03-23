@@ -44,10 +44,11 @@ void init_train37(TrainData *train) {
 	train->direction = FORWARD;
 	train->landmark = NULL;
 	train->ahead_lm = 0;
-	train->acceleration_high = 20;
-	train->acceleration_medium = 12;
-	train->acceleration_low = 6;
-	train->deceleration = -15;
+	train->acceleration_high = 26;
+	train->acceleration_medium = 11;
+	train->acceleration_low = 5;
+	train->deceleration = -14;
+	train->reverse_delay = 70;
 
 	train->reservation_record.landmark_id = 0;
 	train->reservation_record.distance = 0;
