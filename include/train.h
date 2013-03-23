@@ -43,6 +43,7 @@ typedef enum train_msg_type {
 	CMD_SWITCH,
 	CMD_QUIT,
 	CMD_GOTO,
+	CMD_MARGIN,
 	CMD_MAX,
 	SENSOR_DATA,
 	LOCATION_CHANGE,

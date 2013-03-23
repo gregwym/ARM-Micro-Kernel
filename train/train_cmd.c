@@ -112,6 +112,12 @@ int deliverCmd(char *input, const char **train_cmds, int tid) {
 			// cmd_msg.value = tr_atoi(token);
 			if (cmd_msg.value < 0 || cmd_msg.value >= TRACK_MAX) return -1;
 			break;
+		case CMD_MARGIN:
+			input = str2token(input, token, 8);
+			cmd_msg.id = tr_atoi(token);
+			input = str2token(input, token, 8);
+			cmd_msg.value = tr_atoi(token);
+			break;
 		case CMD_QUIT:
 			break;
 		default:
@@ -134,7 +140,8 @@ void trainCmdNotifier() {
 	train_cmds[CMD_SWITCH] = "sw";
 	train_cmds[CMD_QUIT] = "q";
 	train_cmds[CMD_GOTO] = "to";
-
+	train_cmds[CMD_MARGIN] = "mg";
+	
 	while (1) {
 		ch = Getc(com2_tid);
 		assert(ch >= 0, "CmdNotifier got negative value from COM2");
