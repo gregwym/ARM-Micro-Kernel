@@ -264,6 +264,7 @@ void trainCenter(TrainGlobal *train_global) {
 			case CMD_SPEED:
 			case CMD_GOTO:
 			case CMD_REVERSE:
+			case CMD_MARGIN:
 				Reply(tid, NULL, 0);
 				// assert(msg.cmd_msg.id < TRAIN_NUM_MAX, "Exceed max train number");
 				if (msg.cmd_msg.id < TRAIN_NUM_MAX) {
