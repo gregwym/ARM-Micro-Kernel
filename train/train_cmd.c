@@ -70,6 +70,7 @@ int deliverCmd(char *input, const char **train_cmds, int tid) {
 void trainCmdNotifier() {
 	int ch, delivered;
 	char input_array[INPUT_BUFFER_SIZE] = "";
+	char last_input[INPUT_BUFFER_SIZE] = "";
 	int input_size = 0;
 	int parent_tid = MyParentTid();
 	int com2_tid = WhoIs(COM2_REG_NAME);
@@ -98,9 +99,12 @@ void trainCmdNotifier() {
 					if(delivered < 0) {
 						Puts(com2_tid, "Invalid Command\n", 0);
 					}
+					strncpy(last_input, input_array, INPUT_BUFFER_SIZE);
 					// Puts(com2_tid, "\e[3;1H\e[K", 0);
 					input_array[0] = '\0';
 					input_size = 0;
+				} else {
+					deliverCmd(last_input, train_cmds, parent_tid);
 				}
 				break;
 			default:
