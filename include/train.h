@@ -25,6 +25,8 @@
 
 #define TRAIN_REVERSE 15
 
+#define DIST_SHIFT 18
+
 typedef struct train_global {
 	int com1_tid;
 	int com2_tid;
@@ -41,6 +43,7 @@ typedef enum train_msg_type {
 	CMD_SWITCH,
 	CMD_QUIT,
 	CMD_GOTO,
+	CMD_MARGIN,
 	CMD_MAX,
 	SENSOR_DATA,
 	LOCATION_CHANGE,
