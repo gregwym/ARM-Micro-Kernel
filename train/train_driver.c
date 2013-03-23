@@ -308,11 +308,11 @@ int dijkstra(track_node *track_nodes, track_node *src,
 				neighbour = u->edge[DIR_AHEAD].dest;
 				dijkstra_update(&dist_heap, heap_nodes, previous, u, neighbour, alter_dist);
 				
-				alter_dist = u_dist + u->reverse->edge[DIR_STRAIGHT].dist;
+				alter_dist = u_dist + u->reverse->edge[DIR_STRAIGHT].dist + 400;
 				neighbour = u->reverse->edge[DIR_STRAIGHT].dest;
 				dijkstra_update(&dist_heap, heap_nodes, previous, u, neighbour, alter_dist);
 				
-				alter_dist = u_dist + u->reverse->edge[DIR_CURVED].dist;
+				alter_dist = u_dist + u->reverse->edge[DIR_CURVED].dist + 400;
 				neighbour = u->reverse->edge[DIR_CURVED].dest;
 				dijkstra_update(&dist_heap, heap_nodes, previous, u, neighbour, alter_dist);
 				break;
@@ -458,7 +458,7 @@ int find_reverse_node(track_node **route, int check_point, char *switch_table, i
 			}
 		}
 		*offset = (margin - dist) << DIST_SHIFT;
-		iprintf(4, 60, "\e[s\e[20;2H reverse node: %s, offset: %d    \e[u", checked_node->name, (*offset) >> 18);
+		iprintf(4, 70, "\e[s\e[20;2H reverse node: %s, offset: %d       \e[u", checked_node->name, (*offset) >> 18);
 		*reverse_node = checked_node;
 		return 1;
 	} else {
@@ -551,11 +551,10 @@ void updateCurrentLandmark(TrainData *train_data, track_node *sensor_node, char 
 		}
 	} else {
 		if (train_data->landmark->type != NODE_EXIT) {
-			track_node *tmp;
-			tmp = train_data->landmark;
 			train_data->landmark = train_data->predict_dest->reverse;
-			train_data->predict_dest = tmp->reverse;
 			train_data->ahead_lm = train_data->forward_distance - train_data->ahead_lm;
+			train_data->forward_distance = (getNextNodeDist(train_data->landmark, switch_table, &direction) << DIST_SHIFT);
+			train_data->predict_dest = train_data->landmark->edge[direction].dest;
 		} else {
 			train_data->landmark = train_data->landmark->reverse;
 			train_data->forward_distance = (getNextNodeDist(train_data->landmark, switch_table, &direction) << DIST_SHIFT);
@@ -660,7 +659,7 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 						changeNextSW(route, check_point, train_global->switch_table, com1_tid, com2_tid);
 					// assert(check_point != -1, "check_point is -1");
 					} else {
-						iprintf(com2_tid, 30, "\e[s\e[25;2Hoff route: %s   \e[u", train_data->landmark->name);
+						iprintf(com2_tid, 40, "\e[s\e[25;2Hoff route: %s   \e[u", train_data->landmark->name);
 					}
 				}
 			}
@@ -672,24 +671,34 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 			
 			if (speed_change_alarm > timer) {
 				switch(speed_change_step) {
-					// case 1:
-						// speed_change_step = 2;
-						// speed_change_alarm = getTimerValue(TIMER3_BASE) - speed_change_time / 2;
-						// acceleration = train_data->acceleration_high;
-						// break;
-					// case 2:
-						// speed_change_alarm = 0;
-						// speed_change_step = 0;
-						// speed_change_time = 0;
-						// acceleration = train_data->acceleration_low;
-						// break;
 					case 1:
+						speed_change_step++;
+						speed_change_alarm = getTimerValue(TIMER3_BASE) - speed_change_time / 5;
+						acceleration = train_data->acceleration_medium;
+						break;
+					case 2:
+						speed_change_step++;
+						speed_change_alarm = getTimerValue(TIMER3_BASE) - speed_change_time / 5;
+						acceleration = train_data->acceleration_high;
+						break;
+					case 3:
+						speed_change_step++;
+						speed_change_alarm = getTimerValue(TIMER3_BASE) - speed_change_time / 5;
+						acceleration = train_data->acceleration_medium;
+						break;
+					case 4:
 						speed_change_alarm = 0;
 						speed_change_step = 0;
 						speed_change_time = 0;
-						// speed_change_alarm = getTimerValue(TIMER3_BASE) - speed_change_time / 2;
-						acceleration = train_data->acceleration_high;
+						acceleration = train_data->acceleration_low;
 						break;
+					// case 1:
+						// speed_change_alarm = 0;
+						// speed_change_step = 0;
+						// speed_change_time = 0;
+						// speed_change_alarm = getTimerValue(TIMER3_BASE) - speed_change_time / 2;
+						// acceleration = train_data->acceleration_high;
+						// break;
 						
 					default:
 						assert(0, "wrf???");
@@ -760,7 +769,7 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 								stop_node = route[TRACK_MAX - 1];
 								check_point = route_start;
 								if (need_reverse) {
-									// acceleration = -14;
+									// acceleration = train_data->deceleration;;
 									// speed_before_reverse = speed;
 									// speed = 0;
 									// setTrainSpeed(train_id, 0, com1_tid);
@@ -782,11 +791,11 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 								speed = speed_before_reverse;
 								cmd[0] = speed;
 								Puts(com1_tid, cmd, 2);
-								Delay(20);
+								Delay(35);
 								timer = getTimerValue(TIMER3_BASE);
 								if (speed > 0) {
 									speed_change_time = 8000 * train_data->velocities[speed%16] / train_data->velocities[14];
-									speed_change_alarm = getTimerValue(TIMER3_BASE) - speed_change_time / 2;
+									speed_change_alarm = getTimerValue(TIMER3_BASE) - speed_change_time / 5;
 									acceleration = train_data->acceleration_low;
 									speed_change_step = 1;
 								}
@@ -814,9 +823,11 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 								speed = speed_before_reverse;
 								cmd[0] = speed;
 								Puts(com1_tid, cmd, 2);
+								Delay(35);
+								timer = getTimerValue(TIMER3_BASE);
 								if (speed > 0) {
 									speed_change_time = 8000 * train_data->velocities[speed%16] / train_data->velocities[14];
-									speed_change_alarm = getTimerValue(TIMER3_BASE) - speed_change_time / 2;
+									speed_change_alarm = getTimerValue(TIMER3_BASE) - speed_change_time / 5;
 									acceleration = train_data->acceleration_low;
 									speed_change_step = 1;
 								}
@@ -824,7 +835,8 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 									int need_reverse = 1;
 									route_start = findRoute(track_nodes, train_data, stop_node, route, &need_reverse);
 									if (need_reverse) {
-										acceleration = -14;
+										iprintf(com2_tid, 50, "\e[s\e[25;2Hshouldn't reverse: %s   \e[u", train_data->landmark->name);
+										acceleration = train_data->deceleration;;
 										speed_change_alarm = 0;
 										speed_change_step = 0;
 										speed_change_time = 0;
@@ -862,7 +874,7 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 					if (stop_type == Entering_Exit || stop_type == Entering_Dest) {
 						setTrainSpeed(train_id, 0, com1_tid);
 						speed = 0;
-						acceleration = -14;
+						acceleration = train_data->deceleration;;
 						speed_change_alarm = 0;
 						speed_change_step = 0;
 						speed_change_time = 0;
@@ -875,7 +887,7 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 					if (stop_type == Entering_Exit) {
 						setTrainSpeed(train_id, 0, com1_tid);
 						speed = 0;
-						acceleration = -14;
+						acceleration = train_data->deceleration;;
 						speed_change_alarm = 0;
 						speed_change_step = 0;
 						speed_change_time = 0;
@@ -885,11 +897,10 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 						setTrainSpeed(train_id, 0, com1_tid);
 						speed_before_reverse = speed;
 						speed = 0;
-						acceleration = -14;
+						acceleration = train_data->deceleration;;
 						speed_change_alarm = 0;
 						speed_change_step = 0;
 						speed_change_time = 0;
-						iprintf(4, 60, "\e[s\e[20;2H reverse node:             \e[u");
 						iprintf(4, 70, "\e[s\e[19;2H stop(m), %s, %d v: %d  sd: %d          \e[u", train_data->landmark->name, train_data->ahead_lm >> 18, train_data->velocity, find_stop_dist(train_data) >> 18);
 					}
 				} else {
@@ -918,11 +929,11 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 
 				if (speed % 16 > old_speed % 16) {
 					speed_change_time = 8000 * (train_data->velocities[speed%16] - train_data->velocities[old_speed%16]) / train_data->velocities[14];
-					speed_change_alarm = getTimerValue(TIMER3_BASE) - speed_change_time / 2;
+					speed_change_alarm = getTimerValue(TIMER3_BASE) - speed_change_time / 5;
 					acceleration = train_data->acceleration_low;
 					speed_change_step = 1;
 				} else if (speed % 16 < old_speed % 16) {
-					acceleration = -14;
+					acceleration = train_data->deceleration;;
 					speed_change_alarm = 0;
 					speed_change_step = 0;
 					speed_change_time = 0;
@@ -933,7 +944,7 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 				
 			case CMD_REVERSE:
 				Reply(tid, NULL, 0);
-				acceleration = -14;
+				acceleration = train_data->deceleration;;
 				speed_change_alarm = 0;
 				speed_change_step = 0;
 				speed_change_time = 0;
@@ -951,7 +962,7 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 					
 					updateCurrentLandmark(train_data, &(track_nodes[msg.location_msg.id]), train_global->switch_table, com2_tid, FALSE);
 					
-					if (stop_type == Entering_None && (action == Goto_Merge || action == Goto_Dest)) {
+					if (stop_type == Entering_None && action == Goto_Dest) {
 						check_point = updateCheckPoint(train_data, route, check_point, route_start);
 						if (check_point != -1) {
 							changeNextSW(route, check_point, train_global->switch_table, com1_tid, com2_tid);
@@ -960,7 +971,7 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 							int need_reverse;
 							route_start = findRoute(track_nodes, train_data, stop_node, route, &need_reverse);
 							if (need_reverse) {
-								acceleration = -14;
+								acceleration = train_data->deceleration;;
 								speed_change_alarm = 0;
 								speed_change_step = 0;
 								speed_change_time = 0;
@@ -999,7 +1010,7 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 				int need_reverse = 0;
 				route_start = findRoute(track_nodes, train_data, &(track_nodes[msg.location_msg.value]), route, &need_reverse);
 				if (need_reverse) {
-					acceleration = -14;
+					acceleration = train_data->deceleration;;
 					speed_change_alarm = 0;
 					speed_change_step = 0;
 					speed_change_time = 0;

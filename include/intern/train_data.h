@@ -38,6 +38,7 @@ typedef struct train_data {
 	volatile int	ahead_lm;
 	Reservation		reservation_record;
 	int				acceleration_high;
+	int				acceleration_medium;
 	int				acceleration_low;
 	int				deceleration;
 } TrainData;
