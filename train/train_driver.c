@@ -353,12 +353,16 @@ void changeNextSW(track_node **route, int check_point, char *switch_table, int c
 	for (; check_point < TRACK_MAX && distance < 1200; check_point++) {
 		if (route[check_point]->type == NODE_BRANCH && check_point + 1 < TRACK_MAX) {
 			if (route[check_point + 1] == route[check_point]->edge[DIR_STRAIGHT].dest) {
-				switch_table[switchIdToIndex(route[check_point]->num)] = SWITCH_STR;
-				CreateWithArgs(2, switchChanger, route[check_point]->num, SWITCH_STR, com1_tid, com2_tid);
+				if (switch_table[switchIdToIndex(route[check_point]->num)] != SWITCH_STR) {
+					switch_table[switchIdToIndex(route[check_point]->num)] = SWITCH_STR;
+					CreateWithArgs(2, switchChanger, route[check_point]->num, SWITCH_STR, com1_tid, com2_tid);
+				}
 				distance += (route[check_point]->edge)[DIR_STRAIGHT].dist;
 			} else if (route[check_point + 1] == route[check_point]->edge[DIR_CURVED].dest) {
-				switch_table[switchIdToIndex(route[check_point]->num)] = SWITCH_CUR;
-				CreateWithArgs(2, switchChanger, route[check_point]->num, SWITCH_CUR, com1_tid, com2_tid);
+				if (switch_table[switchIdToIndex(route[check_point]->num)] != SWITCH_CUR) {
+					switch_table[switchIdToIndex(route[check_point]->num)] = SWITCH_CUR;
+					CreateWithArgs(2, switchChanger, route[check_point]->num, SWITCH_CUR, com1_tid, com2_tid);
+				}
 				distance += route[check_point]->edge[DIR_CURVED].dist;
 			} else {
 				assert(0, "fail to change switch");
@@ -366,23 +370,31 @@ void changeNextSW(track_node **route, int check_point, char *switch_table, int c
 		} else if (route[check_point]->type == NODE_MERGE && check_point + 1 < TRACK_MAX) {
 			if (route[check_point + 1] != route[check_point]->edge[DIR_AHEAD].dest) {
 				if (route[check_point]->reverse->edge[DIR_STRAIGHT].dest == route[check_point + 1]) {
-					switch_table[switchIdToIndex(route[check_point]->num)] = SWITCH_STR;
-					CreateWithArgs(2, switchChanger, route[check_point]->num, SWITCH_STR, com1_tid, com2_tid);
+					if (switch_table[switchIdToIndex(route[check_point]->num)] != SWITCH_STR) {
+						switch_table[switchIdToIndex(route[check_point]->num)] = SWITCH_STR;
+						CreateWithArgs(2, switchChanger, route[check_point]->num, SWITCH_STR, com1_tid, com2_tid);
+					}
 					distance += (route[check_point]->reverse->edge)[DIR_STRAIGHT].dist;
 				} else if (route[check_point]->reverse->edge[DIR_CURVED].dest == route[check_point + 1]) {
-					switch_table[switchIdToIndex(route[check_point]->num)] = SWITCH_CUR;
-					CreateWithArgs(2, switchChanger, route[check_point]->num, SWITCH_CUR, com1_tid, com2_tid);
+					if (switch_table[switchIdToIndex(route[check_point]->num)] != SWITCH_CUR) {
+						switch_table[switchIdToIndex(route[check_point]->num)] = SWITCH_CUR;
+						CreateWithArgs(2, switchChanger, route[check_point]->num, SWITCH_CUR, com1_tid, com2_tid);
+					}
 					distance += (route[check_point]->reverse->edge)[DIR_CURVED].dist;
 				} else {
 					assert(0, "fail to change switch (1)");
 				}
 				if (route[check_point]->edge[DIR_AHEAD].dest->type == NODE_MERGE && route[check_point]->edge[DIR_AHEAD].dist < 240) {
 					if (route[check_point]->edge[DIR_AHEAD].dest->reverse->edge[DIR_STRAIGHT].dest == route[check_point]->reverse) {
-						switch_table[switchIdToIndex(route[check_point]->edge[DIR_AHEAD].dest->num)] = SWITCH_STR;
-						CreateWithArgs(2, switchChanger, route[check_point]->edge[DIR_AHEAD].dest->num, SWITCH_STR, com1_tid, com2_tid);
+						if (switch_table[switchIdToIndex(route[check_point]->edge[DIR_AHEAD].dest->num)] != SWITCH_STR) {
+							switch_table[switchIdToIndex(route[check_point]->edge[DIR_AHEAD].dest->num)] = SWITCH_STR;
+							CreateWithArgs(2, switchChanger, route[check_point]->edge[DIR_AHEAD].dest->num, SWITCH_STR, com1_tid, com2_tid);
+						}
 					} else {
-						switch_table[switchIdToIndex(route[check_point]->edge[DIR_AHEAD].dest->num)] = SWITCH_CUR;
-						CreateWithArgs(2, switchChanger, route[check_point]->edge[DIR_AHEAD].dest->num, SWITCH_CUR, com1_tid, com2_tid);
+						if (switch_table[switchIdToIndex(route[check_point]->edge[DIR_AHEAD].dest->num)] != SWITCH_CUR) {
+							switch_table[switchIdToIndex(route[check_point]->edge[DIR_AHEAD].dest->num)] = SWITCH_CUR;
+							CreateWithArgs(2, switchChanger, route[check_point]->edge[DIR_AHEAD].dest->num, SWITCH_CUR, com1_tid, com2_tid);
+						}
 					}
 				}
 			} else {
@@ -655,11 +667,16 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 			train_data->ahead_lm = train_data->ahead_lm + train_data->velocity * (prev_timer - timer);
 			if (train_data->ahead_lm > train_data->forward_distance) {
 				updateCurrentLandmark(train_data, NULL, train_global->switch_table, com2_tid, FALSE);
-				if (stop_type == Entering_None && (action == Goto_Merge || action == Goto_Dest)) {
+				if (action != Free_Run) {
 					int tmp = updateCheckPoint(train_data, route, check_point, route_start);
 					if (tmp != -1) {
 						check_point = tmp;
-						changeNextSW(route, check_point, train_global->switch_table, com1_tid, com2_tid);
+						if (train_data->landmark->type == NODE_SENSOR) {
+							changeNextSW(route, check_point, train_global->switch_table, com1_tid, com2_tid);
+							if (train_data->landmark->name == "A16") {
+								iprintf(com2_tid, 30, "\e[s\e[%d;%dHroute: %s  \e[u", 30, 2, route[check_point]->name);
+							}
+						}
 					// assert(check_point != -1, "check_point is -1");
 					} else {
 						iprintf(com2_tid, 40, "\e[s\e[25;2Hoff route: %s   \e[u", train_data->landmark->name);
@@ -677,23 +694,23 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 					case 1:
 						speed_change_step++;
 						speed_change_alarm = getTimerValue(TIMER3_BASE) - speed_change_time / 5;
-						acceleration = train_data->acceleration_medium;
+						acceleration = train_data->acceleration_G2;
 						break;
 					case 2:
 						speed_change_step++;
 						speed_change_alarm = getTimerValue(TIMER3_BASE) - speed_change_time / 5;
-						acceleration = train_data->acceleration_high;
+						acceleration = train_data->acceleration_G3;
 						break;
 					case 3:
 						speed_change_step++;
 						speed_change_alarm = getTimerValue(TIMER3_BASE) - speed_change_time / 5;
-						acceleration = train_data->acceleration_medium;
+						acceleration = train_data->acceleration_G4;
 						break;
 					case 4:
 						speed_change_alarm = 0;
 						speed_change_step = 0;
 						speed_change_time = 0;
-						acceleration = train_data->acceleration_low;
+						acceleration = train_data->acceleration_G5;
 						break;
 					// case 1:
 						// speed_change_alarm = 0;
@@ -809,7 +826,7 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 								if (speed > 0) {
 									speed_change_time = 8000 * train_data->velocities[speed%16] / train_data->velocities[14];
 									speed_change_alarm = getTimerValue(TIMER3_BASE) - speed_change_time / 5;
-									acceleration = train_data->acceleration_low;
+									acceleration = train_data->acceleration_G1;
 									speed_change_step = 1;
 								}
 								break;
@@ -843,7 +860,7 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 								if (speed > 0) {
 									speed_change_time = 8000 * train_data->velocities[speed%16] / train_data->velocities[14];
 									speed_change_alarm = getTimerValue(TIMER3_BASE) - speed_change_time / 5;
-									acceleration = train_data->acceleration_low;
+									acceleration = train_data->acceleration_G1;
 									speed_change_step = 1;
 								}
 								if (stop_node != NULL) {
@@ -945,7 +962,7 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 				if (speed % 16 > old_speed % 16) {
 					speed_change_time = 8000 * (train_data->velocities[speed%16] - train_data->velocities[old_speed%16]) / train_data->velocities[14];
 					speed_change_alarm = getTimerValue(TIMER3_BASE) - speed_change_time / 5;
-					acceleration = train_data->acceleration_low;
+					acceleration = train_data->acceleration_G1;
 					speed_change_step = 1;
 				} else if (speed % 16 < old_speed % 16) {
 					acceleration = train_data->deceleration;;
@@ -1006,9 +1023,12 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 							} else {
 								action = Goto_Dest;
 							}
-							// changeNextSW(route, check_point, train_global->switch_table, com1_tid, com2_tid);
 						}
 					}
+					if (train_data->landmark->name == "A16") {
+						iprintf(com2_tid, 30, "\e[s\e[%d;%dHroute: %s  \e[u", 30, 2, route[check_point]->name);
+					}
+					// changeNextSW(route, check_point, train_global->switch_table, com1_tid, com2_tid);
 				} else {
 					// inaccuracy print
 					iprintf(com2_tid, 30, "\e[s\e[%d;%dH%d  \e[u", 28, 15, train_data->ahead_lm >> DIST_SHIFT);
@@ -1016,7 +1036,15 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 				}
 				
 				if (action != Free_Run) {
-					changeNextSW(route, check_point, train_global->switch_table, com1_tid, com2_tid);
+					if (route[check_point] != train_data->landmark) {
+						int tmp = updateCheckPoint(train_data, route, check_point, route_start);
+						if (tmp != -1) {
+							check_point = tmp;
+							changeNextSW(route, check_point, train_global->switch_table, com1_tid, com2_tid);
+						}
+					} else {
+						changeNextSW(route, check_point, train_global->switch_table, com1_tid, com2_tid);
+					}
 				}
 					
 				
