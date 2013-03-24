@@ -56,10 +56,11 @@ void locationPostman(int tid, int landmark_id, int value) {
 }
 
 /* Infomation Handlers */
-inline void handleSensorUpdate(char *new_data, char *saved_data, char *buf, TrainGlobal *train_global) {
-	int i, j, k;
-	char old_byte, new_byte, old_bit, new_bit, decoder_id;
+inline void handleSensorUpdate(char *new_data, char *saved_data, TrainGlobal *train_global, int *train_tids) {
+	int i, j, landmark_id, train_id;
+	char old_byte, new_byte, old_bit, new_bit;
 
+	char buf[128];
 	char *buf_cursor = buf;
 	for(i = 0; i < SENSOR_BYTES_TOTAL; i++) {
 		// Fetch byte and save
@@ -69,7 +70,6 @@ inline void handleSensorUpdate(char *new_data, char *saved_data, char *buf, Trai
 
 		// If the byte changed
 		if(old_byte != new_byte) {
-			decoder_id = 'A' + (i / 2);
 
 			for(j = 0; j < SENSOR_BYTE_SIZE; j++) {
 				old_bit = old_byte & SENSOR_BIT_MASK;
@@ -77,12 +77,13 @@ inline void handleSensorUpdate(char *new_data, char *saved_data, char *buf, Trai
 
 				// If the bit changed
 				if(old_bit != new_bit && new_bit) {
-					// int sensor_id = (SENSOR_BYTE_SIZE * (i % 2)) + (SENSOR_BYTE_SIZE - j);
-					// buf_cursor += sprintf(buf_cursor, "%c%d -> %d, ", decoder_id, sensor_id, new_bit);
-					// Deliver location change to drivers
-					for(k = 0; k < TRAIN_MAX; k++) {
-						CreateWithArgs(2, locationPostman, train_global->train_data[k].tid,
-						               sensorIdToLandmark(i, j), new_bit, 0);
+					landmark_id = sensorIdToLandmark(i, j);
+					train_id = train_global->track_reservation[landmark_id];
+					if(train_id != -1) {
+						CreateWithArgs(2, locationPostman, train_tids[train_id], landmark_id, new_bit, 0);
+						IDEBUG(DB_RESERVE, train_global->com2_tid, 52, 0, "#%s => %d\t", train_global->track_nodes[landmark_id].name, train_id);
+					} else {
+						IDEBUG(DB_RESERVE, train_global->com2_tid, 52, 0, "#%s not attributed\t", train_global->track_nodes[landmark_id].name);
 					}
 				}
 				old_byte = old_byte >> 1;
@@ -144,12 +145,10 @@ int trackAvailability(TrainGlobal *train_global, int train_id, int landmark_id, 
 	track_node *track_nodes = train_global->track_nodes;
 	track_node *current = &(track_nodes[landmark_id]);
 
-	DEBUG(DB_RESERVE, "%s\t%d\n", current->name, distance);
-
 	// Check current landmark
 	if(track_reservation[current->index] != -1 &&
 	   track_reservation[current->index] != train_id) {
-	   	DEBUG(DB_RESERVE, "%s\tF\n", current->name);
+	   	IDEBUG(DB_RESERVE, train_global->com2_tid, 50, 0, "#%dF\t%s        ", train_id, current->name);
 		return FALSE;
 	}
 
@@ -161,17 +160,15 @@ int trackAvailability(TrainGlobal *train_global, int train_id, int landmark_id, 
 		// Set current to the next
 		current = current->edge[DIR_AHEAD].dest;
 
-		DEBUG(DB_RESERVE, "%s\t%d\n", current->name, distance);
 		// Check both direction node
 		if(track_reservation[current->index] != -1 &&
 		   track_reservation[current->index] != train_id) {
-		   	bwprintf(COM2, "%s\tF\n", current->name);
+		   	IDEBUG(DB_RESERVE, train_global->com2_tid, 50, 0, "#%dF\t%s        ", train_id, current->name);
 			return FALSE;
 		}
 	}
 
 	if(distance < 0 || current->type == NODE_EXIT) {
-		DEBUG(DB_RESERVE, "%s\tT\n", current->name);
 		return TRUE;
 	}
 
@@ -196,6 +193,7 @@ inline TrainMsgType handleTrackReserve(TrainGlobal *train_global, int train_id, 
 	if(!trackAvailability(train_global, train_id, landmark_id, distance)) {
 		return TRACK_RESERVE_FAIL;
 	}
+	IDEBUG(DB_RESERVE, train_global->com2_tid, 50, 0, "#%dR\t%s + %dmm  ", train_id, train_global->track_nodes[landmark_id].name, distance);
 
 	// Clear previous reservation
 	reserveTrack(train_global, -1, train->reservation_record.landmark_id, train->reservation_record.distance);
@@ -232,12 +230,12 @@ void trainCenter(TrainGlobal *train_global) {
 
 	/* Initialize Train Drivers */
 	TrainData *train_data = train_global->train_data;
-	int train_tid[TRAIN_NUM_MAX];
-	memset(train_tid, -1, sizeof(int) * TRAIN_NUM_MAX);
+	int train_tids[TRAIN_NUM_MAX];
+	memset(train_tids, -1, sizeof(int) * TRAIN_NUM_MAX);
 	for(i = 0; i < TRAIN_MAX; i++) {
 		assert(train_data[i].id < TRAIN_NUM_MAX, "Exceed max train number");
 		train_data[i].tid = CreateWithArgs(9, trainDriver, (int)train_global, (int)&(train_data[i]), 0, 0);
-		train_tid[train_data[i].id] = train_data[i].tid;
+		train_tids[train_data[i].id] = train_data[i].tid;
 	}
 	Delay(TRAIN_INIT_DELAY);
 
@@ -259,7 +257,7 @@ void trainCenter(TrainGlobal *train_global) {
 		switch (msg.type) {
 			case SENSOR_DATA:
 				Reply(tid, NULL, 0);
-				handleSensorUpdate(msg.sensor_msg.sensor_data, sensor_data, str_buf, train_global);
+				handleSensorUpdate(msg.sensor_msg.sensor_data, sensor_data, train_global, train_tids);
 				break;
 			case CMD_SPEED:
 			case CMD_GOTO:
@@ -268,9 +266,9 @@ void trainCenter(TrainGlobal *train_global) {
 				Reply(tid, NULL, 0);
 				// assert(msg.cmd_msg.id < TRAIN_NUM_MAX, "Exceed max train number");
 				if (msg.cmd_msg.id < TRAIN_NUM_MAX) {
-					tid = train_tid[msg.cmd_msg.id];
+					tid = train_tids[msg.cmd_msg.id];
 					if(tid >= 0) {
-						CreateWithArgs(2, cmdPostman, train_tid[msg.cmd_msg.id], msg.type, msg.cmd_msg.value, 0);
+						CreateWithArgs(2, cmdPostman, train_tids[msg.cmd_msg.id], msg.type, msg.cmd_msg.value, 0);
 					}
 				}
 				break;
