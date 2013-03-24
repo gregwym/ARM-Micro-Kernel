@@ -650,7 +650,7 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 	track_node *reverse_node = NULL;
 	// track_node *merge_node = NULL;
 	// int simple_reverse = 0;
-
+	int forward_dist;
 
 	char cmd[2];
 
@@ -892,7 +892,7 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 							case Reserve_Blocked:
 								stop_type = Entering_None;
 								updateCurrentLandmark(train_global, train_data, NULL, train_global->switch_table, com2_tid, TRUE);
-								route_start = dijkstra(track_nodes, train_data->landmark, stop_node, forward_route, &forward_dist);
+								route_start = dijkstra(track_nodes, train_data->landmark, stop_node, route, &forward_dist);
 								if (route_start == TRACK_MAX) {
 									assert(0, "cannot find route");
 									stop_node = NULL;
