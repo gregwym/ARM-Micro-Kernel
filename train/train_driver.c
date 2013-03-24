@@ -618,7 +618,9 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 	int margin = 225;
 
 	// initialize start position
-	updateCurrentLandmark(train_global, train_data, &(track_nodes[132]), train_global->switch_table, com2_tid, FALSE);
+	updateCurrentLandmark(train_global, train_data,
+	                      &(track_nodes[train_data->reservation_record.landmark_id]),
+	                      train_global->switch_table, com2_tid, FALSE);
 
 	char *buf_cursor = str_buf;
 
@@ -1048,7 +1050,7 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 				int need_reverse = 0;
 				route_start = findRoute(track_nodes, train_data, &(track_nodes[msg.location_msg.value]), route, &need_reverse);
 				if (need_reverse) {
-					acceleration = train_data->deceleration;;
+					acceleration = train_data->deceleration;
 					speed_change_alarm = 0;
 					speed_change_step = 0;
 					speed_change_time = 0;
@@ -1088,8 +1090,13 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 				break;
 			case TRACK_RESERVE_FAIL:
 				Reply(tid, NULL, 0);
+				acceleration = train_data->deceleration;
+				speed_change_alarm = 0;
+				speed_change_step = 0;
+				speed_change_time = 0;
 				speed = 0;
 				setTrainSpeed(train_id, speed, com1_tid);
+				stop_type = Stopped;
 				break;
 			case TRACK_RESERVE_SUCCEED:
 				Reply(tid, NULL, 0);

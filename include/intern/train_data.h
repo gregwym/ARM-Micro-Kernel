@@ -6,8 +6,10 @@
 #define TRAIN_REVERSE	15
 #define TRAIN_SPEED_MAX	16
 
-#define TRAIN_MAX		1
+#define TRAIN_MAX		2
 #define TRAIN_NUM_MAX	64
+
+#define DIST_SHIFT 18
 
 typedef enum {
 	FORWARD,
@@ -47,5 +49,6 @@ typedef struct train_data {
 } TrainData;
 
 void init_train37(TrainData *train);
+void init_train49(TrainData *train);
 
 #endif // __TRAIN_DATA_H__
