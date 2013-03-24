@@ -7,8 +7,8 @@ inline void printLineDivider(int com2_tid) {
 	iprintf(com2_tid, BUFFER_LEN, "--------------------------------------------------------------------------------\n");
 }
 
-void initializeTrainUI(int com2_tid, TrainData *train_data, int train_index) {
-	iprintf(com2_tid, BUFFER_LEN, "-----TRAIN #%d------------------------------------------------------------------\n", train_data[train_index].id);
+void initializeTrainUI(int com2_tid, TrainData *train_data) {
+	iprintf(com2_tid, BUFFER_LEN, "-----TRAIN #%d------------------------------------------------------------------\n", train_data->id);
 
 	iprintf(com2_tid, BUFFER_LEN, "Current       |               | ");
 	// current node name 11;20
@@ -26,7 +26,7 @@ void initializeTrainUI(int com2_tid, TrainData *train_data, int train_index) {
 	// Destination node 15;15
 }
 
-void initializeUI(int com2_tid, TrainData *train_data) {
+void initializeUI(int com2_tid, TrainData *trains_data) {
 	int i;
 	int switch_ids[SWITCH_TOTAL];
 	for(i = 0; i < SWITCH_TOTAL; i++) {
@@ -56,7 +56,7 @@ void initializeUI(int com2_tid, TrainData *train_data) {
 	}
 	Putc(com2_tid, '\n');
 	for(i = 0; i < TRAIN_MAX; i++) {
-		initializeTrainUI(com2_tid, train_data, i);
+		initializeTrainUI(com2_tid, &(trains_data[i]));
 	}
 	printLineDivider(com2_tid);
 
@@ -65,7 +65,7 @@ void initializeUI(int com2_tid, TrainData *train_data) {
 
 void trainBootstrap() {
 
-	int tid;
+	int i, tid;
 
 	/* Track Data */
 	track_node track_nodes[TRACK_MAX];
@@ -76,15 +76,18 @@ void trainBootstrap() {
 	memset(switch_table, SWITCH_CUR, SWITCH_TOTAL);
 
 	/* Train Data */
-	TrainData train_data[TRAIN_MAX];
-	init_train37(&(train_data[0]));
-	init_train49(&(train_data[1]));
-	train_data[0].index = 0;
-	train_data[1].index = 1;
+	TrainData trains_data[TRAIN_MAX];
+	TrainData *train_id_data[TRAIN_ID_MAX];
+	init_train37(&(trains_data[0]));
+	init_train49(&(trains_data[1]));
+	for(i = 0; i < TRAIN_MAX; i++) {
+		trains_data[i].index = i;
+		train_id_data[trains_data[i].id] = &(trains_data[i]);
+	}
 
 	/* Track Reservation */
-	int track_reservation[TRACK_MAX];
-	memset(track_reservation, -1, sizeof(int) * TRACK_MAX);
+	TrainData *track_reservation[TRACK_MAX];
+	memset(track_reservation, (int)NULL, sizeof(TrainData *) * TRACK_MAX);
 
 	/* Train Global */
 	TrainGlobal train_global;
@@ -92,11 +95,12 @@ void trainBootstrap() {
 	train_global.com2_tid = WhoIs(COM2_REG_NAME);
 	train_global.track_nodes = track_nodes;
 	train_global.switch_table = switch_table;
-	train_global.train_data = train_data;
+	train_global.trains_data = trains_data;
+	train_global.train_id_data = train_id_data;
 	train_global.track_reservation = track_reservation;
 
 	/* initial UI */
-	initializeUI(train_global.com2_tid, train_data);
+	initializeUI(train_global.com2_tid, trains_data);
 
 	Create(8, trainclockserver);
 	tid = CreateWithArgs(8, trainCenter, (int)(&train_global), 0, 0, 0);
