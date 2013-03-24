@@ -18,6 +18,7 @@ void trainBootstrap() {
 	/* Train Data */
 	TrainData train_data[TRAIN_MAX];
 	init_train37(&(train_data[0]));
+	init_train49(&(train_data[1]));
 
 	/* Track Reservation */
 	int track_reservation[TRACK_MAX];
