@@ -7,7 +7,7 @@
 #define TRAIN_SPEED_MAX	16
 
 #define TRAIN_MAX		2
-#define TRAIN_NUM_MAX	64
+#define TRAIN_ID_MAX 	64
 
 #define DIST_SHIFT 18
 

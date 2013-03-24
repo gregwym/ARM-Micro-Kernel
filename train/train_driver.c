@@ -42,12 +42,13 @@ void trainReverser(int train_id, int new_speed, int com1_tid, int delay_time) {
 	Puts(com1_tid, cmd, 2);
 }
 
-void trackReserver(int train_id, int landmark_id, int distance, int center_tid) {
+void trackReserver(TrainGlobal *train_global, TrainData *train_data, int landmark_id, int distance) {
+	int center_tid = train_global->center_tid;
 	int result, driver_tid;
 	TrainMsgType reply;
 	ReservationMsg msg;
 	msg.type = TRACK_RESERVE;
-	msg.train_id = train_id;
+	msg.train_data = train_data;
 	msg.landmark_id = landmark_id;
 	msg.distance = distance;
 	driver_tid = MyParentTid();
@@ -580,7 +581,7 @@ void updateCurrentLandmark(TrainGlobal *train_global, TrainData *train_data, tra
 	uiprintf(com2_tid, ROW_TRAIN + train_index * HEIGHT_TRAIN + ROW_NEXT, COLUMN_DATA_1, "%s  ", train_data->predict_dest->name);
 
 	// Test track reservation
-	CreateWithArgs(7, trackReserver, train_data->id, train_data->landmark->index, find_stop_dist(train_data) >> 18, train_global->center_tid);
+	CreateWithArgs(7, trackReserver, (int)train_global, (int)train_data, train_data->landmark->index, (find_stop_dist(train_data) + train_data->ahead_lm) >> DIST_SHIFT);
 }
 
 
