@@ -18,7 +18,8 @@ typedef enum {
 	Entering_Dest,
 	Entering_Merge,
 	Stopped,
-	Reversing
+	Reversing,
+	Reserve_Blocked
 } StopType;
 
 
@@ -309,13 +310,13 @@ int dijkstra(track_node *track_nodes, track_node *src,
 				neighbour = u->edge[DIR_AHEAD].dest;
 				dijkstra_update(&dist_heap, heap_nodes, previous, u, neighbour, alter_dist);
 
-				alter_dist = u_dist + u->reverse->edge[DIR_STRAIGHT].dist + 400;
-				neighbour = u->reverse->edge[DIR_STRAIGHT].dest;
-				dijkstra_update(&dist_heap, heap_nodes, previous, u, neighbour, alter_dist);
+				// alter_dist = u_dist + u->reverse->edge[DIR_STRAIGHT].dist + 400;
+				// neighbour = u->reverse->edge[DIR_STRAIGHT].dest;
+				// dijkstra_update(&dist_heap, heap_nodes, previous, u, neighbour, alter_dist);
 
-				alter_dist = u_dist + u->reverse->edge[DIR_CURVED].dist + 400;
-				neighbour = u->reverse->edge[DIR_CURVED].dest;
-				dijkstra_update(&dist_heap, heap_nodes, previous, u, neighbour, alter_dist);
+				// alter_dist = u_dist + u->reverse->edge[DIR_CURVED].dist + 400;
+				// neighbour = u->reverse->edge[DIR_CURVED].dest;
+				// dijkstra_update(&dist_heap, heap_nodes, previous, u, neighbour, alter_dist);
 				break;
 			case NODE_BRANCH:
 				alter_dist = u_dist + u->edge[DIR_STRAIGHT].dist;
@@ -821,7 +822,7 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 								reverse_protection_alarm = timer - 1000;
 								reverse_protect = 1;
 								if (speed > 0) {
-									speed_change_time = 8000 * train_data->velocities[speed%16] / train_data->velocities[14];
+									speed_change_time = train_data->acceleration_time * train_data->velocities[speed%16] / train_data->velocities[14];
 									speed_change_alarm = getTimerValue(TIMER3_BASE) - speed_change_time / 5;
 									acceleration = train_data->acceleration_G1;
 									speed_change_step = 1;
@@ -855,7 +856,7 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 								reverse_protection_alarm = timer - 1000;
 								reverse_protect = 1;
 								if (speed > 0) {
-									speed_change_time = 8000 * train_data->velocities[speed%16] / train_data->velocities[14];
+									speed_change_time = train_data->acceleration_time * train_data->velocities[speed%16] / train_data->velocities[14];
 									speed_change_alarm = getTimerValue(TIMER3_BASE) - speed_change_time / 5;
 									acceleration = train_data->acceleration_G1;
 									speed_change_step = 1;
@@ -887,6 +888,36 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 								break;
 							case Stopped:
 								stop_type = Entering_None;
+								break;
+							case Reserve_Blocked:
+								stop_type = Entering_None;
+								updateCurrentLandmark(train_global, train_data, NULL, train_global->switch_table, com2_tid, TRUE);
+								route_start = dijkstra(track_nodes, train_data->landmark, stop_node, forward_route, &forward_dist);
+								if (route_start == TRACK_MAX) {
+									assert(0, "cannot find route");
+									stop_node = NULL;
+								} else {
+									check_point = route_start;
+									changeNextSW(route, check_point, train_global->switch_table, com1_tid, com2_tid);
+									stop_node = route[TRACK_MAX - 1];
+									uiprintf(com2_tid, ROW_TRAIN + train_index * HEIGHT_TRAIN + ROW_ROUTE, COLUMN_DATA_1, "%s  ", stop_node->name);
+									cmd[0] = TRAIN_REVERSE;
+									cmd[1] = train_id;
+									Puts(com1_tid, cmd, 2);
+									speed = speed_before_reverse;
+									cmd[0] = speed;
+									Puts(com1_tid, cmd, 2);
+									Delay(train_data->reverse_delay);
+									timer = getTimerValue(TIMER3_BASE);
+									reverse_protection_alarm = timer - 1000;
+									reverse_protect = 1;
+									if (speed > 0) {
+										speed_change_time = train_data->acceleration_time * train_data->velocities[speed%16] / train_data->velocities[14];
+										speed_change_alarm = getTimerValue(TIMER3_BASE) - speed_change_time / 5;
+										acceleration = train_data->acceleration_G1;
+										speed_change_step = 1;
+									}
+								}
 								break;
 							default:
 								assert(0, "missing stop type");
@@ -957,7 +988,7 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 				}
 
 				if (speed % 16 > old_speed % 16) {
-					speed_change_time = 8000 * (train_data->velocities[speed%16] - train_data->velocities[old_speed%16]) / train_data->velocities[14];
+					speed_change_time = train_data->acceleration_time * (train_data->velocities[speed%16] - train_data->velocities[old_speed%16]) / train_data->velocities[14];
 					speed_change_alarm = getTimerValue(TIMER3_BASE) - speed_change_time / 5;
 					acceleration = train_data->acceleration_G1;
 					speed_change_step = 1;
@@ -1091,9 +1122,10 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 				speed_change_alarm = 0;
 				speed_change_step = 0;
 				speed_change_time = 0;
+				speed_before_reverse = speed;
 				speed = 0;
 				setTrainSpeed(train_id, speed, com1_tid);
-				stop_type = Stopped;
+				stop_type = Reserve_Blocked;
 				break;
 			case TRACK_RESERVE_SUCCEED:
 				Reply(tid, NULL, 0);
