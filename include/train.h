@@ -25,8 +25,6 @@
 
 #define TRAIN_REVERSE 15
 
-#define DIST_SHIFT 18
-
 typedef struct train_global {
 	int com1_tid;
 	int com2_tid;
