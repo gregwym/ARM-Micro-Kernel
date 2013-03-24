@@ -159,13 +159,13 @@ void comserver(int channel_id) {
 				send_array[send_size] = message.ch;
 				send_size++;
 				if (message.ch == '\b') {
-					send_array[send_size] = '\e';
-					send_size++;
-					send_array[send_size] = '[';
-					send_size++;
-					send_array[send_size] = 'K';
-					send_size++;
+					send_array[send_size++] = '\e';
+					send_array[send_size++] = '[';
+					send_array[send_size++] = 'K';
 				}
+				send_array[send_size++] = '\e';
+				send_array[send_size++] = '[';
+				send_array[send_size++] = 's';
 			}
 		}
 		// Or is a getc msg, set char_getter_is_waiting and save its tid
