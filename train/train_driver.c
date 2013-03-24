@@ -581,7 +581,7 @@ void updateCurrentLandmark(TrainGlobal *train_global, TrainData *train_data, tra
 	uiprintf(com2_tid, ROW_TRAIN + train_index * HEIGHT_TRAIN + ROW_NEXT, COLUMN_DATA_1, "%s  ", train_data->predict_dest->name);
 
 	// Test track reservation
-	CreateWithArgs(7, trackReserver, (int)train_global, (int)train_data, train_data->landmark->index, find_stop_dist(train_data) >> 18);
+	CreateWithArgs(7, trackReserver, (int)train_global, (int)train_data, train_data->landmark->index, (find_stop_dist(train_data) + train_data->ahead_lm) >> DIST_SHIFT);
 }
 
 

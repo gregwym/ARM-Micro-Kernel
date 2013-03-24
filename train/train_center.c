@@ -85,7 +85,7 @@ inline void handleSensorUpdate(char *new_data, char *saved_data, TrainGlobal *tr
 						CreateWithArgs(2, locationPostman, train_data->tid, landmark_id, new_bit, 0);
 						IDEBUG(DB_RESERVE, train_global->com2_tid, ROW_DEBUG + 3, train_data->index * WIDTH_DEBUG, "#%s => %d  ", train_global->track_nodes[landmark_id].name, train_data->id);
 					} else {
-						IDEBUG(DB_RESERVE, train_global->com2_tid, 52, 0, "#%s not attributed\t", train_global->track_nodes[landmark_id].name);
+						IDEBUG(DB_RESERVE, train_global->com2_tid, ROW_DEBUG + 4, 0, "#%s => ?\t", train_global->track_nodes[landmark_id].name);
 					}
 				}
 				old_byte = old_byte >> 1;
@@ -198,12 +198,12 @@ inline TrainMsgType handleTrackReserve(TrainGlobal *train_global, TrainData* tra
 
 	if(conflict_node != NULL) {
 		IDEBUG(DB_RESERVE, train_global->com2_tid, ROW_DEBUG + 1,
-		       WIDTH_DEBUG * train_data->index, "#%dF\t%s\t",
+		       WIDTH_DEBUG * train_data->index, "#%dF\t%s   ",
 		       train_id, conflict_node->name);
 		return TRACK_RESERVE_FAIL;
 	}
 	IDEBUG(DB_RESERVE, train_global->com2_tid, ROW_DEBUG,
-	       WIDTH_DEBUG * train_data->index, "#%dR\t%s + %dmm\t",
+	       WIDTH_DEBUG * train_data->index, "#%dR\t%s + %dmm    ",
 	       train_id, train_global->track_nodes[landmark_id].name, distance);
 
 	// Clear previous reservation
