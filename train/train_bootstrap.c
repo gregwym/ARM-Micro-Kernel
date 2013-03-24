@@ -3,6 +3,66 @@
 #include <unistd.h>
 #include <train.h>
 
+inline void printLineDivider(int com2_tid) {
+	iprintf(com2_tid, BUFFER_LEN, "--------------------------------------------------------------------------------\n");
+}
+
+void initializeTrainUI(int com2_tid, TrainData *train_data, int train_index) {
+	iprintf(com2_tid, BUFFER_LEN, "-----TRAIN #%d------------------------------------------------------------------\n", train_data[train_index].id);
+
+	iprintf(com2_tid, BUFFER_LEN, "Current       |               | ");
+	// current node name 11;20
+	iprintf(com2_tid, BUFFER_LEN, "Has Gone      |               | \n");
+	// dist 11;40
+	iprintf(com2_tid, BUFFER_LEN, "Next          |               | ");
+	// predict node name 12;17
+	iprintf(com2_tid, BUFFER_LEN, "Remain        |               | \n");
+	// dist 12;38
+	iprintf(com2_tid, BUFFER_LEN, "Velocity      |               | ");
+	// velocity 14;12
+	iprintf(com2_tid, BUFFER_LEN, "Pred - Real   |               | \n");
+	// Dist diff : 17;15
+	iprintf(com2_tid, BUFFER_LEN, "Destination   |               | \n");
+	// Destination node 15;15
+}
+
+void initializeUI(int com2_tid, TrainData *train_data) {
+	int i;
+	int switch_ids[SWITCH_TOTAL];
+	for(i = 0; i < SWITCH_TOTAL; i++) {
+		switch_ids[i] = i < SWITCH_NAMING_MAX ? i + SWITCH_NAMING_BASE : i + SWITCH_NAMING_MID_BASE - SWITCH_NAMING_MAX;
+	}
+
+	// Clear the screen
+	iprintf(com2_tid, BUFFER_LEN, "\e[2J\e[1;1H");
+
+	iprintf(com2_tid, BUFFER_LEN, "Märklin Digital Train Control Panel                  Time elapsed:   00:00:0\n");
+	printLineDivider(com2_tid);
+	iprintf(com2_tid, BUFFER_LEN, "Last Command  | \n");
+	printLineDivider(com2_tid);
+	iprintf(com2_tid, BUFFER_LEN, "Track Switchs | ");
+
+	int cells = (WIDTH_SWITCH_TABLE * HEIGHT_SWITCH_TABLE - 1);
+	for(i = 0; i < cells; i++) {
+		int index = (i % WIDTH_SWITCH_TABLE) * HEIGHT_SWITCH_TABLE + i / WIDTH_SWITCH_TABLE;
+		if(index < SWITCH_TOTAL) {
+			int id = switch_ids[index];
+			iprintf(com2_tid, BUFFER_LEN, "%d   ", id);
+			if(id / 100 == 0) Putc(com2_tid, ' ');
+			if(id / 10 == 0) Putc(com2_tid, ' ');
+			iprintf(com2_tid, BUFFER_LEN, "| C     | ");
+		}
+		if(i % WIDTH_SWITCH_TABLE == (WIDTH_SWITCH_TABLE - 1)) iprintf(com2_tid, BUFFER_LEN, "\n              | ");
+	}
+	Putc(com2_tid, '\n');
+	for(i = 0; i < TRAIN_MAX; i++) {
+		initializeTrainUI(com2_tid, train_data, i);
+	}
+	printLineDivider(com2_tid);
+
+	iprintf(com2_tid, 5, "\e[s");
+}
+
 void trainBootstrap() {
 
 	int tid;
@@ -19,6 +79,8 @@ void trainBootstrap() {
 	TrainData train_data[TRAIN_MAX];
 	init_train37(&(train_data[0]));
 	init_train49(&(train_data[1]));
+	train_data[0].index = 0;
+	train_data[1].index = 1;
 
 	/* Track Reservation */
 	int track_reservation[TRACK_MAX];
@@ -34,45 +96,7 @@ void trainBootstrap() {
 	train_global.track_reservation = track_reservation;
 
 	/* initial UI */
-	iprintf(train_global.com2_tid, 10, "\e[2J");
-	iprintf(train_global.com2_tid, 30, "\e[1;1HTime: 00:00.0");
-	iprintf(train_global.com2_tid, 20, "\e[2;1HCommand:");
-	int i;
-	iprintf(train_global.com2_tid, 30, "\e[%d;%dHSwitch Table:", 5, 1);
-	iprintf(train_global.com2_tid, 10, "\e[%d;%dH", 6, 2);
-	for (i = 1; i < 10; i++) {
-		iprintf(train_global.com2_tid, 10, "00%d:C ", i);
-	}
-
-	iprintf(train_global.com2_tid, 10, "\e[%d;%dH", 7, 2);
-	for (i = 10; i < 19; i++) {
-		iprintf(train_global.com2_tid, 10, "0%d:C ", i);
-	}
-
-	iprintf(train_global.com2_tid, 10, "\e[%d;%dH", 8, 2);
-	for (i = 153; i < 157; i++) {
-		iprintf(train_global.com2_tid, 10, "%d:C ", i);
-	}
-
-	iprintf(train_global.com2_tid, 30, "\e[%d;%dHTrain Position:", 10, 2);
-
-	iprintf(train_global.com2_tid, 30, "\e[%d;%dHCurrent Location:", 11, 2);
-	// current node name 11;20
-	iprintf(train_global.com2_tid, 30, "\e[%d;%dHHas Gone:\e[%d;%dHmm", 11, 30, 11, 46);
-	// dist 11;40
-	iprintf(train_global.com2_tid, 30, "\e[%d;%dHNext Location:", 12, 2);
-	// predict node name 12;17
-	iprintf(train_global.com2_tid, 30, "\e[%d;%dHRemain:\e[%d;%dHmm", 12, 30, 12, 44);
-	// dist 12;38
-	iprintf(train_global.com2_tid, 30, "\e[%d;%dHVelocity: 0", 14, 2);
-	// velocity 14;12
-	iprintf(train_global.com2_tid, 30, "\e[%d;%dHDestination: ", 15, 2);
-	// Destination node 15;15
-
-	iprintf(train_global.com2_tid, 30, "\e[%d;%dHPred - Real: ", 17, 2);
-	// Dist diff : 17;15
-
-	iprintf(train_global.com2_tid, 10, "\e[%d;%dH\e[s", 3, 1);
+	initializeUI(train_global.com2_tid, train_data);
 
 	Create(8, trainclockserver);
 	tid = CreateWithArgs(8, trainCenter, (int)(&train_global), 0, 0, 0);

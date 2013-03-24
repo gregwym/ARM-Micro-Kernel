@@ -30,6 +30,7 @@ typedef struct train_data {
 	int			ht_length[2];
 
 	/* Volatile Data */
+	int				index;
 	int				tid;
 	volatile int	speed;
 	volatile int	velocity;

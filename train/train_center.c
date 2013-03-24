@@ -27,11 +27,12 @@ inline void changeSwitch(int switch_id, int direction, int com1_tid) {
 /* Workers */
 void switchChanger(int switch_id, int direction, int com1_tid, int com2_tid) {
 	char state = (direction == 33 ? 'S' : 'C');
-	if (switch_id <= 18) {
-		iprintf(com2_tid, 20, "\e[s\e[%d;%dH%c\e[u", switch_id/9 + 6, ((switch_id - 1)%9)*6 + 6, state);
-	} else if (switch_id >= 153 && switch_id <= 156) {
-		iprintf(com2_tid, 20, "\e[s\e[%d;%dH%c\e[u", 8, ((switch_id - 153)%9)*6 + 6, state);
-	}
+
+	int index = switch_id > SWITCH_NAMING_MAX ? switch_id - SWITCH_NAMING_MID_BASE + SWITCH_NAMING_MAX : switch_id - SWITCH_NAMING_BASE;
+	int ui_row = index % HEIGHT_SWITCH_TABLE + ROW_SWITCH_TABLE;
+	int ui_column = (index / HEIGHT_SWITCH_TABLE) * COLUMN_WIDTH * 2 + COLUMN_VALUES + COLUMN_WIDTH;
+
+	uiprintf(com2_tid, ui_row, ui_column, "%c", state);
 	changeSwitch(switch_id, direction, com1_tid);
 
 	// Delay 400ms then turn off the solenoid

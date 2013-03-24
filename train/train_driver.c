@@ -125,7 +125,7 @@ StopType stopCheck(track_node *cur_node, track_node **exit_node, int ahead, char
 	track_node *checked_node = cur_node;
 	int hit_exit = 0;
 	if (stop_node != NULL && offset == -1) {
-		iprintf(4, 60, "\e[s\e[21;2H cur: %s  \e[u", route[check_point]->name);
+		IDEBUG(DB_ROUTE, 4, ROW_DEBUG + 1, COLUMN_FIRST, "cur: %s  ", route[check_point]->name);
 		for (; distance < (stop_distance + ahead) && !hit_exit && check_point < TRACK_MAX; check_point++) {
 			if (stop_node == route[check_point]) {
 				return Entering_Dest;
@@ -466,7 +466,7 @@ int find_reverse_node(track_node **route, int check_point, char *switch_table, i
 			}
 		}
 		*offset = (margin - dist) << DIST_SHIFT;
-		iprintf(4, 70, "\e[s\e[20;2H reverse node: %s, offset: %d       \e[u", checked_node->name, (*offset) >> 18);
+		IDEBUG(DB_ROUTE, 4, ROW_DEBUG, COLUMN_FIRST, "reverse node: %s, offset: %d       ", checked_node->name, (*offset) >> 18);
 		*reverse_node = checked_node;
 		return 1;
 	} else {
@@ -537,6 +537,7 @@ int updateCheckPoint(TrainData *train_data, track_node **route, int check_point,
 
 //update current landmark
 void updateCurrentLandmark(TrainGlobal *train_global, TrainData *train_data, track_node *sensor_node, char *switch_table, int com2_tid, int reverse) {
+	int train_index = train_data->index;
 	int direction;
 	if (!reverse) {
 		if (sensor_node != NULL) {
@@ -551,7 +552,7 @@ void updateCurrentLandmark(TrainGlobal *train_global, TrainData *train_data, tra
 				train_data->forward_distance = train_data->forward_distance << DIST_SHIFT;
 				train_data->predict_dest = train_data->landmark->edge[direction].dest;
 			} else {
-				iprintf(com2_tid, 30, "\e[s\e[%d;%dHlocation -1 %s\e[u", 36, 2, train_data->landmark->name);
+				// iprintf(com2_tid, 30, "\e[s\e[%d;%dHlocation -1 %s\e[u", 36, 2, train_data->landmark->name);
 			}
 		} else {
 			train_data->ahead_lm = 0;
@@ -575,8 +576,8 @@ void updateCurrentLandmark(TrainGlobal *train_global, TrainData *train_data, tra
 		}
 	}
 
-	iprintf(com2_tid, 30, "\e[s\e[%d;%dH%s  \e[u", 11, 20, train_data->landmark->name);
-	iprintf(com2_tid, 30, "\e[s\e[%d;%dH%s  \e[u", 12, 17, train_data->predict_dest->name);
+	uiprintf(com2_tid, ROW_TRAIN + train_index * HEIGHT_TRAIN + ROW_CURRENT, COLUMN_DATA_1, "%s  ", train_data->landmark->name);
+	uiprintf(com2_tid, ROW_TRAIN + train_index * HEIGHT_TRAIN + ROW_NEXT, COLUMN_DATA_1, "%s  ", train_data->predict_dest->name);
 
 	// Test track reservation
 	CreateWithArgs(7, trackReserver, train_data->id, train_data->landmark->index, find_stop_dist(train_data) >> 18, train_global->center_tid);
@@ -590,6 +591,7 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 	track_node *stop_node = NULL;
 	int tid, result;
 	int train_id = train_data->id;
+	int train_index = train_data->index;
 	int speed = 0;
 	int old_speed = 0;
 	int speed_before_reverse = 0;
@@ -669,20 +671,18 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 						check_point = tmp;
 						if (train_data->landmark->type == NODE_SENSOR) {
 							changeNextSW(route, check_point, train_global->switch_table, com1_tid, com2_tid);
-							if (train_data->landmark->name == "A16") {
-								iprintf(com2_tid, 30, "\e[s\e[%d;%dHroute: %s  \e[u", 30, 2, route[check_point]->name);
-							}
 						}
 					// assert(check_point != -1, "check_point is -1");
 					} else {
-						iprintf(com2_tid, 40, "\e[s\e[25;2Hoff route: %s   \e[u", train_data->landmark->name);
+						IDEBUG(DB_ROUTE, 4, ROW_DEBUG + 2, COLUMN_FIRST, "off route: %s   ", train_data->landmark->name);
 					}
 				}
 			}
 
 			if (cnt == 8) cnt = 0;
 			if (cnt == 0) {
-				iprintf(com2_tid, 30, "\e[s\e[%d;%dH%d   \e[u", 14, 12, train_data->velocity);
+				uiprintf(com2_tid, ROW_TRAIN + train_index * HEIGHT_TRAIN + ROW_STATUS,
+				         COLUMN_DATA_1, "%d   ", train_data->velocity);
 			}
 
 			if (speed_change_alarm > timer) {
@@ -729,7 +729,8 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 			cnt++;
 			if (cnt == 8) {
 				cnt = 0;
-				iprintf(com2_tid, 30, "\e[s\e[%d;%dH%d   \e[u", 14, 12, train_data->velocity);
+				uiprintf(com2_tid, ROW_TRAIN + train_index * HEIGHT_TRAIN + ROW_STATUS,
+				         COLUMN_DATA_1, "%d   ", train_data->velocity);
 			}
 
 			if (acceleration > 0) {
@@ -762,7 +763,7 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 								// updateCurrentLandmark(train_global, train_data, stop_node, train_global->switch_table, com2_tid);
 								stop_node = NULL;
 								action = Free_Run;
-								iprintf(com2_tid, 30, "\e[s\e[%d;%dH       \e[u", 15, 15);
+								uiprintf(com2_tid, ROW_TRAIN + train_index * HEIGHT_TRAIN + ROW_ROUTE, COLUMN_DATA_1, "    ");
 								break;
 							case Entering_Merge:
 								stop_type = Entering_None;
@@ -798,10 +799,9 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 									// speed = 0;
 									// setTrainSpeed(train_id, 0, com1_tid);
 									// stop_type = Reversing;
-									iprintf(4, 40, "\e[s\e[21;2Herror! cur: %s, dest: %s\e[u", train_data->landmark->name, stop_node->name);
-
+									IDEBUG(DB_ROUTE, 4, ROW_DEBUG + 3, COLUMN_FIRST, "error! cur: %s, dest: %s", train_data->landmark->name, stop_node->name);
 								}
-								iprintf(com2_tid, 30, "\e[s\e[%d;%dH%s  \e[u", 15, 15, stop_node->name);
+								uiprintf(com2_tid, ROW_TRAIN + train_index * HEIGHT_TRAIN + ROW_ROUTE, COLUMN_DATA_1, "%s  ", stop_node->name);
 								// check_point = route_start - 1;
 								// route[check_point] = train_data->landmark;
 								if (find_reverse_node(route, check_point, train_global->switch_table, &reverse_node_offset, &reverse_node, margin)) {
@@ -863,7 +863,7 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 									int need_reverse = 1;
 									route_start = findRoute(track_nodes, train_data, stop_node, route, &need_reverse);
 									if (need_reverse) {
-										iprintf(com2_tid, 50, "\e[s\e[25;2Hshouldn't reverse: %s   \e[u", train_data->landmark->name);
+										IDEBUG(DB_ROUTE, com2_tid, ROW_DEBUG + 4, COLUMN_FIRST, "shouldn't reverse: %s   ", train_data->landmark->name);
 										acceleration = train_data->deceleration;;
 										speed_change_alarm = 0;
 										speed_change_step = 0;
@@ -881,7 +881,7 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 									} else {
 										action = Goto_Dest;
 									}
-									iprintf(com2_tid, 30, "\e[s\e[%d;%dH%s  \e[u", 15, 15, stop_node->name);
+							        uiprintf(com2_tid, ROW_TRAIN + train_index * HEIGHT_TRAIN + ROW_ROUTE, COLUMN_DATA_1, "%s  ", stop_node->name);
 								}
 								break;
 							case Stopped:
@@ -906,7 +906,7 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 						speed_change_alarm = 0;
 						speed_change_step = 0;
 						speed_change_time = 0;
-						iprintf(4, 70, "\e[s\e[19;2H stop, %s, %d v: %d  sd: %d          \e[u", train_data->landmark->name, train_data->ahead_lm >> 18, train_data->velocity, find_stop_dist(train_data) >> 18);
+						IDEBUG(DB_ROUTE, 4, ROW_DEBUG + 5, COLUMN_FIRST, "stop, %s, %d v: %d  sd: %d          ", train_data->landmark->name, train_data->ahead_lm >> 18, train_data->velocity, find_stop_dist(train_data) >> 18);
 					}
 
 				} else if (action == Goto_Merge) {
@@ -919,7 +919,7 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 						speed_change_alarm = 0;
 						speed_change_step = 0;
 						speed_change_time = 0;
-						iprintf(4, 70, "\e[s\e[19;2H stop, %s, %d v: %d  sd: %d          \e[u", train_data->landmark->name, train_data->ahead_lm >> 18, train_data->velocity, find_stop_dist(train_data) >> 18);
+						IDEBUG(DB_ROUTE, 4, ROW_DEBUG + 5, COLUMN_FIRST, "stop, %s, %d v: %d  sd: %d          ", train_data->landmark->name, train_data->ahead_lm >> 18, train_data->velocity, find_stop_dist(train_data) >> 18);
 					}
 					if (stop_type == Entering_Merge) {
 						setTrainSpeed(train_id, 0, com1_tid);
@@ -929,7 +929,7 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 						speed_change_alarm = 0;
 						speed_change_step = 0;
 						speed_change_time = 0;
-						iprintf(4, 70, "\e[s\e[19;2H stop(m), %s, %d v: %d  sd: %d          \e[u", train_data->landmark->name, train_data->ahead_lm >> 18, train_data->velocity, find_stop_dist(train_data) >> 18);
+						IDEBUG(DB_ROUTE, 4, ROW_DEBUG + 5, COLUMN_FIRST, "stop, %s, %d v: %d  sd: %d          ", train_data->landmark->name, train_data->ahead_lm >> 18, train_data->velocity, find_stop_dist(train_data) >> 18);
 					}
 				} else {
 					assert(0, "wtf!");
@@ -939,8 +939,8 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 			prev_timer = timer;
 
 			if (!cnt) {
-				iprintf(com2_tid, 30, "\e[s\e[%d;%dH%d  \e[u", 11, 40, train_data->ahead_lm >> DIST_SHIFT);
-				iprintf(com2_tid, 30, "\e[s\e[%d;%dH%d  \e[u", 12, 38, (train_data->forward_distance - train_data->ahead_lm) >> DIST_SHIFT);
+				uiprintf(com2_tid, ROW_TRAIN + train_index * HEIGHT_TRAIN + ROW_CURRENT, COLUMN_DATA_2, "%d  ", train_data->ahead_lm >> DIST_SHIFT);
+				uiprintf(com2_tid, ROW_TRAIN + train_index * HEIGHT_TRAIN + ROW_NEXT, COLUMN_DATA_2, "%d  ", (train_data->forward_distance - train_data->ahead_lm) >> DIST_SHIFT);
 			}
 			continue;
 		}
@@ -986,7 +986,7 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 				Reply(tid, NULL, 0);
 				if (train_data->landmark != &(track_nodes[msg.location_msg.id])) {
 					// inaccuracy print
-					iprintf(com2_tid, 30, "\e[s\e[%d;%dH-%d  \e[u", 28, 15, (train_data->forward_distance - train_data->ahead_lm) >> DIST_SHIFT);
+					uiprintf(com2_tid, ROW_TRAIN + train_index * HEIGHT_TRAIN + ROW_STATUS, COLUMN_DATA_2, "-%d  ", (train_data->forward_distance - train_data->ahead_lm) >> DIST_SHIFT);
 
 					updateCurrentLandmark(train_global, train_data, &(track_nodes[msg.location_msg.id]), train_global->switch_table, com2_tid, FALSE);
 
@@ -1011,8 +1011,7 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 							assert(route_start != TRACK_MAX, "route_start == TRACK_MAX");
 							check_point = route_start;
 							stop_node = route[TRACK_MAX - 1];
-							iprintf(com2_tid, 30, "\e[s\e[%d;%dH%s (R) \e[u", 15, 15, stop_node->name);
-
+							IDEBUG(DB_ROUTE, com2_tid, ROW_DEBUG + 5, COLUMN_FIRST, "%s (R) ", stop_node->name);
 
 							if (find_reverse_node(route, check_point, train_global->switch_table, &reverse_node_offset, &reverse_node, margin)) {
 								action = Goto_Merge;
@@ -1021,13 +1020,10 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 							}
 						}
 					}
-					if (train_data->landmark->name == "A16") {
-						iprintf(com2_tid, 30, "\e[s\e[%d;%dHroute: %s  \e[u", 30, 2, route[check_point]->name);
-					}
 					// changeNextSW(route, check_point, train_global->switch_table, com1_tid, com2_tid);
 				} else {
 					// inaccuracy print
-					iprintf(com2_tid, 30, "\e[s\e[%d;%dH%d  \e[u", 28, 15, train_data->ahead_lm >> DIST_SHIFT);
+					uiprintf(com2_tid, ROW_TRAIN + train_index * HEIGHT_TRAIN + ROW_STATUS, COLUMN_DATA_2, "%d", train_data->ahead_lm >> DIST_SHIFT);
 					train_data->ahead_lm = 0;
 				}
 
@@ -1064,11 +1060,11 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 				stop_node = route[TRACK_MAX - 1];
 				check_point = route_start;
 				int prt_cnter = route_start;
-				buf_cursor += sprintf(buf_cursor, "\e[s\e[17;2H");
+				buf_cursor += sprintf(buf_cursor, "\e[s\e[%d;%dH", ROW_DEBUG + 10, COLUMN_FIRST);
 				for(; prt_cnter < TRACK_MAX; prt_cnter++) {
 					buf_cursor += sprintf(buf_cursor, "%s -> ", route[prt_cnter]->name);
 				}
-				buf_cursor += sprintf(buf_cursor, "                       \n\e[u");
+				buf_cursor += sprintf(buf_cursor, "\t\t\t\t\t\t\t\t\t\n\e[u");
 				Puts(com2_tid, str_buf, 0);
 				str_buf[0] = '\0';
 				if (find_reverse_node(route, check_point, train_global->switch_table, &reverse_node_offset, &reverse_node, margin)) {
@@ -1082,7 +1078,7 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 					// sprintf(str_buf, "branch change: %s\n", route[check_point]->name);
 					// Puts(com2_tid, str_buf, 0);
 				// }
-				iprintf(com2_tid, 30, "\e[s\e[%d;%dH%s  \e[u", 15, 15, stop_node->name);
+				uiprintf(com2_tid, ROW_TRAIN + train_index * HEIGHT_TRAIN + ROW_ROUTE, COLUMN_DATA_1, "%s  ", stop_node->name);
 				break;
 			case CMD_MARGIN:
 				Reply(tid, NULL, 0);
