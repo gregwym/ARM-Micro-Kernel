@@ -193,7 +193,7 @@ inline TrainMsgType handleTrackReserve(TrainGlobal *train_global, int train_id, 
 	if(!trackAvailability(train_global, train_id, landmark_id, distance)) {
 		return TRACK_RESERVE_FAIL;
 	}
-	IDEBUG(DB_RESERVE, train_global->com2_tid, 50, 0, "#%dR\t%s + %dmm  ", train_id, train_global->track_nodes[landmark_id].name, distance);
+	IDEBUG(DB_RESERVE, train_global->com2_tid, 49, 0, "#%dR\t%s + %dmm  ", train_id, train_global->track_nodes[landmark_id].name, distance);
 
 	// Clear previous reservation
 	reserveTrack(train_global, -1, train->reservation_record.landmark_id, train->reservation_record.distance);
