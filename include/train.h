@@ -4,6 +4,7 @@
 /* Train Server */
 #include <intern/track_data.h>
 #include <intern/train_data.h>
+#include <intern/train_ui.h>
 
 #define SYSTEM_START 96
 #define SYSTEM_STOP 97

@@ -12,12 +12,12 @@
 #define DB_IRQ         0x020
 #define DB_IO          0x040
 #define DB_RESERVE     0x080
-// #define DB_SFS         0x100
+#define DB_ROUTE       0x100
 // #define DB_NET         0x200
 // #define DB_NETFS       0x400
 // #define DB_KMALLOC     0x800
 
-#define dbflags 0 // DB_SYSCALL | DB_TASK | DB_CS | DB_NS | DB_RPS | DB_IRQ | DB_RESERVE
+#define dbflags DB_ROUTE // DB_SYSCALL | DB_TASK | DB_CS | DB_NS | DB_RPS | DB_IRQ | DB_RESERVE
 
 #ifndef NDEBUG
 	/* assert */
@@ -31,7 +31,7 @@
 	/* debug */
 	#define DEBUG(d, fmt, args...) (((dbflags) & (d)) ? bwprintf(COM2, fmt, ##args) : 0)
 	#define IDEBUG(d, com2_tid, line, column, fmt, args...) \
-	(((dbflags) & (d)) ? iprintf(com2_tid, 256, "\e[s\e[%d;%dH" fmt "\e[u", line, column, ##args) : 0)
+	(((dbflags) & (d)) ? iprintf(com2_tid, 256, "\e[%d;%dH" fmt "\e[u", line, column, ##args) : 0)
 #else
 	#define assert(test, msg)		((void)0)
 	#define DEBUG(d, fmt, args...)	((void)0)
