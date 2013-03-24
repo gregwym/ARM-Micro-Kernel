@@ -30,6 +30,8 @@
 
 	/* debug */
 	#define DEBUG(d, fmt, args...) (((dbflags) & (d)) ? bwprintf(COM2, fmt, ##args) : 0)
+	#define IDEBUG(d, com2_tid, line, column, fmt, args...) \
+	(((dbflags) & (d)) ? iprintf(com2_tid, 256, "\e[s\e[%d;%dH" fmt "\e[u", line, column, ##args) : 0)
 #else
 	#define assert(test, msg)		((void)0)
 	#define DEBUG(d, fmt, args...)	((void)0)
