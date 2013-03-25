@@ -967,7 +967,7 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 									cmd[1] = train_id;
 									Puts(com1_tid, cmd, 2);
 								}
-								CreateWithArgs(RESERVER_PRIORITY, trackReserver, (int)train_global, (int)train_data, train_data->landmark->index, (find_stop_dist(train_data) + train_data->ahead_lm) >> DIST_SHIFT);
+								// CreateWithArgs(7, trackReserver, (int)train_global, (int)train_data, train_data->landmark->index, (find_stop_dist(train_data) + train_data->ahead_lm) >> DIST_SHIFT);
 								break;
 							default:
 								assert(0, "missing stop type");
@@ -1227,6 +1227,7 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 					setTrainSpeed(train_id, train_data->speed, com1_tid);
 					stop_type = Reserve_Blocked;
 					IDEBUG(DB_ROUTE, 4, 53, 2, "reserve stop: %s, %d    ", train_data->landmark->name, train_data->ahead_lm >> 18);
+					IDEBUG(DB_ROUTE, 4, 55, 5 + train_data->index * 40, "__%s", train_data->direction == FORWARD ? "F" : "B");
 				}
 				break;
 			case TRACK_RESERVE_SUCCEED:
@@ -1240,6 +1241,7 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 						speed_change_alarm = getTimerValue(TIMER3_BASE) - speed_change_time / 5;
 						acceleration = train_data->acceleration_G1;
 						speed_change_step = 1;
+						IDEBUG(DB_ROUTE, 4, 55, 5 + train_data->index * 40, "^^%s", train_data->direction == FORWARD ? "F" : "B");
 					}
 					waiting_for_reservation = 0;
 				}
