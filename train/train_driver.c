@@ -1184,12 +1184,7 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 				if (waiting_for_reservation) {
 					stop_type = Entering_None;
 					train_data->speed = old_speed;
-					cmd[0] = train_data->speed;
-					Puts(com1_tid, cmd, 2);
-					// Delay(train_data->reverse_delay);
-					// timer = getTimerValue(TIMER3_BASE);
-					// reverse_protection_alarm = timer - 1000;
-					// reverse_protect = 1;
+					setTrainSpeed(train_id, train_data->speed, com1_tid);
 					if (train_data->speed > 0) {
 						speed_change_time = train_data->acceleration_time * train_data->velocities[train_data->speed%16] / train_data->velocities[14];
 						speed_change_alarm = getTimerValue(TIMER3_BASE) - speed_change_time / 5;
