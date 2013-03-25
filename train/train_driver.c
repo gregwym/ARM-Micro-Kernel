@@ -47,6 +47,7 @@ void trainReverser(int train_id, int new_speed, int com1_tid, int delay_time) {
 void trackReserver(TrainGlobal *train_global, TrainData *train_data, int landmark_id, int distance) {
 	int center_tid = train_global->center_tid;
 	int result, driver_tid;
+	distance += 100;
 	TrainMsgType reply;
 	ReservationMsg msg;
 	msg.type = TRACK_RESERVE;
@@ -659,6 +660,8 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 	int forward_dist;
 
 	char cmd[2];
+	
+	int waiting_for_reservation = 0;
 
 	// iprintf(com2_tid, 10, "\e[s\e[20;2Hcom2: %d \e[u", com2_tid);
 
@@ -691,12 +694,6 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 			if (train_data->ahead_lm > train_data->last_reserve_position + (RESERVE_CHECKPOINT_LEN << DIST_SHIFT) && train_data->speed%16 != 0) {
 				CreateWithArgs(7, trackReserver, (int)train_global, (int)train_data, train_data->landmark->index, (find_stop_dist(train_data) + train_data->ahead_lm) >> DIST_SHIFT);
 				train_data->last_reserve_position = train_data->ahead_lm;
-			}
-
-			if (cnt == 8) cnt = 0;
-			if (cnt == 0) {
-				uiprintf(com2_tid, ROW_TRAIN + train_index * HEIGHT_TRAIN + ROW_STATUS,
-				         COLUMN_DATA_1, "%d   ", train_data->velocity);
 			}
 
 			if (speed_change_alarm > timer) {
@@ -745,6 +742,9 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 				cnt = 0;
 				uiprintf(com2_tid, ROW_TRAIN + train_index * HEIGHT_TRAIN + ROW_STATUS,
 				         COLUMN_DATA_1, "%d   ", train_data->velocity);
+				if (waiting_for_reservation) {
+					CreateWithArgs(7, trackReserver, (int)train_global, (int)train_data, train_data->landmark->index, (find_stop_dist(train_data) + train_data->ahead_lm) >> DIST_SHIFT);
+				}
 			}
 
 			if (acceleration > 0) {
@@ -903,6 +903,7 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 								break;
 							case Reserve_Blocked:
 								stop_type = Entering_None;
+								waiting_for_reservation = 1;
 								updateCurrentLandmark(train_global, train_data, NULL, train_global->switch_table, com2_tid, TRUE);
 								if (action != Free_Run) {
 									route_start = dijkstra(track_nodes, train_data->landmark, stop_node, route, &forward_dist);
@@ -917,36 +918,13 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 										cmd[0] = TRAIN_REVERSE;
 										cmd[1] = train_id;
 										Puts(com1_tid, cmd, 2);
-										train_data->speed = speed_before_reverse;
-										cmd[0] = train_data->speed;
-										Puts(com1_tid, cmd, 2);
-										Delay(train_data->reverse_delay);
-										timer = getTimerValue(TIMER3_BASE);
-										reverse_protection_alarm = timer - 1000;
-										reverse_protect = 1;
-										if (train_data->speed > 0) {
-											speed_change_time = train_data->acceleration_time * train_data->velocities[train_data->speed%16] / train_data->velocities[14];
-											speed_change_alarm = getTimerValue(TIMER3_BASE) - speed_change_time / 5;
-											acceleration = train_data->acceleration_G1;
-											speed_change_step = 1;
-										}
 									}
 								} else {
 									cmd[0] = TRAIN_REVERSE;
 									cmd[1] = train_id;
 									Puts(com1_tid, cmd, 2);
-									train_data->speed = speed_before_reverse;
-									cmd[0] = train_data->speed;
-									Puts(com1_tid, cmd, 2);
-									Delay(train_data->reverse_delay);
-									timer = getTimerValue(TIMER3_BASE);
 								}
-								if (train_data->speed > 0) {
-									speed_change_time = train_data->acceleration_time * train_data->velocities[train_data->speed%16] / train_data->velocities[14];
-									speed_change_alarm = getTimerValue(TIMER3_BASE) - speed_change_time / 5;
-									acceleration = train_data->acceleration_G1;
-									speed_change_step = 1;
-								}
+								CreateWithArgs(7, trackReserver, (int)train_global, (int)train_data, train_data->landmark->index, (find_stop_dist(train_data) + train_data->ahead_lm) >> DIST_SHIFT);
 								uiprintf(com2_tid, 50, 2, "speed: %d", train_data->speed);
 								break;
 							default:
@@ -1085,7 +1063,7 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 					// changeNextSW(route, check_point, train_global->switch_table, com1_tid, com2_tid);
 				} else {
 					// inaccuracy print
-					uiprintf(com2_tid, ROW_TRAIN + train_index * HEIGHT_TRAIN + ROW_STATUS, COLUMN_DATA_2, "%d", train_data->ahead_lm >> DIST_SHIFT);
+					uiprintf(com2_tid, ROW_TRAIN + train_index * HEIGHT_TRAIN + ROW_STATUS, COLUMN_DATA_2, "%d   ", train_data->ahead_lm >> DIST_SHIFT);
 					train_data->ahead_lm = 0;
 				}
 
@@ -1161,6 +1139,22 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 				break;
 			case TRACK_RESERVE_SUCCEED:
 				Reply(tid, NULL, 0);
+				if (waiting_for_reservation) {
+					train_data->speed = speed_before_reverse;
+					cmd[0] = train_data->speed;
+					Puts(com1_tid, cmd, 2);
+					// Delay(train_data->reverse_delay);
+					// timer = getTimerValue(TIMER3_BASE);
+					// reverse_protection_alarm = timer - 1000;
+					// reverse_protect = 1;
+					if (train_data->speed > 0) {
+						speed_change_time = train_data->acceleration_time * train_data->velocities[train_data->speed%16] / train_data->velocities[14];
+						speed_change_alarm = getTimerValue(TIMER3_BASE) - speed_change_time / 5;
+						acceleration = train_data->acceleration_G1;
+						speed_change_step = 1;
+					}
+					waiting_for_reservation = 0;
+				}
 				break;
 			default:
 				sprintf(str_buf, "Driver got unknown msg, type: %d\n", msg.type);
