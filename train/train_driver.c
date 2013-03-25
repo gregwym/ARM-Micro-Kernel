@@ -603,7 +603,6 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 	int train_id = train_data->id;
 	int train_index = train_data->index;
 	int old_speed = 0;
-	int speed_before_reverse = 0;
 
 	int com1_tid = train_global->com1_tid;
 	int com2_tid = train_global->com2_tid;
@@ -818,7 +817,7 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 								check_point = route_start;
 								if (need_reverse) {
 									// acceleration = train_data->deceleration;;
-									// speed_before_reverse = speed;
+									// old_speed = speed;
 									// speed = 0;
 									// setTrainSpeed(train_id, 0, com1_tid);
 									// stop_type = Reversing;
@@ -835,7 +834,7 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 								cmd[0] = TRAIN_REVERSE;
 								cmd[1] = train_id;
 								Puts(com1_tid, cmd, 2);
-								train_data->speed = speed_before_reverse;
+								train_data->speed = old_speed;
 								cmd[0] = train_data->speed;
 								Puts(com1_tid, cmd, 2);
 								Delay(train_data->reverse_delay);
@@ -869,7 +868,7 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 								cmd[0] = TRAIN_REVERSE;
 								cmd[1] = train_id;
 								Puts(com1_tid, cmd, 2);
-								train_data->speed = speed_before_reverse;
+								train_data->speed = old_speed;
 								cmd[0] = train_data->speed;
 								Puts(com1_tid, cmd, 2);
 								Delay(train_data->reverse_delay);
@@ -891,7 +890,7 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 										speed_change_alarm = 0;
 										speed_change_step = 0;
 										speed_change_time = 0;
-										speed_before_reverse = train_data->speed;
+										old_speed = train_data->speed;
 										train_data->speed = 0;
 										setTrainSpeed(train_id, 0, com1_tid);
 										stop_type = Reversing;
@@ -912,7 +911,6 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 								break;
 							case Reserve_Blocked:
 								stop_type = Entering_None;
-								waiting_for_reservation = 1;
 								updateCurrentLandmark(train_global, train_data, NULL, train_global->switch_table, com2_tid, TRUE);
 								if (action != Free_Run) {
 									route_start = dijkstra(track_nodes, train_data->landmark, stop_node, route, &forward_dist);
@@ -958,6 +956,7 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 					find_stop_dist(train_data), stop_node, -1, route, check_point, com2_tid);
 					if (stop_type == Entering_Exit || stop_type == Entering_Dest) {
 						setTrainSpeed(train_id, 0, com1_tid);
+						old_speed = train_data->speed;
 						train_data->speed = 0;
 						acceleration = train_data->deceleration;;
 						speed_change_alarm = 0;
@@ -970,6 +969,7 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 					stop_type = stopCheck(train_data->landmark, &exit_node, train_data->ahead_lm, train_global->switch_table,
 					find_stop_dist(train_data), reverse_node, reverse_node_offset, route, check_point, com2_tid);
 					if (stop_type == Entering_Exit) {
+						old_speed = train_data->speed;
 						setTrainSpeed(train_id, 0, com1_tid);
 						train_data->speed = 0;
 						acceleration = train_data->deceleration;;
@@ -980,7 +980,7 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 					}
 					if (stop_type == Entering_Merge) {
 						setTrainSpeed(train_id, 0, com1_tid);
-						speed_before_reverse = train_data->speed;
+						old_speed = train_data->speed;
 						train_data->speed = 0;
 						acceleration = train_data->deceleration;;
 						speed_change_alarm = 0;
@@ -1033,7 +1033,7 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 				speed_change_alarm = 0;
 				speed_change_step = 0;
 				speed_change_time = 0;
-				speed_before_reverse = train_data->speed;
+				old_speed = train_data->speed;
 				train_data->speed = 0;
 				stop_type = Reversing;
 				setTrainSpeed(train_id, 0, com1_tid);
@@ -1058,11 +1058,11 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 							int need_reverse;
 							route_start = findRoute(track_nodes, train_data, stop_node, route, &need_reverse);
 							if (need_reverse) {
-								acceleration = train_data->deceleration;;
+								acceleration = train_data->deceleration;
 								speed_change_alarm = 0;
 								speed_change_step = 0;
 								speed_change_time = 0;
-								speed_before_reverse = train_data->speed;
+								old_speed = train_data->speed;
 								train_data->speed = 0;
 								setTrainSpeed(train_id, 0, com1_tid);
 								stop_type = Reversing;
@@ -1097,6 +1097,28 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 						changeNextSW(route, check_point, train_global->switch_table, com1_tid, com2_tid);
 					}
 				}
+				
+				if (stop_type == Entering_Dest) {
+					check_point = updateCheckPoint(train_data, route, check_point, route_start);
+					if (check_point == -1) {
+						int need_reverse = 0;
+						route_start = findRoute(track_nodes, train_data, stop_node, route, &need_reverse);
+						if (need_reverse) {
+							stop_type = Reversing;
+						} else {
+							train_data->speed = old_speed;
+							cmd[0] = train_data->speed;
+							Puts(com1_tid, cmd, 2);
+							if (train_data->speed > 0) {
+								speed_change_time = train_data->acceleration_time * train_data->velocities[train_data->speed%16] / train_data->velocities[14];
+								speed_change_alarm = getTimerValue(TIMER3_BASE) - speed_change_time / 5;
+								acceleration = train_data->acceleration_G1;
+								speed_change_step = 1;
+							}
+							stop_type = Entering_None;
+						}
+					}
+				}
 
 				break;
 			case CMD_GOTO:
@@ -1109,7 +1131,7 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 					speed_change_alarm = 0;
 					speed_change_step = 0;
 					speed_change_time = 0;
-					speed_before_reverse = train_data->speed;
+					old_speed = train_data->speed;
 					train_data->speed = 0;
 					setTrainSpeed(train_id, 0, com1_tid);
 					stop_type = Reversing;
@@ -1146,11 +1168,12 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 			case TRACK_RESERVE_FAIL:
 				Reply(tid, NULL, 0);
 				if (stop_type != Reserve_Blocked) {
+					waiting_for_reservation = 1;
 					acceleration = train_data->deceleration;
 					speed_change_alarm = 0;
 					speed_change_step = 0;
 					speed_change_time = 0;
-					speed_before_reverse = train_data->speed;
+					old_speed = train_data->speed;
 					train_data->speed = 0;
 					setTrainSpeed(train_id, train_data->speed, com1_tid);
 					stop_type = Reserve_Blocked;
@@ -1159,7 +1182,8 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 			case TRACK_RESERVE_SUCCEED:
 				Reply(tid, NULL, 0);
 				if (waiting_for_reservation) {
-					train_data->speed = speed_before_reverse;
+					stop_type = Entering_None;
+					train_data->speed = old_speed;
 					cmd[0] = train_data->speed;
 					Puts(com1_tid, cmd, 2);
 					// Delay(train_data->reverse_delay);
