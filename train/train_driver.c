@@ -604,7 +604,7 @@ void updateCurrentLandmark(TrainGlobal *train_global, TrainData *train_data, tra
 
 	int last_sensor_dist = -1;
 	if(train_data->last_receive_sensor != NULL) {
-		last_sensor_dist = calcDistance(train_data->last_receive_sensor, train_data->landmark, 8);
+		last_sensor_dist = calcDistance(train_data->last_receive_sensor, train_data->landmark, 12);
 	}
 	int reserve_start = train_data->landmark->index;
 	int reserve_dist = (find_stop_dist(train_data) + train_data->ahead_lm) >> DIST_SHIFT;
@@ -675,6 +675,7 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 	// int on_route = 0;
 
 	int cnt = 0;
+	TrainDirection prev_reserve_dict = FORWARD;
 
 	Action action = Free_Run;
 	StopType stop_type = Entering_None;
@@ -737,7 +738,18 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 
 			// Test track reservation
 			if (train_data->ahead_lm > train_data->last_reserve_position + (RESERVE_CHECKPOINT_LEN << DIST_SHIFT) && train_data->speed%16 != 0) {
-				CreateWithArgs(RESERVER_PRIORITY, trackReserver, (int)train_global, (int)train_data, train_data->landmark->index, (find_stop_dist(train_data) + train_data->ahead_lm) >> DIST_SHIFT);
+				int last_sensor_dist = -1;
+				if(train_data->last_receive_sensor != NULL) {
+					last_sensor_dist = calcDistance(train_data->last_receive_sensor, train_data->landmark, 12);
+				}
+				int reserve_start = train_data->landmark->index;
+				int reserve_dist = (find_stop_dist(train_data) + train_data->ahead_lm) >> DIST_SHIFT;
+				if(last_sensor_dist > 0) {
+					reserve_start = train_data->last_receive_sensor->index;
+					reserve_dist += last_sensor_dist;
+				}
+				CreateWithArgs(RESERVER_PRIORITY, trackReserver, (int)train_global,
+							   (int)train_data, reserve_start, reserve_dist);
 				train_data->last_reserve_position = train_data->ahead_lm;
 
 				// if (waiting_for_reservation) {
@@ -1128,7 +1140,7 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 				} else {
 					// inaccuracy print
 					uiprintf(com2_tid, ROW_TRAIN + train_index * HEIGHT_TRAIN + ROW_STATUS, COLUMN_DATA_2, "%d   ", train_data->ahead_lm >> DIST_SHIFT);
-					train_data->ahead_lm = 0;
+					updateCurrentLandmark(train_global, train_data, &(track_nodes[msg.location_msg.id]), train_global->switch_table);
 				}
 
 				if (action != Free_Run) {
@@ -1215,6 +1227,8 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 			case TRACK_RESERVE_FAIL:
 				Reply(tid, NULL, 0);
 				if (stop_type != Reserve_Blocked) {
+					assert(prev_reserve_dict == train_data->direction, "bidirectional reservation FAILURE!");
+					prev_reserve_dict = train_data->direction;
 					waiting_for_reservation = 1;
 					acceleration = train_data->deceleration;
 					speed_change_alarm = 0;
