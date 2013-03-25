@@ -6,6 +6,7 @@
 
 #define DELAY_REVERSE 200
 #define RESERVE_CHECKPOINT_LEN 100
+#define RESERVER_PRIORITY 7
 
 typedef enum {
 	Free_Run,
@@ -267,7 +268,7 @@ int dijkstra(track_node *track_nodes, track_node *src,
 		assert(0, "dijkstra get null dest");
 		return TRACK_MAX;
 	}
-		
+
 	int i;
 	track_node *previous[TRACK_MAX];
 	memset(previous, (int) NULL, sizeof(track_node *) * TRACK_MAX);
@@ -588,7 +589,7 @@ void updateCurrentLandmark(TrainGlobal *train_global, TrainData *train_data, tra
 	uiprintf(com2_tid, ROW_TRAIN + train_index * HEIGHT_TRAIN + ROW_NEXT, COLUMN_DATA_1, "%s  ", train_data->predict_dest->name);
 
 	int reserve_start = reverse ? train_data->predict_dest->index : train_data->landmark->index;
-	CreateWithArgs(7, trackReserver, (int)train_global, (int)train_data, reserve_start, (find_stop_dist(train_data) + train_data->ahead_lm) >> DIST_SHIFT);
+	CreateWithArgs(RESERVER_PRIORITY, trackReserver, (int)train_global, (int)train_data, reserve_start, (find_stop_dist(train_data) + train_data->ahead_lm) >> DIST_SHIFT);
 	train_data->last_reserve_position = 0;
 }
 
@@ -658,11 +659,10 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 	int forward_dist;
 
 	char cmd[2];
-	
+
 	int waiting_for_reservation = 0;
-	track_node *last_receive_sensor = NULL;
 	int predict_sensor_num = 0;
-	
+
 	int col_cnt = 1;
 	// iprintf(com2_tid, 10, "\e[s\e[20;2Hcom2: %d \e[u", com2_tid);
 
@@ -689,7 +689,7 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 						IDEBUG(DB_ROUTE, 4, ROW_DEBUG_2 + 2, COLUMN_FIRST, "off route: %s   ", train_data->landmark->name);
 					}
 				}
-				if (train_data->landmark->type == NODE_SENSOR && last_receive_sensor != NULL) {
+				if (train_data->landmark->type == NODE_SENSOR && train_data->last_receive_sensor != NULL) {
 					predict_sensor_num++;
 					uiprintf(com2_tid, 54 + train_data->index, col_cnt, "%s", train_data->landmark->name);
 					col_cnt += 4;
@@ -702,19 +702,19 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 						speed_change_step = 0;
 						speed_change_time = 0;
 						setTrainSpeed(train_id, 16, com1_tid);
-						updateCurrentLandmark(train_global, train_data, last_receive_sensor, train_global->switch_table, com2_tid, FALSE);
-						CreateWithArgs(7, trackReserver, (int)train_global, (int)train_data, train_data->landmark->index, (find_stop_dist(train_data) + train_data->ahead_lm) >> DIST_SHIFT);
+						updateCurrentLandmark(train_global, train_data, train_data->last_receive_sensor, train_global->switch_table, com2_tid, FALSE);
+						CreateWithArgs(RESERVER_PRIORITY, trackReserver, (int)train_global, (int)train_data, train_data->landmark->index, (find_stop_dist(train_data) + train_data->ahead_lm) >> DIST_SHIFT);
 					}
 				}
 			}
-			
+
 			// Test track reservation
 			if (train_data->ahead_lm > train_data->last_reserve_position + (RESERVE_CHECKPOINT_LEN << DIST_SHIFT) && train_data->speed%16 != 0) {
-				CreateWithArgs(7, trackReserver, (int)train_global, (int)train_data, train_data->landmark->index, (find_stop_dist(train_data) + train_data->ahead_lm) >> DIST_SHIFT);
+				CreateWithArgs(RESERVER_PRIORITY, trackReserver, (int)train_global, (int)train_data, train_data->landmark->index, (find_stop_dist(train_data) + train_data->ahead_lm) >> DIST_SHIFT);
 				train_data->last_reserve_position = train_data->ahead_lm;
-				
+
 				// if (waiting_for_reservation) {
-					// CreateWithArgs(7, trackReserver, (int)train_global, (int)train_data, train_data->landmark->index, (find_stop_dist(train_data) + train_data->ahead_lm) >> DIST_SHIFT);
+					// CreateWithArgs(RESERVER_PRIORITY, trackReserver, (int)train_global, (int)train_data, train_data->landmark->index, (find_stop_dist(train_data) + train_data->ahead_lm) >> DIST_SHIFT);
 				// }
 			}
 
@@ -760,7 +760,7 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 
 			train_data->velocity = train_data->velocity + (prev_timer - timer) * acceleration;
 			cnt++;
-			
+
 
 			if (acceleration > 0) {
 				if (train_data->velocity > train_data->velocities[train_data->speed % 16]) {
@@ -940,7 +940,7 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 									cmd[1] = train_id;
 									Puts(com1_tid, cmd, 2);
 								}
-								CreateWithArgs(7, trackReserver, (int)train_global, (int)train_data, train_data->landmark->index, (find_stop_dist(train_data) + train_data->ahead_lm) >> DIST_SHIFT);
+								CreateWithArgs(RESERVER_PRIORITY, trackReserver, (int)train_global, (int)train_data, train_data->landmark->index, (find_stop_dist(train_data) + train_data->ahead_lm) >> DIST_SHIFT);
 								break;
 							default:
 								assert(0, "missing stop type");
@@ -948,7 +948,7 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 					}
 				}
 			}
-			
+
 			if (cnt == 8) {
 				cnt = 0;
 				uiprintf(com2_tid, ROW_TRAIN + train_index * HEIGHT_TRAIN + ROW_STATUS,
@@ -1057,7 +1057,7 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 
 			case LOCATION_CHANGE:
 				Reply(tid, NULL, 0);
-				last_receive_sensor = &(track_nodes[msg.location_msg.id]);
+				train_data->last_receive_sensor = &(track_nodes[msg.location_msg.id]);
 				predict_sensor_num = 0;
 				if (train_data->landmark != &(track_nodes[msg.location_msg.id])) {
 					// inaccuracy print
@@ -1115,7 +1115,7 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 						changeNextSW(route, check_point, train_global->switch_table, com1_tid, com2_tid);
 					}
 				}
-				
+
 				if (stop_type == Entering_Dest) {
 					check_point = updateCheckPoint(train_data, route, check_point, route_start);
 					if (check_point == -1) {

@@ -17,8 +17,8 @@ typedef enum {
 } TrainDirection;
 
 typedef struct reservation {
-	int				landmark_id;
-	int				distance;
+	volatile int landmark_id;
+	volatile int distance;
 } Reservation;
 
 typedef struct train_data {
@@ -28,6 +28,14 @@ typedef struct train_data {
 	int			velocities[TRAIN_SPEED_MAX];
 	// int			acc_t1[TRAIN_SPEED_MAX];
 	int			ht_length[2];
+	int			acceleration_G1;
+	int			acceleration_G2;
+	int			acceleration_G3;
+	int			acceleration_G4;
+	int			acceleration_G5;
+	int			deceleration;
+	int			reverse_delay;
+	int			acceleration_time;
 
 	/* Volatile Data */
 	int				index;
@@ -35,20 +43,15 @@ typedef struct train_data {
 	volatile int	speed;
 	volatile int	velocity;
 	volatile TrainDirection	direction;
+
 	track_node * volatile landmark;
 	track_node * volatile predict_dest;
+	track_node * volatile last_receive_sensor;
 	volatile int	forward_distance;
 	volatile int	ahead_lm;
+	volatile int	last_reserve_position;
+
 	Reservation		reservation_record;
-	int				acceleration_G1;
-	int				acceleration_G2;
-	int				acceleration_G3;
-	int				acceleration_G4;
-	int				acceleration_G5;
-	int				deceleration;
-	int				reverse_delay;
-	int				acceleration_time;
-	int				last_reserve_position;
 } TrainData;
 
 void init_train37(TrainData *train);
