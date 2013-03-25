@@ -32,8 +32,9 @@ typedef struct train_global {
 	int center_tid;
 	track_node	*track_nodes;
 	char		*switch_table;
-	TrainData	*train_data;
-	int			*track_reservation;
+	TrainData	*trains_data;
+	TrainData	**train_id_data;
+	TrainData	**track_reservation;
 } TrainGlobal;
 
 typedef enum train_msg_type {
@@ -67,7 +68,7 @@ typedef struct pair_msg LocationMsg;
 
 typedef struct {
 	TrainMsgType	type;
-	int				train_id;
+	TrainData*		train_data;
 	int				landmark_id;
 	int				distance;
 } ReservationMsg;
