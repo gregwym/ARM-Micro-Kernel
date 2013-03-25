@@ -4,7 +4,7 @@
 #define ROW_SWITCH_TABLE 5
 #define ROW_TRAIN 10
 #define ROW_USER_INPUT 22
-#define ROW_DEBUG 40
+#define ROW_DEBUG_1 40
 #define ROW_DEBUG_2 50
 #define ROW_BOTTOM 60
 
