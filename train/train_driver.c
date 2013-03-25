@@ -76,10 +76,10 @@ inline int distToCM(int dist) {
 	return (dist >> DIST_SHIFT) / 10;
 }
 
-int calcDistance(track_node *src, track_node *dest, int depth, int distance) {
+int calcDistance(track_node *src, track_node *dest, int depth) {
 	// If found return the distance
 	if(src == dest) {
-		return distance;
+		return 0;
 	}
 	if(depth == 0) {
 		return -1;
@@ -92,14 +92,17 @@ int calcDistance(track_node *src, track_node *dest, int depth, int distance) {
 		case NODE_ENTER:
 		case NODE_SENSOR:
 		case NODE_MERGE:
-			return calcDistance(src->edge[DIR_AHEAD].dest, dest, depth - 1, distance + src->edge[DIR_AHEAD].dist);
+			straight = calcDistance(src->edge[DIR_AHEAD].dest, dest, depth - 1);
+			if(straight >= 0) return straight + src->edge[DIR_AHEAD].dist;
+			break;
 		case NODE_BRANCH:
-			straight = calcDistance(src->edge[DIR_STRAIGHT].dest, dest, depth - 1, distance + src->edge[DIR_STRAIGHT].dist);
-			if(straight > 0) return straight;
-			curved = calcDistance(src->edge[DIR_CURVED].dest, dest, depth - 1, distance + src->edge[DIR_CURVED].dist);
-			return curved;
+			straight = calcDistance(src->edge[DIR_STRAIGHT].dest, dest, depth - 1);
+			if(straight >= 0) return straight + src->edge[DIR_STRAIGHT].dist;
+			curved = calcDistance(src->edge[DIR_CURVED].dest, dest, depth - 1);
+			if(curved >= 0) return curved + src->edge[DIR_CURVED].dist;
+			break;
 		default:
-			return -1;
+			break;
 	}
 
 	return -1;
