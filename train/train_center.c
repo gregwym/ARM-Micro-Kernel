@@ -217,7 +217,7 @@ track_node *trackAvailability(TrainGlobal *train_global, TrainData *train_data, 
 inline TrainMsgType handleTrackReserve(TrainGlobal *train_global, TrainData* train_data, int landmark_id, int distance) {
 	int train_id = train_data->id;
 
-	track_node *conflict_node = trackAvailability(train_global, train_data, landmark_id, distance, 1);
+	track_node *conflict_node = trackAvailability(train_global, train_data, landmark_id, distance + 200, 1);
 
 	if(conflict_node != NULL) {
 		IDEBUG(DB_RESERVE, train_global->com2_tid, ROW_DEBUG_1 + 1,

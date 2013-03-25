@@ -1240,7 +1240,7 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 					train_data->speed = 0;
 					setTrainSpeed(train_id, train_data->speed, com1_tid);
 					stop_type = Reserve_Blocked;
-					IDEBUG(DB_ROUTE, 4, 53, 2, "reserve stop: %s, %d    ", train_data->landmark->name, train_data->ahead_lm >> 18);
+					IDEBUG(DB_ROUTE, 4, 53, 2 + train_data->index * 40, "re stop: %s, %d    ", train_data->landmark->name, train_data->ahead_lm >> 18);
 					IDEBUG(DB_ROUTE, 4, 55, 5 + train_data->index * 40, "__%s", train_data->direction == FORWARD ? "F" : "B");
 				}
 				break;
