@@ -48,6 +48,7 @@ typedef struct train_data {
 	int				deceleration;
 	int				reverse_delay;
 	int				acceleration_time;
+	int				last_reserve_position;
 } TrainData;
 
 void init_train37(TrainData *train);

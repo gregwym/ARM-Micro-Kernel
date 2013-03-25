@@ -5,6 +5,7 @@
 #include <ts7200.h>
 
 #define DELAY_REVERSE 200
+#define RESERVE_CHECKPOINT_LEN 100
 
 typedef enum {
 	Free_Run,
@@ -127,7 +128,7 @@ StopType stopCheck(track_node *cur_node, track_node **exit_node, int ahead, char
 	track_node *checked_node = cur_node;
 	int hit_exit = 0;
 	if (stop_node != NULL && offset == -1) {
-		IDEBUG(DB_ROUTE, 4, ROW_DEBUG + 1, COLUMN_FIRST, "cur: %s  ", route[check_point]->name);
+		IDEBUG(DB_ROUTE, 4, ROW_DEBUG_2 + 1, COLUMN_FIRST, "cur: %s  ", route[check_point]->name);
 		for (; distance < (stop_distance + ahead) && !hit_exit && check_point < TRACK_MAX; check_point++) {
 			if (stop_node == route[check_point]) {
 				return Entering_Dest;
@@ -472,7 +473,7 @@ int find_reverse_node(track_node **route, int check_point, char *switch_table, i
 			}
 		}
 		*offset = (margin - dist) << DIST_SHIFT;
-		IDEBUG(DB_ROUTE, 4, ROW_DEBUG, COLUMN_FIRST, "reverse node: %s, offset: %d       ", checked_node->name, (*offset) >> 18);
+		IDEBUG(DB_ROUTE, 4, ROW_DEBUG_2, COLUMN_FIRST, "reverse node: %s, offset: %d       ", checked_node->name, (*offset) >> 18);
 		*reverse_node = checked_node;
 		return 1;
 	} else {
@@ -584,9 +585,11 @@ void updateCurrentLandmark(TrainGlobal *train_global, TrainData *train_data, tra
 
 	uiprintf(com2_tid, ROW_TRAIN + train_index * HEIGHT_TRAIN + ROW_CURRENT, COLUMN_DATA_1, "%s  ", train_data->landmark->name);
 	uiprintf(com2_tid, ROW_TRAIN + train_index * HEIGHT_TRAIN + ROW_NEXT, COLUMN_DATA_1, "%s  ", train_data->predict_dest->name);
-
-	// Test track reservation
-	CreateWithArgs(7, trackReserver, (int)train_global, (int)train_data, train_data->landmark->index, (find_stop_dist(train_data) + train_data->ahead_lm) >> DIST_SHIFT);
+	
+	if (train_data->speed %16 != 0) {
+		CreateWithArgs(7, trackReserver, (int)train_global, (int)train_data, train_data->landmark->index, (find_stop_dist(train_data) + train_data->ahead_lm) >> DIST_SHIFT);
+		train_data->last_reserve_position = 0;
+	}
 }
 
 
@@ -598,7 +601,6 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 	int tid, result;
 	int train_id = train_data->id;
 	int train_index = train_data->index;
-	int speed = 0;
 	int old_speed = 0;
 	int speed_before_reverse = 0;
 
@@ -633,7 +635,7 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 	char *buf_cursor = str_buf;
 
 	// Initialize train speed
-	setTrainSpeed(train_id, speed, com1_tid);
+	setTrainSpeed(train_id, train_data->speed, com1_tid);
 
 	int secretary_tid = Create(2, trainSecretary);
 
@@ -680,9 +682,15 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 						}
 					// assert(check_point != -1, "check_point is -1");
 					} else {
-						IDEBUG(DB_ROUTE, 4, ROW_DEBUG + 2, COLUMN_FIRST, "off route: %s   ", train_data->landmark->name);
+						IDEBUG(DB_ROUTE, 4, ROW_DEBUG_2 + 2, COLUMN_FIRST, "off route: %s   ", train_data->landmark->name);
 					}
 				}
+			}
+			
+			// Test track reservation
+			if (train_data->ahead_lm > train_data->last_reserve_position + (RESERVE_CHECKPOINT_LEN << DIST_SHIFT) && train_data->speed%16 != 0) {
+				CreateWithArgs(7, trackReserver, (int)train_global, (int)train_data, train_data->landmark->index, (find_stop_dist(train_data) + train_data->ahead_lm) >> DIST_SHIFT);
+				train_data->last_reserve_position = train_data->ahead_lm;
 			}
 
 			if (cnt == 8) cnt = 0;
@@ -740,8 +748,8 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 			}
 
 			if (acceleration > 0) {
-				if (train_data->velocity > train_data->velocities[speed % 16]) {
-					train_data->velocity = train_data->velocities[speed % 16];
+				if (train_data->velocity > train_data->velocities[train_data->speed % 16]) {
+					train_data->velocity = train_data->velocities[train_data->speed % 16];
 					acceleration = 0;
 					speed_change_alarm = 0;
 					speed_change_step = 0;
@@ -749,8 +757,8 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 				}
 
 			} else if (acceleration < 0) {
-				if (train_data->velocity < train_data->velocities[speed % 16]) {
-					train_data->velocity = train_data->velocities[speed % 16];
+				if (train_data->velocity < train_data->velocities[train_data->speed % 16]) {
+					train_data->velocity = train_data->velocities[train_data->speed % 16];
 					acceleration = 0;
 					if (train_data->velocity == 0) {
 
@@ -805,7 +813,7 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 									// speed = 0;
 									// setTrainSpeed(train_id, 0, com1_tid);
 									// stop_type = Reversing;
-									IDEBUG(DB_ROUTE, 4, ROW_DEBUG + 3, COLUMN_FIRST, "error! cur: %s, dest: %s", train_data->landmark->name, stop_node->name);
+									IDEBUG(DB_ROUTE, 4, ROW_DEBUG_2 + 3, COLUMN_FIRST, "error! cur: %s, dest: %s", train_data->landmark->name, stop_node->name);
 								}
 								uiprintf(com2_tid, ROW_TRAIN + train_index * HEIGHT_TRAIN + ROW_ROUTE, COLUMN_DATA_1, "%s  ", stop_node->name);
 								// check_point = route_start - 1;
@@ -818,15 +826,15 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 								cmd[0] = TRAIN_REVERSE;
 								cmd[1] = train_id;
 								Puts(com1_tid, cmd, 2);
-								speed = speed_before_reverse;
-								cmd[0] = speed;
+								train_data->speed = speed_before_reverse;
+								cmd[0] = train_data->speed;
 								Puts(com1_tid, cmd, 2);
 								Delay(train_data->reverse_delay);
 								timer = getTimerValue(TIMER3_BASE);
 								reverse_protection_alarm = timer - 1000;
 								reverse_protect = 1;
-								if (speed > 0) {
-									speed_change_time = train_data->acceleration_time * train_data->velocities[speed%16] / train_data->velocities[14];
+								if (train_data->speed > 0) {
+									speed_change_time = train_data->acceleration_time * train_data->velocities[train_data->speed%16] / train_data->velocities[14];
 									speed_change_alarm = getTimerValue(TIMER3_BASE) - speed_change_time / 5;
 									acceleration = train_data->acceleration_G1;
 									speed_change_step = 1;
@@ -852,15 +860,15 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 								cmd[0] = TRAIN_REVERSE;
 								cmd[1] = train_id;
 								Puts(com1_tid, cmd, 2);
-								speed = speed_before_reverse;
-								cmd[0] = speed;
+								train_data->speed = speed_before_reverse;
+								cmd[0] = train_data->speed;
 								Puts(com1_tid, cmd, 2);
 								Delay(train_data->reverse_delay);
 								timer = getTimerValue(TIMER3_BASE);
 								reverse_protection_alarm = timer - 1000;
 								reverse_protect = 1;
-								if (speed > 0) {
-									speed_change_time = train_data->acceleration_time * train_data->velocities[speed%16] / train_data->velocities[14];
+								if (train_data->speed > 0) {
+									speed_change_time = train_data->acceleration_time * train_data->velocities[train_data->speed%16] / train_data->velocities[14];
 									speed_change_alarm = getTimerValue(TIMER3_BASE) - speed_change_time / 5;
 									acceleration = train_data->acceleration_G1;
 									speed_change_step = 1;
@@ -869,13 +877,13 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 									int need_reverse = 1;
 									route_start = findRoute(track_nodes, train_data, stop_node, route, &need_reverse);
 									if (need_reverse) {
-										IDEBUG(DB_ROUTE, com2_tid, ROW_DEBUG + 4, COLUMN_FIRST, "shouldn't reverse: %s   ", train_data->landmark->name);
+										IDEBUG(DB_ROUTE, com2_tid, ROW_DEBUG_2 + 4, COLUMN_FIRST, "shouldn't reverse: %s   ", train_data->landmark->name);
 										acceleration = train_data->deceleration;;
 										speed_change_alarm = 0;
 										speed_change_step = 0;
 										speed_change_time = 0;
-										speed_before_reverse = speed;
-										speed = 0;
+										speed_before_reverse = train_data->speed;
+										train_data->speed = 0;
 										setTrainSpeed(train_id, 0, com1_tid);
 										stop_type = Reversing;
 									}
@@ -909,15 +917,15 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 										cmd[0] = TRAIN_REVERSE;
 										cmd[1] = train_id;
 										Puts(com1_tid, cmd, 2);
-										speed = speed_before_reverse;
-										cmd[0] = speed;
+										train_data->speed = speed_before_reverse;
+										cmd[0] = train_data->speed;
 										Puts(com1_tid, cmd, 2);
 										Delay(train_data->reverse_delay);
 										timer = getTimerValue(TIMER3_BASE);
 										reverse_protection_alarm = timer - 1000;
 										reverse_protect = 1;
-										if (speed > 0) {
-											speed_change_time = train_data->acceleration_time * train_data->velocities[speed%16] / train_data->velocities[14];
+										if (train_data->speed > 0) {
+											speed_change_time = train_data->acceleration_time * train_data->velocities[train_data->speed%16] / train_data->velocities[14];
 											speed_change_alarm = getTimerValue(TIMER3_BASE) - speed_change_time / 5;
 											acceleration = train_data->acceleration_G1;
 											speed_change_step = 1;
@@ -927,13 +935,19 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 									cmd[0] = TRAIN_REVERSE;
 									cmd[1] = train_id;
 									Puts(com1_tid, cmd, 2);
-									speed = speed_before_reverse;
-									cmd[0] = speed;
+									train_data->speed = speed_before_reverse;
+									cmd[0] = train_data->speed;
 									Puts(com1_tid, cmd, 2);
 									Delay(train_data->reverse_delay);
 									timer = getTimerValue(TIMER3_BASE);
 								}
-								uiprintf(com2_tid, 50, 2, "speed: %d", speed);
+								if (train_data->speed > 0) {
+									speed_change_time = train_data->acceleration_time * train_data->velocities[train_data->speed%16] / train_data->velocities[14];
+									speed_change_alarm = getTimerValue(TIMER3_BASE) - speed_change_time / 5;
+									acceleration = train_data->acceleration_G1;
+									speed_change_step = 1;
+								}
+								uiprintf(com2_tid, 50, 2, "speed: %d", train_data->speed);
 								break;
 							default:
 								assert(0, "missing stop type");
@@ -943,18 +957,18 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 			}
 
 			// stop checking
-			if (speed % 16 != 0) {
+			if (train_data->speed % 16 != 0) {
 				if (action == Free_Run || action == Goto_Dest) {
 					stop_type = stopCheck(train_data->landmark, &exit_node, train_data->ahead_lm, train_global->switch_table,
 					find_stop_dist(train_data), stop_node, -1, route, check_point, com2_tid);
 					if (stop_type == Entering_Exit || stop_type == Entering_Dest) {
 						setTrainSpeed(train_id, 0, com1_tid);
-						speed = 0;
+						train_data->speed = 0;
 						acceleration = train_data->deceleration;;
 						speed_change_alarm = 0;
 						speed_change_step = 0;
 						speed_change_time = 0;
-						IDEBUG(DB_ROUTE, 4, ROW_DEBUG + 5, COLUMN_FIRST, "stop, %s, %d v: %d  sd: %d          ", train_data->landmark->name, train_data->ahead_lm >> 18, train_data->velocity, find_stop_dist(train_data) >> 18);
+						IDEBUG(DB_ROUTE, 4, ROW_DEBUG_2 + 5, COLUMN_FIRST, "stop, %s, %d v: %d  sd: %d          ", train_data->landmark->name, train_data->ahead_lm >> 18, train_data->velocity, find_stop_dist(train_data) >> 18);
 					}
 
 				} else if (action == Goto_Merge) {
@@ -962,22 +976,22 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 					find_stop_dist(train_data), reverse_node, reverse_node_offset, route, check_point, com2_tid);
 					if (stop_type == Entering_Exit) {
 						setTrainSpeed(train_id, 0, com1_tid);
-						speed = 0;
+						train_data->speed = 0;
 						acceleration = train_data->deceleration;;
 						speed_change_alarm = 0;
 						speed_change_step = 0;
 						speed_change_time = 0;
-						IDEBUG(DB_ROUTE, 4, ROW_DEBUG + 5, COLUMN_FIRST, "stop, %s, %d v: %d  sd: %d          ", train_data->landmark->name, train_data->ahead_lm >> 18, train_data->velocity, find_stop_dist(train_data) >> 18);
+						IDEBUG(DB_ROUTE, 4, ROW_DEBUG_2 + 5, COLUMN_FIRST, "stop, %s, %d v: %d  sd: %d          ", train_data->landmark->name, train_data->ahead_lm >> 18, train_data->velocity, find_stop_dist(train_data) >> 18);
 					}
 					if (stop_type == Entering_Merge) {
 						setTrainSpeed(train_id, 0, com1_tid);
-						speed_before_reverse = speed;
-						speed = 0;
+						speed_before_reverse = train_data->speed;
+						train_data->speed = 0;
 						acceleration = train_data->deceleration;;
 						speed_change_alarm = 0;
 						speed_change_step = 0;
 						speed_change_time = 0;
-						IDEBUG(DB_ROUTE, 4, ROW_DEBUG + 5, COLUMN_FIRST, "stop, %s, %d v: %d  sd: %d          ", train_data->landmark->name, train_data->ahead_lm >> 18, train_data->velocity, find_stop_dist(train_data) >> 18);
+						IDEBUG(DB_ROUTE, 4, ROW_DEBUG_2 + 5, COLUMN_FIRST, "stop, %s, %d v: %d  sd: %d          ", train_data->landmark->name, train_data->ahead_lm >> 18, train_data->velocity, find_stop_dist(train_data) >> 18);
 					}
 				} else {
 					assert(0, "wtf!");
@@ -996,26 +1010,26 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 			case CMD_SPEED:
 				Reply(tid, NULL, 0);
 
-				old_speed = speed;
-				speed = msg.cmd_msg.value;
+				old_speed = train_data->speed;
+				train_data->speed = msg.cmd_msg.value;
 
-				if (speed % 16 == 0) {
+				if (train_data->speed % 16 == 0) {
 					stop_type = Stopped;
 				}
 
-				if (speed % 16 > old_speed % 16) {
-					speed_change_time = train_data->acceleration_time * (train_data->velocities[speed%16] - train_data->velocities[old_speed%16]) / train_data->velocities[14];
+				if (train_data->speed % 16 > old_speed % 16) {
+					speed_change_time = train_data->acceleration_time * (train_data->velocities[train_data->speed%16] - train_data->velocities[old_speed%16]) / train_data->velocities[14];
 					speed_change_alarm = getTimerValue(TIMER3_BASE) - speed_change_time / 5;
 					acceleration = train_data->acceleration_G1;
 					speed_change_step = 1;
-				} else if (speed % 16 < old_speed % 16) {
+				} else if (train_data->speed % 16 < old_speed % 16) {
 					acceleration = train_data->deceleration;;
 					speed_change_alarm = 0;
 					speed_change_step = 0;
 					speed_change_time = 0;
 				}
 
-				setTrainSpeed(train_id, speed, com1_tid);
+				setTrainSpeed(train_id, train_data->speed, com1_tid);
 				break;
 
 			case CMD_REVERSE:
@@ -1024,8 +1038,8 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 				speed_change_alarm = 0;
 				speed_change_step = 0;
 				speed_change_time = 0;
-				speed_before_reverse = speed;
-				speed = 0;
+				speed_before_reverse = train_data->speed;
+				train_data->speed = 0;
 				stop_type = Reversing;
 				setTrainSpeed(train_id, 0, com1_tid);
 				break;
@@ -1051,15 +1065,15 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 								speed_change_alarm = 0;
 								speed_change_step = 0;
 								speed_change_time = 0;
-								speed_before_reverse = speed;
-								speed = 0;
+								speed_before_reverse = train_data->speed;
+								train_data->speed = 0;
 								setTrainSpeed(train_id, 0, com1_tid);
 								stop_type = Reversing;
 							}
 							assert(route_start != TRACK_MAX, "route_start == TRACK_MAX");
 							check_point = route_start;
 							stop_node = route[TRACK_MAX - 1];
-							IDEBUG(DB_ROUTE, com2_tid, ROW_DEBUG + 5, COLUMN_FIRST, "%s (R) ", stop_node->name);
+							IDEBUG(DB_ROUTE, com2_tid, ROW_DEBUG_2 + 5, COLUMN_FIRST, "%s (R) ", stop_node->name);
 
 							if (find_reverse_node(route, check_point, train_global->switch_table, &reverse_node_offset, &reverse_node, margin)) {
 								action = Goto_Merge;
@@ -1098,8 +1112,8 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 					speed_change_alarm = 0;
 					speed_change_step = 0;
 					speed_change_time = 0;
-					speed_before_reverse = speed;
-					speed = 0;
+					speed_before_reverse = train_data->speed;
+					train_data->speed = 0;
 					setTrainSpeed(train_id, 0, com1_tid);
 					stop_type = Reversing;
 				}
@@ -1108,7 +1122,7 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 				stop_node = route[TRACK_MAX - 1];
 				check_point = route_start;
 				int prt_cnter = route_start;
-				buf_cursor += sprintf(buf_cursor, "\e[s\e[%d;%dH", ROW_DEBUG + 10, COLUMN_FIRST);
+				buf_cursor += sprintf(buf_cursor, "\e[s\e[%d;%dH", ROW_DEBUG_2 + 10, COLUMN_FIRST);
 				for(; prt_cnter < TRACK_MAX; prt_cnter++) {
 					buf_cursor += sprintf(buf_cursor, "%s -> ", route[prt_cnter]->name);
 				}
@@ -1139,9 +1153,9 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 					speed_change_alarm = 0;
 					speed_change_step = 0;
 					speed_change_time = 0;
-					speed_before_reverse = speed;
-					speed = 0;
-					setTrainSpeed(train_id, speed, com1_tid);
+					speed_before_reverse = train_data->speed;
+					train_data->speed = 0;
+					setTrainSpeed(train_id, train_data->speed, com1_tid);
 					stop_type = Reserve_Blocked;
 				}
 				break;
