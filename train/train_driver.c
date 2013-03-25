@@ -258,10 +258,14 @@ inline void dijkstra_update(Heap *dist_heap, HeapNode *heap_nodes, track_node **
 
 int dijkstra(track_node *track_nodes, track_node *src,
               track_node *dest, track_node **route, int *dist) {
-	if (src == NULL || dest == NULL) {
-		assert(0, "dijkstra get null src or dest");
+	if (src == NULL) {
+		assert(0, "dijkstra get null src");
+		return TRACK_MAX;
+	} else if (dest == NULL) {
+		assert(0, "dijkstra get null dest");
 		return TRACK_MAX;
 	}
+		
 	int i;
 	track_node *previous[TRACK_MAX];
 	memset(previous, (int) NULL, sizeof(track_node *) * TRACK_MAX);
@@ -892,15 +896,34 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 							case Reserve_Blocked:
 								stop_type = Entering_None;
 								updateCurrentLandmark(train_global, train_data, NULL, train_global->switch_table, com2_tid, TRUE);
-								route_start = dijkstra(track_nodes, train_data->landmark, stop_node, route, &forward_dist);
-								if (route_start == TRACK_MAX) {
-									assert(0, "cannot find route");
-									stop_node = NULL;
+								if (action != Free_Run) {
+									route_start = dijkstra(track_nodes, train_data->landmark, stop_node, route, &forward_dist);
+									if (route_start == TRACK_MAX) {
+										assert(0, "cannot find route");
+										stop_node = NULL;
+									} else {
+										check_point = route_start;
+										changeNextSW(route, check_point, train_global->switch_table, com1_tid, com2_tid);
+										stop_node = route[TRACK_MAX - 1];
+										uiprintf(com2_tid, ROW_TRAIN + train_index * HEIGHT_TRAIN + ROW_ROUTE, COLUMN_DATA_1, "%s  ", stop_node->name);
+										cmd[0] = TRAIN_REVERSE;
+										cmd[1] = train_id;
+										Puts(com1_tid, cmd, 2);
+										speed = speed_before_reverse;
+										cmd[0] = speed;
+										Puts(com1_tid, cmd, 2);
+										Delay(train_data->reverse_delay);
+										timer = getTimerValue(TIMER3_BASE);
+										reverse_protection_alarm = timer - 1000;
+										reverse_protect = 1;
+										if (speed > 0) {
+											speed_change_time = train_data->acceleration_time * train_data->velocities[speed%16] / train_data->velocities[14];
+											speed_change_alarm = getTimerValue(TIMER3_BASE) - speed_change_time / 5;
+											acceleration = train_data->acceleration_G1;
+											speed_change_step = 1;
+										}
+									}
 								} else {
-									check_point = route_start;
-									changeNextSW(route, check_point, train_global->switch_table, com1_tid, com2_tid);
-									stop_node = route[TRACK_MAX - 1];
-									uiprintf(com2_tid, ROW_TRAIN + train_index * HEIGHT_TRAIN + ROW_ROUTE, COLUMN_DATA_1, "%s  ", stop_node->name);
 									cmd[0] = TRAIN_REVERSE;
 									cmd[1] = train_id;
 									Puts(com1_tid, cmd, 2);
@@ -909,15 +932,8 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 									Puts(com1_tid, cmd, 2);
 									Delay(train_data->reverse_delay);
 									timer = getTimerValue(TIMER3_BASE);
-									reverse_protection_alarm = timer - 1000;
-									reverse_protect = 1;
-									if (speed > 0) {
-										speed_change_time = train_data->acceleration_time * train_data->velocities[speed%16] / train_data->velocities[14];
-										speed_change_alarm = getTimerValue(TIMER3_BASE) - speed_change_time / 5;
-										acceleration = train_data->acceleration_G1;
-										speed_change_step = 1;
-									}
 								}
+								uiprintf(com2_tid, 50, 2, "speed: %d", speed);
 								break;
 							default:
 								assert(0, "missing stop type");
@@ -1118,14 +1134,16 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 				break;
 			case TRACK_RESERVE_FAIL:
 				Reply(tid, NULL, 0);
-				acceleration = train_data->deceleration;
-				speed_change_alarm = 0;
-				speed_change_step = 0;
-				speed_change_time = 0;
-				speed_before_reverse = speed;
-				speed = 0;
-				setTrainSpeed(train_id, speed, com1_tid);
-				stop_type = Reserve_Blocked;
+				if (stop_type != Reserve_Blocked) {
+					acceleration = train_data->deceleration;
+					speed_change_alarm = 0;
+					speed_change_step = 0;
+					speed_change_time = 0;
+					speed_before_reverse = speed;
+					speed = 0;
+					setTrainSpeed(train_id, speed, com1_tid);
+					stop_type = Reserve_Blocked;
+				}
 				break;
 			case TRACK_RESERVE_SUCCEED:
 				Reply(tid, NULL, 0);
