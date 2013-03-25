@@ -31,10 +31,10 @@ inline void setTrainSpeed(int train_id, int speed, int com1_tid) {
 	Puts(com1_tid, cmd, 2);
 }
 
-int calcDistance(track_node *src, track_node *dest, int depth, int distance) {
+int calcDistance(track_node *src, track_node *dest, int depth) {
 	// If found return the distance
 	if(src == dest) {
-		return distance;
+		return 0;
 	}
 	if(depth == 0) {
 		return -1;
@@ -47,14 +47,17 @@ int calcDistance(track_node *src, track_node *dest, int depth, int distance) {
 		case NODE_ENTER:
 		case NODE_SENSOR:
 		case NODE_MERGE:
-			return calcDistance(src->edge[DIR_AHEAD].dest, dest, depth - 1, distance + src->edge[DIR_AHEAD].dist);
+			straight = calcDistance(src->edge[DIR_AHEAD].dest, dest, depth - 1);
+			if(straight >= 0) return straight + src->edge[DIR_AHEAD].dist;
+			break;
 		case NODE_BRANCH:
-			straight = calcDistance(src->edge[DIR_STRAIGHT].dest, dest, depth - 1, distance + src->edge[DIR_STRAIGHT].dist);
-			if(straight > 0) return straight;
-			curved = calcDistance(src->edge[DIR_CURVED].dest, dest, depth - 1, distance + src->edge[DIR_CURVED].dist);
-			return curved;
+			straight = calcDistance(src->edge[DIR_STRAIGHT].dest, dest, depth - 1);
+			if(straight >= 0) return straight + src->edge[DIR_STRAIGHT].dist;
+			curved = calcDistance(src->edge[DIR_CURVED].dest, dest, depth - 1);
+			if(curved >= 0) return curved + src->edge[DIR_CURVED].dist;
+			break;
 		default:
-			return -1;
+			break;
 	}
 
 	return -1;
@@ -100,7 +103,7 @@ void trainDriver(TrainGlobal *train_global, TrainProperties *train_properties) {
 				if(msg.location_msg.value) {
 					cur_landmark = &(track_nodes[msg.location_msg.id]);
 					t2 = getTimerValue(TIMER3_BASE);
-					dist_traveled = calcDistance(prev_landmark, cur_landmark, 5, 0);
+					dist_traveled = calcDistance(prev_landmark, cur_landmark, 5);
 					dist_traveled = dist_traveled << 18;
 					sprintf(str_buf, "T#%d->%s\t%d\t%u\t%u\n", train_id, track_nodes[msg.location_msg.id].name, speed, dist_traveled / (t1 - t2), dist_traveled);
 					Puts(com2_tid, str_buf, 0);
