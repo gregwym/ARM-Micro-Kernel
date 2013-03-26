@@ -16,6 +16,22 @@ typedef enum {
 	BACKWARD
 } TrainDirection;
 
+typedef enum {
+	Free_Run,
+	Goto_Merge,
+	Goto_Dest
+} Action;
+
+typedef enum {
+	Entering_None = 0,
+	Entering_Exit,
+	Entering_Dest,
+	Entering_Merge,
+	Stopped,
+	Reversing,
+	Reserve_Blocked
+} StopType;
+
 typedef struct reservation {
 	volatile int landmark_id;
 	volatile int distance;
@@ -44,6 +60,9 @@ typedef struct train_data {
 	volatile int	velocity;
 	volatile TrainDirection	direction;
 
+	volatile Action action;
+	volatile StopType stop_type;
+
 	track_node * volatile landmark;
 	track_node * volatile predict_dest;
 	track_node * volatile last_receive_sensor;
@@ -54,6 +73,7 @@ typedef struct train_data {
 	volatile int	is_lost;
 
 	Reservation		reservation_record;
+	Reservation		recovery_reservation;
 } TrainData;
 
 void init_train37(TrainData *train);
