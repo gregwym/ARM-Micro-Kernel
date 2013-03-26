@@ -142,14 +142,13 @@ void reserveTrack(TrainGlobal *train_global, TrainData *train_data, int landmark
 	}
 
 	// If reach a branch
+	int switch_state = train_global->switch_table[switchIdToIndex(current->num)];
+	int direction = switch_state == SWITCH_CUR ? DIR_CURVED : DIR_STRAIGHT;
+
+	reserveTrack(train_global, train_data, current->edge[direction].dest->index,
+	             distance - current->edge[direction].dist, num_sensor, take_branch);
 	if(take_branch > 0) {
-		reserveTrack(train_global, train_data, current->edge[DIR_STRAIGHT].dest->index,
-		             distance - current->edge[DIR_STRAIGHT].dist, num_sensor, take_branch - 1);
-		reserveTrack(train_global, train_data, current->edge[DIR_CURVED].dest->index,
-		             distance - current->edge[DIR_CURVED].dist, num_sensor, take_branch - 1);
-	} else {
-		int switch_state = train_global->switch_table[switchIdToIndex(current->num)];
-		int direction = switch_state == SWITCH_CUR ? DIR_CURVED : DIR_STRAIGHT;
+		direction = direction == DIR_STRAIGHT ? DIR_CURVED : DIR_STRAIGHT;
 		reserveTrack(train_global, train_data, current->edge[direction].dest->index,
 		             distance - current->edge[direction].dist, num_sensor, take_branch - 1);
 	}
@@ -203,25 +202,20 @@ track_node *trackAvailability(TrainGlobal *train_global, TrainData *train_data, 
 	}
 
 	// If reach a branch
+	int switch_state = train_global->switch_table[switchIdToIndex(current->num)];
+	int direction = switch_state == SWITCH_CUR ? DIR_CURVED : DIR_STRAIGHT;
+	track_node *conflict_node = NULL;
+
+	conflict_node = trackAvailability(train_global, train_data,
+                                      current->edge[direction].dest->index,
+                                      distance - current->edge[direction].dist,
+                                      num_sensor, take_branch);
+	if(conflict_node != NULL) {
+		return conflict_node;
+	}
+
 	if(take_branch > 0) {
-		track_node *conflict_node = NULL;
-		conflict_node = trackAvailability(train_global, train_data,
-	                                      current->edge[DIR_STRAIGHT].dest->index,
-	                                      distance - current->edge[DIR_STRAIGHT].dist,
-	                                      num_sensor, take_branch - 1);
-		if(conflict_node != NULL) {
-			return conflict_node;
-		}
-		conflict_node = trackAvailability(train_global, train_data,
-		                                  current->edge[DIR_CURVED].dest->index,
-		                                  distance - current->edge[DIR_CURVED].dist,
-		                                  num_sensor, take_branch - 1);
-		if(conflict_node != NULL) {
-			return conflict_node;
-		}
-	} else {
-		int switch_state = train_global->switch_table[switchIdToIndex(current->num)];
-		int direction = switch_state == SWITCH_CUR ? DIR_CURVED : DIR_STRAIGHT;
+		direction = direction == DIR_STRAIGHT ? DIR_CURVED : DIR_STRAIGHT;
 		return trackAvailability(train_global, train_data, current->edge[direction].dest->index,
 		                         distance - current->edge[direction].dist, num_sensor, take_branch - 1);
 	}
