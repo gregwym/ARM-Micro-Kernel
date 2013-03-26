@@ -240,15 +240,27 @@ inline TrainMsgType handleTrackReserve(TrainGlobal *train_global, ReservationMsg
 	}
 
 	// Clear previous reservation
-	reserveTrack(train_global, NULL, train_data->reservation_record.landmark_id,
-	             train_data->reservation_record.distance, num_sensor, 1);
+	if(reservation_msg->type == TRACK_RESERVE) {
+		reserveTrack(train_global, NULL, train_data->reservation_record.landmark_id,
+		             train_data->reservation_record.distance, num_sensor, 1);
+	}
+	if(train_data->recovery_reservation.landmark_id != -1) {
+		reserveTrack(train_global, NULL, train_data->recovery_reservation.landmark_id,
+		             train_data->recovery_reservation.distance, num_sensor, 1);
+		train_data->recovery_reservation.landmark_id = -1;
+	}
 
 	// Reserve for this time
 	reserveTrack(train_global, train_data, landmark_id, distance, num_sensor, 1);
 
 	// Save reservation record
-	train_data->reservation_record.landmark_id = landmark_id;
-	train_data->reservation_record.distance = distance;
+	if(reservation_msg->type == TRACK_RESERVE) {
+		train_data->reservation_record.landmark_id = landmark_id;
+		train_data->reservation_record.distance = distance;
+	} else {
+		train_data->recovery_reservation.landmark_id = landmark_id;
+		train_data->recovery_reservation.distance = distance;
+	}
 
 	IDEBUG(DB_RESERVE, train_global->com2_tid, ROW_DEBUG_1,
 	       WIDTH_DEBUG * train_data->index, "#%dR %s + %dmm    ",
@@ -328,6 +340,7 @@ void trainCenter(TrainGlobal *train_global) {
 				Halt();
 				break;
 			case TRACK_RESERVE:
+			case TRACK_RECOVERY_RESERVE:
 				msg.type = handleTrackReserve(train_global, &(msg.reservation_msg));
 				Reply(tid, (char *)(&(msg.type)), sizeof(TrainMsgType));
 				break;
