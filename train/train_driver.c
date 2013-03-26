@@ -67,31 +67,6 @@ void trackReserver(TrainGlobal *train_global, TrainData *train_data, int landmar
 	assert(result == 0, "Reserver fail to send reservation result to the driver");
 }
 
-
-void reserveMyTrack(TrainGlobal *train_global, TrainData *train_data, int is_reversing) {
-	if (is_reversing) {
-		CreateWithArgs(RESERVER_PRIORITY, trackReserver, (int)train_global,
-	               (int)train_data, train_data->predict_dest->index,
-	               (find_stop_dist(train_data) + train_data->ahead_lm) >> DIST_SHIFT);
-	} else {
-		int last_sensor_dist = -1;
-		if(train_data->last_receive_sensor != NULL) {
-			last_sensor_dist = calcDistance(train_data->last_receive_sensor, train_data->landmark, 12);
-		}
-		int reserve_start = train_data->landmark->index;
-		int reserve_dist = (find_stop_dist(train_data) + train_data->ahead_lm) >> DIST_SHIFT;
-		if(last_sensor_dist > 0) {
-			reserve_start = train_data->last_receive_sensor->index;
-			reserve_dist += last_sensor_dist;
-		}
-		CreateWithArgs(RESERVER_PRIORITY, trackReserver, (int)train_global,
-					   (int)train_data, reserve_start, reserve_dist);
-	}
-	train_data->waiting_for_reserver = TRUE;
-	train_data->dist_since_last_rs = 0;
-}
-	
-
 inline void setTrainSpeed(int train_id, int speed, int com1_tid) {
 	char cmd[2];
 	cmd[0] = speed;
@@ -513,6 +488,30 @@ int find_reverse_node(track_node **route, int check_point, char *switch_table, i
 	}
 }
 
+
+void reserveMyTrack(TrainGlobal *train_global, TrainData *train_data, int is_reversing) {
+	if (is_reversing) {
+		CreateWithArgs(RESERVER_PRIORITY, trackReserver, (int)train_global,
+	               (int)train_data, train_data->predict_dest->index,
+	               (find_stop_dist(train_data) + train_data->ahead_lm) >> DIST_SHIFT);
+	} else {
+		int last_sensor_dist = -1;
+		if(train_data->last_receive_sensor != NULL) {
+			last_sensor_dist = calcDistance(train_data->last_receive_sensor, train_data->landmark, 12);
+		}
+		int reserve_start = train_data->landmark->index;
+		int reserve_dist = (find_stop_dist(train_data) + train_data->ahead_lm) >> DIST_SHIFT;
+		if(last_sensor_dist > 0) {
+			reserve_start = train_data->last_receive_sensor->index;
+			reserve_dist += last_sensor_dist;
+		}
+		CreateWithArgs(RESERVER_PRIORITY, trackReserver, (int)train_global,
+					   (int)train_data, reserve_start, reserve_dist);
+	}
+	train_data->waiting_for_reserver = TRUE;
+	train_data->dist_since_last_rs = 0;
+}
+
 // return route start
 int findRoute(track_node *track_nodes, TrainData *train_data, track_node *dest, track_node **route, int *need_reverse) {
 	int forward_dist = 0;
@@ -733,7 +732,7 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 					reserveMyTrack(train_global, train_data, FALSE);
 				}
 			}
-			
+
 			if (train_data->ahead_lm > train_data->forward_distance) {
 				updateCurrentLandmark(train_global, train_data, NULL, train_global->switch_table);
 				if (action != Free_Run) {
