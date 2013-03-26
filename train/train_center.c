@@ -142,14 +142,13 @@ void reserveTrack(TrainGlobal *train_global, TrainData *train_data, int landmark
 	}
 
 	// If reach a branch
+	int switch_state = train_global->switch_table[switchIdToIndex(current->num)];
+	int direction = switch_state == SWITCH_CUR ? DIR_CURVED : DIR_STRAIGHT;
+
+	reserveTrack(train_global, train_data, current->edge[direction].dest->index,
+	             distance - current->edge[direction].dist, num_sensor, take_branch);
 	if(take_branch > 0) {
-		reserveTrack(train_global, train_data, current->edge[DIR_STRAIGHT].dest->index,
-		             distance - current->edge[DIR_STRAIGHT].dist, num_sensor, take_branch - 1);
-		reserveTrack(train_global, train_data, current->edge[DIR_CURVED].dest->index,
-		             distance - current->edge[DIR_CURVED].dist, num_sensor, take_branch - 1);
-	} else {
-		int switch_state = train_global->switch_table[switchIdToIndex(current->num)];
-		int direction = switch_state == SWITCH_CUR ? DIR_CURVED : DIR_STRAIGHT;
+		direction = direction == DIR_STRAIGHT ? DIR_CURVED : DIR_STRAIGHT;
 		reserveTrack(train_global, train_data, current->edge[direction].dest->index,
 		             distance - current->edge[direction].dist, num_sensor, take_branch - 1);
 	}
@@ -203,25 +202,20 @@ track_node *trackAvailability(TrainGlobal *train_global, TrainData *train_data, 
 	}
 
 	// If reach a branch
+	int switch_state = train_global->switch_table[switchIdToIndex(current->num)];
+	int direction = switch_state == SWITCH_CUR ? DIR_CURVED : DIR_STRAIGHT;
+	track_node *conflict_node = NULL;
+
+	conflict_node = trackAvailability(train_global, train_data,
+                                      current->edge[direction].dest->index,
+                                      distance - current->edge[direction].dist,
+                                      num_sensor, take_branch);
+	if(conflict_node != NULL) {
+		return conflict_node;
+	}
+
 	if(take_branch > 0) {
-		track_node *conflict_node = NULL;
-		conflict_node = trackAvailability(train_global, train_data,
-	                                      current->edge[DIR_STRAIGHT].dest->index,
-	                                      distance - current->edge[DIR_STRAIGHT].dist,
-	                                      num_sensor, take_branch - 1);
-		if(conflict_node != NULL) {
-			return conflict_node;
-		}
-		conflict_node = trackAvailability(train_global, train_data,
-		                                  current->edge[DIR_CURVED].dest->index,
-		                                  distance - current->edge[DIR_CURVED].dist,
-		                                  num_sensor, take_branch - 1);
-		if(conflict_node != NULL) {
-			return conflict_node;
-		}
-	} else {
-		int switch_state = train_global->switch_table[switchIdToIndex(current->num)];
-		int direction = switch_state == SWITCH_CUR ? DIR_CURVED : DIR_STRAIGHT;
+		direction = direction == DIR_STRAIGHT ? DIR_CURVED : DIR_STRAIGHT;
 		return trackAvailability(train_global, train_data, current->edge[direction].dest->index,
 		                         distance - current->edge[direction].dist, num_sensor, take_branch - 1);
 	}
@@ -246,15 +240,27 @@ inline TrainMsgType handleTrackReserve(TrainGlobal *train_global, ReservationMsg
 	}
 
 	// Clear previous reservation
-	reserveTrack(train_global, NULL, train_data->reservation_record.landmark_id,
-	             train_data->reservation_record.distance, num_sensor, 1);
+	if(reservation_msg->type == TRACK_RESERVE) {
+		reserveTrack(train_global, NULL, train_data->reservation_record.landmark_id,
+		             train_data->reservation_record.distance, num_sensor, 1);
+	}
+	if(train_data->recovery_reservation.landmark_id != -1) {
+		reserveTrack(train_global, NULL, train_data->recovery_reservation.landmark_id,
+		             train_data->recovery_reservation.distance, num_sensor, 1);
+		train_data->recovery_reservation.landmark_id = -1;
+	}
 
 	// Reserve for this time
 	reserveTrack(train_global, train_data, landmark_id, distance, num_sensor, 1);
 
 	// Save reservation record
-	train_data->reservation_record.landmark_id = landmark_id;
-	train_data->reservation_record.distance = distance;
+	if(reservation_msg->type == TRACK_RESERVE) {
+		train_data->reservation_record.landmark_id = landmark_id;
+		train_data->reservation_record.distance = distance;
+	} else {
+		train_data->recovery_reservation.landmark_id = landmark_id;
+		train_data->recovery_reservation.distance = distance;
+	}
 
 	IDEBUG(DB_RESERVE, train_global->com2_tid, ROW_DEBUG_1,
 	       WIDTH_DEBUG * train_data->index, "#%dR %s + %dmm    ",
@@ -334,6 +340,7 @@ void trainCenter(TrainGlobal *train_global) {
 				Halt();
 				break;
 			case TRACK_RESERVE:
+			case TRACK_RECOVERY_RESERVE:
 				msg.type = handleTrackReserve(train_global, &(msg.reservation_msg));
 				Reply(tid, (char *)(&(msg.type)), sizeof(TrainMsgType));
 				break;
