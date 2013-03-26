@@ -49,7 +49,8 @@ typedef struct train_data {
 	track_node * volatile last_receive_sensor;
 	volatile int	forward_distance;
 	volatile int	ahead_lm;
-	volatile int	last_reserve_position;
+	volatile int	dist_since_last_rs;
+	volatile int	waiting_for_reserver;
 
 	Reservation		reservation_record;
 } TrainData;
