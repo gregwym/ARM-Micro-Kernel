@@ -96,8 +96,6 @@ int calcDistance(track_node *src, track_node *dest, int depth) {
 int gotoNode(track_node *src, track_node *dest, TrainGlobal *train_global, int depth) {
 	if(src == dest) {
 		return 1;
-	} else if (src == dest->reverse) {
-		return 2;
 	}
 	if(depth == 0) {
 		return 0;
@@ -393,7 +391,7 @@ void changeNextSW(track_node **route, int check_point, char *switch_table, int c
 	// char cmd[2];
 	int distance = 0;
 	// check_point += 1;
-	for (; check_point < TRACK_MAX && distance < threshold; check_point++) {
+	for (; check_point < TRACK_MAX && distance < 1050; check_point++) {
 		if (route[check_point]->type == NODE_BRANCH && check_point + 1 < TRACK_MAX) {
 			if (route[check_point + 1] == route[check_point]->edge[DIR_STRAIGHT].dest) {
 				if (switch_table[switchIdToIndex(route[check_point]->num)] != SWITCH_STR) {
@@ -518,10 +516,9 @@ int find_reverse_node(track_node **route, int check_point, char *switch_table, i
 }
 
 void reserveInRecovery(TrainGlobal *train_global, TrainData *train_data) {
-	track_node * last_receive_sensor = train_data->last_receive_sensor;
 	train_data->is_lost = TRUE;
 	CreateWithArgs(RESERVER_PRIORITY, trackReserver, (int)train_global,
-				   (int)train_data, last_receive_sensor->reverse->index,
+				   (int)train_data, train_data->last_receive_sensor->index,
 				   (find_stop_dist(train_data)) >> DIST_SHIFT);
 	train_data->waiting_for_reserver = TRUE;
 	train_data->dist_since_last_rs = 0;
@@ -685,6 +682,7 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 	int train_id = train_data->id;
 	int train_index = train_data->index;
 	int old_speed = 0;
+	
 
 	int com1_tid = train_global->com1_tid;
 	int com2_tid = train_global->com2_tid;
@@ -723,6 +721,7 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 
 	// route variables
 	track_node *route[TRACK_MAX];
+	track_node *recovery_route[TRACK_MAX];
 	int route_start = TRACK_MAX;
 	int reverse_node_offset = 0;
 	unsigned int reverse_protection_alarm = 0;
@@ -738,6 +737,7 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 	// int simple_reverse = 0;
 
 	char cmd[2];
+	cmd[1] = train_id;
 
 	int waiting_for_reservation = 0;
 	int predict_sensor_num = 0;
@@ -972,16 +972,22 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 								train_data->stop_type = Entering_None;
 								break;
 							case Reserve_Blocked:
-								reverseCurrentLandmark(train_global, train_data, train_global->switch_table);
-								result = gotoNode(train_data->landmark, train_data->last_receive_sensor->reverse, train_global, 8);
-								if (result == 2) {
-									train_data->last_receive_sensor = train_data->last_receive_sensor->reverse;
+								// reverseCurrentLandmark(train_global, train_data, train_global->switch_table);
+								train_data->landmark = train_data->predict_dest;
+								findRoute(track_nodes, train_data, train_data->last_receive_sensor, recovery_route, &need_reverse);
+								train_data->last_receive_sensor = recovery_route[TRACK_MAX - 1];
+								if (need_reverse) {
+									reverseCurrentLandmark(train_global, train_data, train_global->switch_table);
+									
 								}
-								if (result) {
-									reserveInRecovery(train_global, train_data);
-								} else {
+								IDEBUG(DB_ROUTE, 4, 57, 40 * train_data->index + 2, "from: %s -> %s ", train_data->landmark->name, train_data->last_receive_sensor->name);
+								
+								result = gotoNode(train_data->landmark, recovery_route[TRACK_MAX - 1], train_global, 8);
+								if (!result) {
 									IDEBUG(DB_ROUTE, 4, 57, 40 * train_data->index + 2, "%s -> %s ", train_data->landmark->name, train_data->last_receive_sensor->reverse->name);
 								}
+								
+								reserveInRecovery(train_global, train_data);
 
 								// Reverse and wait for Reservation Succeed Signal to reaccelerate
 								// Will recalculate route after recovered from lost
