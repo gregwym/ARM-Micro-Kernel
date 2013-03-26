@@ -119,8 +119,9 @@ void reserveTrack(TrainGlobal *train_global, TrainData *train_data, int landmark
 	track_node *current = &(track_nodes[landmark_id]);
 
 	// Reserve current landmark
+	// Do not reserve reverse landmark, so reverse sensor will not be delivered
 	track_reservation[current->index] = train_data;
-	track_reservation[current->reverse->index] = train_data;
+	// track_reservation[current->reverse->index] = train_data;
 
 	// Reserve along the way until run out of distance or reach a Branch/Exit
 	while(distance >= 0 && current->type != NODE_BRANCH && current->type != NODE_EXIT) {
@@ -132,7 +133,7 @@ void reserveTrack(TrainGlobal *train_global, TrainData *train_data, int landmark
 
 		// Reserve both direction node
 		track_reservation[current->index] = train_data;
-		track_reservation[current->reverse->index] = train_data;
+		// track_reservation[current->reverse->index] = train_data;
 	}
 
 	if(distance < 0 || current->type == NODE_EXIT) return;
@@ -161,11 +162,17 @@ track_node *trackAvailability(TrainGlobal *train_global, TrainData *train_data, 
 	TrainData **track_reservation = train_global->track_reservation;
 	track_node *track_nodes = train_global->track_nodes;
 	track_node *current = &(track_nodes[landmark_id]);
+	track_node *reverse = current->reverse;
 
 	// Check current landmark
 	if(track_reservation[current->index] != NULL &&
 	   track_reservation[current->index] != train_data) {
 		return current;
+	}
+
+	if(track_reservation[reverse->index] != NULL &&
+	   track_reservation[reverse->index] != train_data) {
+		return reverse;
 	}
 
 	// Check along the way until run out of distance or reach a Branch/Exit
@@ -175,11 +182,17 @@ track_node *trackAvailability(TrainGlobal *train_global, TrainData *train_data, 
 
 		// Set current to the next
 		current = current->edge[DIR_AHEAD].dest;
+		reverse = current->reverse;
 
 		// Check both direction node
 		if(track_reservation[current->index] != NULL &&
 		   track_reservation[current->index] != train_data) {
 			return current;
+		}
+
+		if(track_reservation[reverse->index] != NULL &&
+		   track_reservation[reverse->index] != train_data) {
+			return reverse;
 		}
 	}
 
@@ -221,13 +234,10 @@ inline TrainMsgType handleTrackReserve(TrainGlobal *train_global, TrainData* tra
 
 	if(conflict_node != NULL) {
 		IDEBUG(DB_RESERVE, train_global->com2_tid, ROW_DEBUG_1 + 1,
-		       WIDTH_DEBUG * train_data->index, "#%dF\t%s   ",
-		       train_id, conflict_node->name);
+		       WIDTH_DEBUG * train_data->index, "#%dF %s -> %s   ", train_id,
+		       train_global->track_nodes[landmark_id].name, conflict_node->name);
 		return TRACK_RESERVE_FAIL;
 	}
-	IDEBUG(DB_RESERVE, train_global->com2_tid, ROW_DEBUG_1,
-	       WIDTH_DEBUG * train_data->index, "#%dR\t%s + %dmm    ",
-	       train_id, train_global->track_nodes[landmark_id].name, distance);
 
 	// Clear previous reservation
 	reserveTrack(train_global, NULL, train_data->reservation_record.landmark_id,
@@ -239,6 +249,10 @@ inline TrainMsgType handleTrackReserve(TrainGlobal *train_global, TrainData* tra
 	// Save reservation record
 	train_data->reservation_record.landmark_id = landmark_id;
 	train_data->reservation_record.distance = distance;
+
+	IDEBUG(DB_RESERVE, train_global->com2_tid, ROW_DEBUG_1,
+	       WIDTH_DEBUG * train_data->index, "#%dR %s + %dmm    ",
+	       train_id, train_global->track_nodes[landmark_id].name, distance);
 
 	return TRACK_RESERVE_SUCCEED;
 }
