@@ -57,6 +57,7 @@ void init_train37(TrainData *train) {
 	train->last_receive_sensor = NULL;
 	train->waiting_for_reserver = FALSE;
 	train->is_lost = FALSE;
+	train->on_route = FALSE;
 
 	train->action = Free_Run;
 	train->stop_type = Entering_None;
@@ -123,6 +124,7 @@ void init_train49(TrainData *train) {
 	train->last_receive_sensor = NULL;
 	train->waiting_for_reserver = FALSE;
 	train->is_lost = FALSE;
+	train->on_route = FALSE;
 
 	train->action = Free_Run;
 	train->stop_type = Entering_None;

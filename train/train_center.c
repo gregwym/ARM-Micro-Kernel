@@ -232,7 +232,7 @@ inline TrainMsgType handleTrackReserve(TrainGlobal *train_global, ReservationMsg
 
 	track_node *conflict_node = NULL;
 	if(reservation_msg->type == TRACK_RESERVE) {
-		conflict_node = trackAvailability(train_global, train_data, landmark_id, distance + 100, num_sensor, 1);
+		conflict_node = trackAvailability(train_global, train_data, landmark_id, distance + 150, num_sensor, 1);
 	}
 
 	if(conflict_node != NULL) {
