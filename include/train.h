@@ -71,6 +71,7 @@ typedef struct {
 	TrainData*		train_data;
 	int				landmark_id;
 	int				distance;
+	int				num_sensor;
 } ReservationMsg;
 
 typedef union train_msg {
