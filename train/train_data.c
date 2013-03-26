@@ -56,6 +56,7 @@ void init_train37(TrainData *train) {
 	train->dist_since_last_rs = 0;
 	train->last_receive_sensor = NULL;
 	train->waiting_for_reserver = FALSE;
+	train->is_lost = FALSE;
 
 	train->reservation_record.landmark_id = 132;
 	train->reservation_record.distance = 0;
@@ -76,9 +77,9 @@ void init_train49(TrainData *train) {
 	train->stop_dist[9] = (550 << DIST_SHIFT);
 	train->stop_dist[10] = (620 << DIST_SHIFT);
 	train->stop_dist[11] = (700 << DIST_SHIFT);
-	train->stop_dist[12] = (780 << DIST_SHIFT);
-	train->stop_dist[13] = (860 << DIST_SHIFT);
-	train->stop_dist[14] = (835 << DIST_SHIFT);
+	train->stop_dist[12] = (800 << DIST_SHIFT);
+	train->stop_dist[13] = (880 << DIST_SHIFT);
+	train->stop_dist[14] = (855 << DIST_SHIFT);
 
 	train->velocities[0] = 0;
 	train->velocities[1] = 2500;
@@ -93,8 +94,8 @@ void init_train49(TrainData *train) {
 	train->velocities[10] = 67589;
 	train->velocities[11] = 75342;
 	train->velocities[12] = 82189;
-	train->velocities[13] = 87329;
-	train->velocities[14] = 86853;
+	train->velocities[13] = 85000;
+	train->velocities[14] = 84500;
 
 	train->ht_length[0] = 50;
 	train->ht_length[1] = 180;
@@ -116,6 +117,7 @@ void init_train49(TrainData *train) {
 	train->dist_since_last_rs = 0;
 	train->last_receive_sensor = NULL;
 	train->waiting_for_reserver = FALSE;
+	train->is_lost = FALSE;
 
 	train->reservation_record.landmark_id = 134;
 	train->reservation_record.distance = 0;
