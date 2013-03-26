@@ -71,6 +71,7 @@ typedef struct train_data {
 	volatile int	dist_since_last_rs;
 	volatile int	waiting_for_reserver;
 	volatile int	is_lost;
+	volatile int	on_route;
 
 	Reservation		reservation_record;
 	Reservation		recovery_reservation;

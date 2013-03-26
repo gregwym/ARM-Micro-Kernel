@@ -230,7 +230,10 @@ inline TrainMsgType handleTrackReserve(TrainGlobal *train_global, ReservationMsg
 	int num_sensor = reservation_msg->num_sensor;
 	int train_id = train_data->id;
 
-	track_node *conflict_node = trackAvailability(train_global, train_data, landmark_id, distance + 100, num_sensor, 1);
+	track_node *conflict_node = NULL;
+	if(reservation_msg->type == TRACK_RESERVE) {
+		conflict_node = trackAvailability(train_global, train_data, landmark_id, distance + 150, num_sensor, 1);
+	}
 
 	if(conflict_node != NULL) {
 		IDEBUG(DB_RESERVE, train_global->com2_tid, ROW_DEBUG_1 + 1,
