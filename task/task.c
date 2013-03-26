@@ -131,7 +131,10 @@ Task *createTask(FreeList *free_list, int priority, void (*code) ()) {
 	assert(priority >= 0 && priority <= TASK_PRIORITY_MAX, "Invalid priority value!");
 	Task *ret = NULL;
 	ret = free_list->head;
-	if(ret == NULL) return ret;
+	if(ret == NULL) {
+		assert(0, "run out of td");
+		return ret;
+	}
 
 	assert(ret->state == Zombie, "Invalid task descriptor to use!");
 	ret->tid = ret->tid + TASK_MAX;
