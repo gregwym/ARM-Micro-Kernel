@@ -8,23 +8,6 @@
 #define RESERVE_CHECKPOINT_LEN 50
 #define RESERVER_PRIORITY 7
 
-typedef enum {
-	Free_Run,
-	Goto_Merge,
-	Goto_Dest
-} Action;
-
-typedef enum {
-	Entering_None = 0,
-	Entering_Exit,
-	Entering_Dest,
-	Entering_Merge,
-	Stopped,
-	Reversing,
-	Reserve_Blocked
-} StopType;
-
-
 void trainReverser(int train_id, int new_speed, int com1_tid, int delay_time) {
 	char cmd[2];
 	cmd[0] = 0;
@@ -117,10 +100,10 @@ int gotoNode(track_node *src, track_node *dest, TrainGlobal *train_global, int d
 	if(depth == 0) {
 		return 0;
 	}
-	
+
 	int straight = -1;
 	int curved = -1;
-	
+
 	switch(src->type) {
 		case NODE_ENTER:
 		case NODE_SENSOR:
@@ -736,9 +719,6 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 	int cnt = 0;
 	TrainDirection prev_reserve_dict = FORWARD;
 
-	Action action = Free_Run;
-	StopType stop_type = Entering_None;
-
 	// int reversing = 0;
 	track_node *reverse_node = NULL;
 	// track_node *merge_node = NULL;
@@ -775,7 +755,7 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 					speed_change_alarm = 0;
 					speed_change_step = 0;
 					speed_change_time = 0;
-					stop_type = Reserve_Blocked;
+					train_data->stop_type = Reserve_Blocked;
 					train_data->dist_since_last_rs = 0;
 				} else {
 					reserveMyTrack(train_global, train_data, FALSE, NULL);
@@ -784,7 +764,7 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 
 			if (train_data->ahead_lm > train_data->forward_distance) {
 				updateCurrentLandmark(train_global, train_data, NULL, train_global->switch_table);
-				if (action != Free_Run) {
+				if (train_data->action != Free_Run) {
 					int tmp = updateCheckPoint(train_data, route, check_point, route_start);
 					if (tmp != -1) {
 						check_point = tmp;
@@ -874,19 +854,19 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 					acceleration = 0;
 					if (train_data->velocity == 0) {
 
-						switch(stop_type) {
+						switch(train_data->stop_type) {
 							case Entering_Exit:
-								stop_type = Entering_None;
+								train_data->stop_type = Entering_None;
 								break;
 							case Entering_Dest:
-								stop_type = Entering_None;
+								train_data->stop_type = Entering_None;
 								// updateCurrentLandmark(train_global, train_data, stop_node, train_global->switch_table, com2_tid);
 								stop_node = NULL;
-								action = Free_Run;
+								train_data->action = Free_Run;
 								uiprintf(com2_tid, ROW_TRAIN + train_index * HEIGHT_TRAIN + ROW_ROUTE, COLUMN_DATA_1, "    ");
 								break;
 							case Entering_Merge:
-								stop_type = Entering_None;
+								train_data->stop_type = Entering_None;
 								reverseCurrentLandmark(train_global, train_data, train_global->switch_table);
 								reverse_node = NULL;
 								reverse_node_offset = 0;
@@ -902,9 +882,9 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 								// check_point = route_start - 1;
 								// route[check_point] = train_data->landmark;
 								if (find_reverse_node(route, check_point, train_global->switch_table, &reverse_node_offset, &reverse_node, margin)) {
-									action = Goto_Merge;
+									train_data->action = Goto_Merge;
 								} else {
-									action = Goto_Dest;
+									train_data->action = Goto_Dest;
 								}
 								cmd[0] = TRAIN_REVERSE;
 								cmd[1] = train_id;
@@ -924,9 +904,9 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 								}
 								break;
 							case Reversing:
-								stop_type = Entering_None;
+								train_data->stop_type = Entering_None;
 								reverseCurrentLandmark(train_global, train_data, train_global->switch_table);
-								
+
 								cmd[0] = TRAIN_REVERSE;
 								cmd[1] = train_id;
 								Puts(com1_tid, cmd, 2);
@@ -957,27 +937,27 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 										}
 										train_data->speed = 0;
 										setTrainSpeed(train_id, 0, com1_tid);
-										stop_type = Reversing;
+										train_data->stop_type = Reversing;
 									}
 									assert(route_start != TRACK_MAX, "route_start == TRACK_MAX");
 									stop_node = route[TRACK_MAX - 1];
 									check_point = route_start;
 									if (find_reverse_node(route, check_point, train_global->switch_table, &reverse_node_offset, &reverse_node, margin)) {
-										action = Goto_Merge;
+										train_data->action = Goto_Merge;
 									} else {
-										action = Goto_Dest;
+										train_data->action = Goto_Dest;
 									}
 							        uiprintf(com2_tid, ROW_TRAIN + train_index * HEIGHT_TRAIN + ROW_ROUTE, COLUMN_DATA_1, "%s  ", stop_node->name);
 								}
 								break;
 							case Stopped:
-								stop_type = Entering_None;
+								train_data->stop_type = Entering_None;
 								break;
 							case Reserve_Blocked:
-								stop_type = Entering_None;
 								reverseCurrentLandmark(train_global, train_data, train_global->switch_table);
-									
-								if (action != Free_Run && !train_data->is_lost) {
+								train_data->stop_type = Entering_None;
+
+								if (train_data->action != Free_Run && !train_data->is_lost) {
 									route_start = dijkstra(track_nodes, train_data->landmark, stop_node, route, &forward_dist);
 									if (route_start == TRACK_MAX) {
 										assert(0, "cannot find route");
@@ -1013,10 +993,10 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 
 			// stop checking
 			if (train_data->speed % 16 != 0) {
-				if (action == Free_Run || action == Goto_Dest) {
-					stop_type = stopCheck(train_data->landmark, &exit_node, train_data->ahead_lm, train_global->switch_table,
+				if (train_data->action == Free_Run || train_data->action == Goto_Dest) {
+					train_data->stop_type = stopCheck(train_data->landmark, &exit_node, train_data->ahead_lm, train_global->switch_table,
 					find_stop_dist(train_data), stop_node, -1, route, check_point, com2_tid);
-					if (stop_type == Entering_Exit || stop_type == Entering_Dest) {
+					if (train_data->stop_type == Entering_Exit || train_data->stop_type == Entering_Dest) {
 						setTrainSpeed(train_id, 0, com1_tid);
 						if (train_data->speed%16 != 0) {
 							old_speed = train_data->speed;
@@ -1029,10 +1009,10 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 						IDEBUG(DB_ROUTE, 4, ROW_DEBUG_2 + 5, COLUMN_FIRST, "stop, %s, %d v: %d  sd: %d          ", train_data->landmark->name, train_data->ahead_lm >> 18, train_data->velocity, find_stop_dist(train_data) >> 18);
 					}
 
-				} else if (action == Goto_Merge) {
-					stop_type = stopCheck(train_data->landmark, &exit_node, train_data->ahead_lm, train_global->switch_table,
+				} else if (train_data->action == Goto_Merge) {
+					train_data->stop_type = stopCheck(train_data->landmark, &exit_node, train_data->ahead_lm, train_global->switch_table,
 					find_stop_dist(train_data), reverse_node, reverse_node_offset, route, check_point, com2_tid);
-					if (stop_type == Entering_Exit) {
+					if (train_data->stop_type == Entering_Exit) {
 						if (train_data->speed%16 != 0) {
 							old_speed = train_data->speed;
 						}
@@ -1044,7 +1024,7 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 						speed_change_time = 0;
 						IDEBUG(DB_ROUTE, 4, ROW_DEBUG_2 + 5, COLUMN_FIRST, "stop, %s, %d v: %d  sd: %d          ", train_data->landmark->name, train_data->ahead_lm >> 18, train_data->velocity, find_stop_dist(train_data) >> 18);
 					}
-					if (stop_type == Entering_Merge) {
+					if (train_data->stop_type == Entering_Merge) {
 						setTrainSpeed(train_id, 0, com1_tid);
 						if (train_data->speed%16 != 0) {
 							old_speed = train_data->speed;
@@ -1079,7 +1059,7 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 				train_data->speed = msg.cmd_msg.value;
 
 				if (train_data->speed % 16 == 0) {
-					stop_type = Stopped;
+					train_data->stop_type = Stopped;
 				}
 
 				if (train_data->speed % 16 > old_speed % 16) {
@@ -1107,7 +1087,7 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 					old_speed = train_data->speed;
 				}
 				train_data->speed = 0;
-				stop_type = Reversing;
+				train_data->stop_type = Reversing;
 				setTrainSpeed(train_id, 0, com1_tid);
 				break;
 
@@ -1124,7 +1104,7 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 
 					updateCurrentLandmark(train_global, train_data, &(track_nodes[msg.location_msg.id]), train_global->switch_table);
 
-					if (stop_type == Entering_None && action != Free_Run && !reverse_protect && !train_data->is_lost) {
+					if (train_data->stop_type == Entering_None && train_data->action != Free_Run && !reverse_protect && !train_data->is_lost) {
 						check_point = updateCheckPoint(train_data, route, check_point, route_start);
 						if (check_point != -1) {
 							// changeNextSW(route, check_point, train_global->switch_table, com1_tid, com2_tid);
@@ -1142,7 +1122,7 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 								}
 								train_data->speed = 0;
 								setTrainSpeed(train_id, 0, com1_tid);
-								stop_type = Reversing;
+								train_data->stop_type = Reversing;
 							}
 							assert(route_start != TRACK_MAX, "route_start == TRACK_MAX");
 							check_point = route_start;
@@ -1150,9 +1130,9 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 							IDEBUG(DB_ROUTE, com2_tid, ROW_DEBUG_2 + 5, COLUMN_FIRST, "%s (R) ", stop_node->name);
 
 							if (find_reverse_node(route, check_point, train_global->switch_table, &reverse_node_offset, &reverse_node, margin)) {
-								action = Goto_Merge;
+								train_data->action = Goto_Merge;
 							} else {
-								action = Goto_Dest;
+								train_data->action = Goto_Dest;
 							}
 						}
 					}
@@ -1163,7 +1143,7 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 					updateCurrentLandmark(train_global, train_data, &(track_nodes[msg.location_msg.id]), train_global->switch_table);
 				}
 
-				if (action != Free_Run) {
+				if (train_data->action != Free_Run) {
 					if (route[check_point] != train_data->landmark) {
 						int tmp = updateCheckPoint(train_data, route, check_point, route_start);
 						if (tmp != -1) {
@@ -1175,13 +1155,13 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 					}
 				}
 
-				if (stop_type == Entering_Dest) {
+				if (train_data->stop_type == Entering_Dest) {
 					check_point = updateCheckPoint(train_data, route, check_point, route_start);
 					if (check_point == -1) {
 						int need_reverse = 0;
 						route_start = findRoute(track_nodes, train_data, stop_node, route, &need_reverse);
 						if (need_reverse) {
-							stop_type = Reversing;
+							train_data->stop_type = Reversing;
 						} else {
 							train_data->speed = old_speed;
 							cmd[0] = train_data->speed;
@@ -1192,7 +1172,7 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 								acceleration = train_data->acceleration_G1;
 								speed_change_step = 1;
 							}
-							stop_type = Entering_None;
+							train_data->stop_type = Entering_None;
 						}
 					}
 				}
@@ -1213,7 +1193,7 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 					}
 					train_data->speed = 0;
 					setTrainSpeed(train_id, 0, com1_tid);
-					stop_type = Reversing;
+					train_data->stop_type = Reversing;
 				}
 
 				assert(route_start != TRACK_MAX, "route_start == TRACK_MAX");
@@ -1228,9 +1208,9 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 				// Puts(com2_tid, str_buf, 0);
 				// str_buf[0] = '\0';
 				if (find_reverse_node(route, check_point, train_global->switch_table, &reverse_node_offset, &reverse_node, margin)) {
-					action = Goto_Merge;
+					train_data->action = Goto_Merge;
 				} else {
-					action = Goto_Dest;
+					train_data->action = Goto_Dest;
 				}
 
 				changeNextSW(route, check_point, train_global->switch_table, com1_tid, com2_tid);
@@ -1247,7 +1227,7 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 			case TRACK_RESERVE_FAIL:
 				Reply(tid, NULL, 0);
 				train_data->waiting_for_reserver = FALSE;
-				if (stop_type != Reserve_Blocked) {
+				if (train_data->stop_type != Reserve_Blocked) {
 					assert(prev_reserve_dict == train_data->direction, "bidirectional reservation FAILURE!");
 					prev_reserve_dict = train_data->direction;
 					waiting_for_reservation = 1;
@@ -1260,7 +1240,7 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 					}
 					train_data->speed = 0;
 					setTrainSpeed(train_id, train_data->speed, com1_tid);
-					stop_type = Reserve_Blocked;
+					train_data->stop_type = Reserve_Blocked;
 					IDEBUG(DB_ROUTE, 4, 53, 2 + train_data->index * 40, "re stop: %s, %d    ", train_data->landmark->name, train_data->ahead_lm >> 18);
 					IDEBUG(DB_ROUTE, 4, 55, 5 + train_data->index * 40, "__%s", train_data->direction == FORWARD ? "F" : "B");
 				}
@@ -1269,7 +1249,7 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 				Reply(tid, NULL, 0);
 				train_data->waiting_for_reserver = FALSE;
 				if (waiting_for_reservation) {
-					stop_type = Entering_None;
+					train_data->stop_type = Entering_None;
 					train_data->speed = old_speed;
 					setTrainSpeed(train_id, train_data->speed, com1_tid);
 					if (train_data->speed > 0) {

@@ -58,8 +58,13 @@ void init_train37(TrainData *train) {
 	train->waiting_for_reserver = FALSE;
 	train->is_lost = FALSE;
 
+	train->action = Free_Run;
+	train->stop_type = Entering_None;
+
 	train->reservation_record.landmark_id = 132;
 	train->reservation_record.distance = 0;
+	train->recovery_reservation.landmark_id = -1;
+	train->recovery_reservation.distance = 0;
 }
 
 void init_train49(TrainData *train) {
@@ -119,6 +124,11 @@ void init_train49(TrainData *train) {
 	train->waiting_for_reserver = FALSE;
 	train->is_lost = FALSE;
 
+	train->action = Free_Run;
+	train->stop_type = Entering_None;
+
 	train->reservation_record.landmark_id = 134;
 	train->reservation_record.distance = 0;
+	train->recovery_reservation.landmark_id = -1;
+	train->recovery_reservation.distance = 0;
 }
