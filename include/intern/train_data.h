@@ -51,6 +51,7 @@ typedef struct train_data {
 	volatile int	ahead_lm;
 	volatile int	dist_since_last_rs;
 	volatile int	waiting_for_reserver;
+	volatile int	is_lost;
 
 	Reservation		reservation_record;
 } TrainData;
