@@ -53,8 +53,9 @@ void init_train37(TrainData *train) {
 	train->deceleration = -14;
 	train->reverse_delay = 10;
 	train->acceleration_time = 8000;
-	train->last_reserve_position = 0;
+	train->dist_since_last_rs = 0;
 	train->last_receive_sensor = NULL;
+	train->waiting_for_reserver = FALSE;
 
 	train->reservation_record.landmark_id = 132;
 	train->reservation_record.distance = 0;
@@ -112,8 +113,9 @@ void init_train49(TrainData *train) {
 	train->deceleration = -15;
 	train->reverse_delay = 10;
 	train->acceleration_time = 7000;
-	train->last_reserve_position = 0;
+	train->dist_since_last_rs = 0;
 	train->last_receive_sensor = NULL;
+	train->waiting_for_reserver = FALSE;
 
 	train->reservation_record.landmark_id = 134;
 	train->reservation_record.distance = 0;
