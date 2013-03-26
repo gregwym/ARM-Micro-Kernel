@@ -55,6 +55,7 @@ void trackReserver(TrainGlobal *train_global, TrainData *train_data, int landmar
 	msg.train_data = train_data;
 	msg.landmark_id = landmark_id;
 	msg.distance = distance;
+	msg.num_sensor = 1;
 	driver_tid = MyParentTid();
 
 	// Send reservation request to the center
