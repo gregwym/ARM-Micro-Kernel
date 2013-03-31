@@ -87,7 +87,9 @@ void trainBootstrap() {
 
 	/* Track Reservation */
 	TrainData *track_reservation[TRACK_MAX];
+	TrainData *recovery_reservation[TRACK_MAX];
 	memset(track_reservation, (int)NULL, sizeof(TrainData *) * TRACK_MAX);
+	memset(recovery_reservation, (int)NULL, sizeof(TrainData *) * TRACK_MAX);
 
 	/* Train Global */
 	TrainGlobal train_global;
@@ -98,6 +100,7 @@ void trainBootstrap() {
 	train_global.trains_data = trains_data;
 	train_global.train_id_data = train_id_data;
 	train_global.track_reservation = track_reservation;
+	train_global.recovery_reservation = recovery_reservation;
 
 	/* initial UI */
 	initializeUI(train_global.com2_tid, trains_data);

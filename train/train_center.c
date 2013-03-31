@@ -2,6 +2,7 @@
 #include <klib.h>
 #include <services.h>
 #include <train.h>
+#include <kern/md_const.h>
 
 #define SWITCH_DELAY		40
 #define SWITCH_INIT_DELAY	500
@@ -60,7 +61,7 @@ void locationPostman(int tid, int landmark_id, int value) {
 inline void handleSensorUpdate(char *new_data, char *saved_data, TrainGlobal *train_global) {
 	int i, j, landmark_id;
 	char old_byte, new_byte, old_bit, new_bit;
-	TrainData *train_data;
+	TrainData *recovery_train_data, *train_data;
 
 	char buf[128];
 	char *buf_cursor = buf;
@@ -80,8 +81,12 @@ inline void handleSensorUpdate(char *new_data, char *saved_data, TrainGlobal *tr
 				// If the bit changed
 				if(old_bit != new_bit && new_bit) {
 					landmark_id = sensorIdToLandmark(i, j);
+					recovery_train_data = train_global->recovery_reservation[landmark_id];
 					train_data = train_global->track_reservation[landmark_id];
-					if(train_data != NULL) {
+					if(recovery_train_data != NULL) {
+						CreateWithArgs(2, locationPostman, recovery_train_data->tid, landmark_id, new_bit, 0);
+						IDEBUG(DB_RESERVE, train_global->com2_tid, ROW_DEBUG_1 + 3, recovery_train_data->index * WIDTH_DEBUG, "#%s => %d  ", train_global->track_nodes[landmark_id].name, train_data->id);
+					} else if(train_data != NULL) {
 						CreateWithArgs(2, locationPostman, train_data->tid, landmark_id, new_bit, 0);
 						IDEBUG(DB_RESERVE, train_global->com2_tid, ROW_DEBUG_1 + 3, train_data->index * WIDTH_DEBUG, "#%s => %d  ", train_global->track_nodes[landmark_id].name, train_data->id);
 					} else {
@@ -113,113 +118,101 @@ inline void handleSwitchCommand(CmdMsg *msg, TrainGlobal *train_global, char *bu
 	// Puts(train_global->com2_tid, buf, 0);
 }
 
-void reserveTrack(TrainGlobal *train_global, TrainData *train_data, int landmark_id, int distance, int num_sensor, int take_branch) {
+typedef struct traverse_config {
+	int landmark_id;
+	int distance;
+	int num_sensor;
+	int take_branch;
+	track_node *(*normal)(TrainData *train_data, track_node *current, TrainData **reservation);
+	track_node *(*recovery)(TrainData *train_data, track_node *current, TrainData **reservation);
+} TraverseConfig;
+
+track_node *traverseReservation(TrainGlobal *train_global, TrainData *train_data, TraverseConfig *config) {
 	TrainData **track_reservation = train_global->track_reservation;
+	TrainData **recovery_reservation = train_global->recovery_reservation;
 	track_node *track_nodes = train_global->track_nodes;
-	track_node *current = &(track_nodes[landmark_id]);
+	track_node *current = &(track_nodes[config->landmark_id]);
+	track_node *result;
 
-	// Reserve current landmark
-	// Do not reserve reverse landmark, so reverse sensor will not be delivered
-	track_reservation[current->index] = train_data;
-	// track_reservation[current->reverse->index] = train_data;
+	// IDEBUG(DB_RESERVE, train_global->com2_tid, ROW_DEBUG_1 - 1,
+		       // WIDTH_DEBUG * train_data->index, "normal: 0x%x", config->normal);
 
-	// Reserve along the way until run out of distance or reach a Branch/Exit
+	result = config->normal(train_data, current, track_reservation);
+	if(result != NULL) return result;
+	result = config->recovery(train_data, current, recovery_reservation);
+	if(result != NULL) return result;
+
 	while(current->type != NODE_BRANCH) {
-		if((distance < 0 && num_sensor <= 0) || current->type == NODE_EXIT) {
-			return;
-		}
-
-		// Deduct current the distance to the next landmark
-		distance -= current->edge[DIR_AHEAD].dist;
-
-		// Set current to the next
-		current = current->edge[DIR_AHEAD].dest;
-		num_sensor -= current->type == NODE_SENSOR ? 1 : 0;
-
-		// Reserve both direction node
-		track_reservation[current->index] = train_data;
-		// track_reservation[current->reverse->index] = train_data;
-	}
-
-	// If reach a branch
-	int switch_state = train_global->switch_table[switchIdToIndex(current->num)];
-	int direction = switch_state == SWITCH_CUR ? DIR_CURVED : DIR_STRAIGHT;
-
-	reserveTrack(train_global, train_data, current->edge[direction].dest->index,
-	             distance - current->edge[direction].dist, num_sensor, take_branch);
-	if(take_branch > 0) {
-		direction = direction == DIR_STRAIGHT ? DIR_CURVED : DIR_STRAIGHT;
-		reserveTrack(train_global, train_data, current->edge[direction].dest->index,
-		             distance - current->edge[direction].dist, num_sensor, take_branch - 1);
-	}
-}
-
-/*
- * Check the track availability
- *
- * Return NULL if no conflict
- * Return the failure node if there is a conflict
- */
-track_node *trackAvailability(TrainGlobal *train_global, TrainData *train_data, int landmark_id, int distance, int num_sensor, int take_branch) {
-	TrainData **track_reservation = train_global->track_reservation;
-	track_node *track_nodes = train_global->track_nodes;
-	track_node *current = &(track_nodes[landmark_id]);
-	track_node *reverse = current->reverse;
-
-	// Check both direction landmark
-	if(track_reservation[current->index] != NULL &&
-	   track_reservation[current->index] != train_data) {
-		return current;
-	}
-	if(track_reservation[reverse->index] != NULL &&
-	   track_reservation[reverse->index] != train_data) {
-		return reverse;
-	}
-
-	// Check along the way until run out of distance or reach a Branch/Exit
-	while(current->type != NODE_BRANCH) {
-		if((distance < 0 && num_sensor <= 0) || current->type == NODE_EXIT) {
+		if((config->distance < 0 && config->num_sensor <= 0) || current->type == NODE_EXIT) {
 			return NULL;
 		}
 
 		// Deduct current the distance to the next landmark
-		distance -= current->edge[DIR_AHEAD].dist;
+		config->distance -= current->edge[DIR_AHEAD].dist;
 
 		// Set current to the next
 		current = current->edge[DIR_AHEAD].dest;
-		reverse = current->reverse;
-		num_sensor -= current->type == NODE_SENSOR ? 1 : 0;
+		config->num_sensor -= current->type == NODE_SENSOR ? 1 : 0;
 
-		// Check both direction landmark
-		if(track_reservation[current->index] != NULL &&
-		   track_reservation[current->index] != train_data) {
-			return current;
-		}
-		if(track_reservation[reverse->index] != NULL &&
-		   track_reservation[reverse->index] != train_data) {
-			return reverse;
-		}
+		result = config->normal(train_data, current, track_reservation);
+		if(result != NULL) return result;
+		result = config->recovery(train_data, current, recovery_reservation);
+		if(result != NULL) return result;
 	}
 
-	// If reach a branch
 	int switch_state = train_global->switch_table[switchIdToIndex(current->num)];
 	int direction = switch_state == SWITCH_CUR ? DIR_CURVED : DIR_STRAIGHT;
-	track_node *conflict_node = NULL;
 
-	conflict_node = trackAvailability(train_global, train_data,
-                                      current->edge[direction].dest->index,
-                                      distance - current->edge[direction].dist,
-                                      num_sensor, take_branch);
-	if(conflict_node != NULL) {
-		return conflict_node;
-	}
+	TraverseConfig new_config;
+	memcpy(&new_config, config, sizeof(TraverseConfig));
+	new_config.landmark_id = current->edge[direction].dest->index;
+	new_config.distance = config->distance - current->edge[direction].dist;
+	result = traverseReservation(train_global, train_data, &new_config);
+	if(result != NULL) return result;
 
-	if(take_branch > 0) {
+	if(config->take_branch > 0) {
 		direction = direction == DIR_STRAIGHT ? DIR_CURVED : DIR_STRAIGHT;
-		return trackAvailability(train_global, train_data, current->edge[direction].dest->index,
-		                         distance - current->edge[direction].dist, num_sensor, take_branch - 1);
+		memcpy(&new_config, config, sizeof(TraverseConfig));
+		new_config.landmark_id = current->edge[direction].dest->index;
+		new_config.distance = config->distance - current->edge[direction].dist;
+		new_config.take_branch--;
+		result = traverseReservation(train_global, train_data, &new_config);
+		if(result != NULL) return result;
 	}
+	return NULL;
+}
 
+track_node *rejectBothWay(TrainData *train_data, track_node *current, TrainData **reservation) {
+	if(reservation[current->index] != NULL && reservation[current->index] != train_data) {
+		return current;
+	}
+	if(reservation[current->reverse->index] != NULL &&
+	   reservation[current->reverse->index] != train_data) {
+		return current->reverse;
+	}
+	return NULL;
+}
+
+track_node *rejectReverse(TrainData *train_data, track_node *current, TrainData **reservation) {
+	if(reservation[current->reverse->index] != NULL &&
+	   reservation[current->reverse->index] != train_data) {
+		return current->reverse;
+	}
+	return NULL;
+}
+
+track_node *reserveBothWay(TrainData *train_data, track_node *current, TrainData **reservation) {
+	reservation[current->index] = train_data;
+	reservation[current->reverse->index] = train_data;
+	return NULL;
+}
+
+track_node *reserveOneWay(TrainData *train_data, track_node *current, TrainData **reservation) {
+	reservation[current->index] = train_data;
+	return NULL;
+}
+
+track_node *reserveNothing(TrainData *train_data, track_node *current, TrainData **reservation) {
 	return NULL;
 }
 
@@ -229,12 +222,27 @@ inline TrainMsgType handleTrackReserve(TrainGlobal *train_global, ReservationMsg
 	int distance = reservation_msg->distance;
 	int num_sensor = reservation_msg->num_sensor;
 	int train_id = train_data->id;
+	TraverseConfig config;
 
+	// Check track availability
 	track_node *conflict_node = NULL;
+	config.landmark_id = landmark_id;
+	config.distance = distance;
+	config.num_sensor = num_sensor;
+	config.take_branch = 1;
 	if(reservation_msg->type == TRACK_RESERVE) {
-		conflict_node = trackAvailability(train_global, train_data, landmark_id, distance + 150, num_sensor, 1);
+		config.distance += 150;
+		config.normal = rejectBothWay + TEXT_REG_BASE;
+		config.recovery = rejectBothWay + TEXT_REG_BASE;
+	} else if(reservation_msg->type == TRACK_RECOVERY_RESERVE) {
+		config.normal = rejectReverse + TEXT_REG_BASE;
+		config.recovery = rejectBothWay + TEXT_REG_BASE;
+	} else {
+		assert(0, "Unkown reservation message type");
 	}
+	conflict_node = traverseReservation(train_global, train_data, &config);
 
+	// Track avilability conflict
 	if(conflict_node != NULL) {
 		IDEBUG(DB_RESERVE, train_global->com2_tid, ROW_DEBUG_1 + 1,
 		       WIDTH_DEBUG * train_data->index, "#%dF %s -> %s   ", train_id,
@@ -244,23 +252,42 @@ inline TrainMsgType handleTrackReserve(TrainGlobal *train_global, ReservationMsg
 
 	// Clear previous reservation
 	if(reservation_msg->type == TRACK_RESERVE) {
-		reserveTrack(train_global, NULL, train_data->reservation_record.landmark_id,
-		             train_data->reservation_record.distance, num_sensor, 1);
+		config.landmark_id = train_data->reservation_record.landmark_id;
+		config.distance = train_data->reservation_record.distance;
+		config.num_sensor = num_sensor;
+		config.take_branch = 1;
+		config.normal = reserveOneWay + TEXT_REG_BASE;
+		config.recovery = reserveNothing + TEXT_REG_BASE;
+		traverseReservation(train_global, NULL, &config);
 	}
+	// Clear previous recovery reservation
 	if(train_data->recovery_reservation.landmark_id != -1) {
-		reserveTrack(train_global, NULL, train_data->recovery_reservation.landmark_id,
-		             train_data->recovery_reservation.distance, num_sensor, 1);
+		config.landmark_id = train_data->reservation_record.landmark_id;
+		config.distance = train_data->reservation_record.distance;
+		config.num_sensor = num_sensor;
+		config.take_branch = 1;
+		config.normal = reserveNothing + TEXT_REG_BASE;
+		config.recovery = reserveOneWay + TEXT_REG_BASE;
+		traverseReservation(train_global, NULL, &config);
 		train_data->recovery_reservation.landmark_id = -1;
 	}
 
 	// Reserve for this time
-	reserveTrack(train_global, train_data, landmark_id, distance, num_sensor, 1);
+	config.landmark_id = landmark_id;
+	config.distance = distance;
+	config.num_sensor = num_sensor;
+	config.take_branch = 1;
 
-	// Save reservation record
 	if(reservation_msg->type == TRACK_RESERVE) {
+		config.normal = reserveOneWay + TEXT_REG_BASE;
+		config.recovery = reserveNothing + TEXT_REG_BASE;
+		traverseReservation(train_global, train_data, &config);
 		train_data->reservation_record.landmark_id = landmark_id;
 		train_data->reservation_record.distance = distance;
 	} else {
+		config.normal = reserveNothing + TEXT_REG_BASE;
+		config.recovery = reserveOneWay + TEXT_REG_BASE;
+		traverseReservation(train_global, train_data, &config);
 		train_data->recovery_reservation.landmark_id = landmark_id;
 		train_data->recovery_reservation.distance = distance;
 	}
