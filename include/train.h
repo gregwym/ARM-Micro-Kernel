@@ -35,6 +35,7 @@ typedef struct train_global {
 	TrainData	*trains_data;
 	TrainData	**train_id_data;
 	TrainData	**track_reservation;
+	TrainData	**recovery_reservation;
 } TrainGlobal;
 
 typedef enum train_msg_type {
