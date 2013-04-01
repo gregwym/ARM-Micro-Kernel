@@ -624,7 +624,6 @@ void reverseTrainAndLandmark(TrainGlobal *train_global, TrainData *train_data, c
 	int train_index = train_data->index;
 	int direction;
 	
-	train_data->sensor_for_reserve = NULL;
 	setTrainSpeed(train_data->id, TRAIN_REVERSE, train_global->com1_tid);
 	train_data->reverse_protect = TRUE;
 	train_data->untrust_sensor = predictNextSensor(train_global, train_data);
@@ -645,6 +644,7 @@ void reverseTrainAndLandmark(TrainGlobal *train_global, TrainData *train_data, c
 		train_data->forward_distance = (getNextNodeDist(train_data->landmark, switch_table, &direction) << DIST_SHIFT);
 		train_data->predict_dest = train_data->landmark->edge[direction].dest;
 	}
+	train_data->sensor_for_reserve = train_data->landmark;
 
 	int com2_tid = train_global->com2_tid;
 	uiprintf(com2_tid, ROW_TRAIN + train_index * HEIGHT_TRAIN + ROW_CURRENT, COLUMN_DATA_1, "%s  ", train_data->landmark->name);
@@ -708,7 +708,7 @@ void changeSpeed(TrainGlobal *train_global, TrainData *train_data, int new_speed
 	}
 }
 
-void updateTrainStatus(TrainGlobal *train_global, TrainData *train_data, int *v_to_0) {
+void updateTrainStatus(TrainGlobal *train_global, TrainData *train_data) {
 	// handle acceleration
 	if (train_data->acceleration_alarm > train_data->timer) {
 		switch(train_data->acceleration_step) {
@@ -730,7 +730,6 @@ void updateTrainStatus(TrainGlobal *train_global, TrainData *train_data, int *v_
 	}
 	
 	// handle velocity
-	*v_to_0 = 0;
 	train_data->velocity = train_data->velocity + (train_data->prev_timer - train_data->timer) * train_data->acceleration;
 	if (train_data->acceleration > 0) {
 		if (train_data->velocity > train_data->velocities[train_data->speed % 16]) {
@@ -744,7 +743,7 @@ void updateTrainStatus(TrainGlobal *train_global, TrainData *train_data, int *v_
 			train_data->velocity = train_data->velocities[train_data->speed % 16];
 			train_data->acceleration = 0;
 			if (train_data->velocity == 0) {
-				*v_to_0 = 1;
+				train_data->v_to_0 = 1;
 			}
 		}
 	}
@@ -832,11 +831,12 @@ void stopChecking(TrainGlobal *train_global, TrainData *train_data) {
 	}
 }
 
-void changeState(TrainGlobal *train_global, TrainData *train_data, int v_to_0) {
+void changeState(TrainGlobal *train_global, TrainData *train_data) {
 	int need_reverse;
 	int tmp_dist;
 	int result;
-	if (v_to_0) {
+	if (train_data->v_to_0 && !train_data->waiting_for_reserver) {
+		train_data->v_to_0 = FALSE;
 		uiprintf(train_global->com2_tid, ROW_TRAIN + train_data->index * HEIGHT_TRAIN + ROW_NEXT, COLUMN_DATA_3, "%d ", train_data->stop_type);
 		switch(train_data->stop_type) {
 			case Entering_Exit:
@@ -917,7 +917,12 @@ void changeState(TrainGlobal *train_global, TrainData *train_data, int v_to_0) {
 			
 			case RB_slowing:
 				// Wait for last reservation result, then enter recovery mode
-				train_data->stop_type = RB_changing_to_lost;
+				result = gotoNode(train_data->predict_dest->reverse, train_data->last_receive_sensor->reverse, train_global, 8);
+				reverseTrainAndLandmark(train_global, train_data, train_global->switch_table);
+				uiprintf(train_global->com2_tid, ROW_TRAIN + train_data->index * HEIGHT_TRAIN + ROW_CURRENT + 2, COLUMN_DATA_3, "%s->%s  ", train_data->landmark->name, train_data->last_receive_sensor->reverse->name);
+				train_data->stop_type = RB_go;
+				train_data->action = RB_last_ss;
+				// train_data->stop_type = RB_changing_to_lost;
 				break;
 				
 			case RB_go:
@@ -928,10 +933,7 @@ void changeState(TrainGlobal *train_global, TrainData *train_data, int v_to_0) {
 		}
 	}
 }
-				
-				
-				
-				
+
 
 void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 	track_node *track_nodes = train_global->track_nodes;
@@ -980,11 +982,10 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 			Reply(tid, NULL, 0);
 			train_data->timer = getTimerValue(TIMER3_BASE);
 			
-			int v_to_0;
-			updateTrainStatus(train_global, train_data, &v_to_0);
+			updateTrainStatus(train_global, train_data);
 			updateReservation(train_global, train_data);
 			stopChecking(train_global, train_data);
-			changeState(train_global, train_data, v_to_0);
+			changeState(train_global, train_data);
 			train_data->prev_timer = train_data->timer;
 			
 			cnt++;
@@ -1123,14 +1124,7 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 			case TRACK_RESERVE_FAIL:
 				Reply(tid, NULL, 0);
 				train_data->waiting_for_reserver = FALSE;
-				if (train_data->stop_type == RB_changing_to_lost) {
-					reverseTrainAndLandmark(train_global, train_data, train_global->switch_table);
-					result = gotoNode(train_data->landmark, train_data->last_receive_sensor->reverse, train_global, 8);
-					uiprintf(train_global->com2_tid, ROW_TRAIN + train_data->index * HEIGHT_TRAIN + ROW_CURRENT + 2, COLUMN_DATA_3, "%s->%s  ", train_data->landmark->name, train_data->last_receive_sensor->reverse->name);
-					train_data->stop_type = RB_go;
-					train_data->action = RB_last_ss;
-				}
-				else if (train_data->stop_type != RB_go) {
+				if (train_data->stop_type != RB_go) {
 					// assert(prev_reserve_dict == train_data->direction, "bidirectional reservation FAILURE!");
 					prev_reserve_dict = train_data->direction;
 					train_data->stop_type = RB_slowing;
@@ -1142,7 +1136,7 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 			case TRACK_RESERVE_SUCCEED:
 				Reply(tid, NULL, 0);
 				train_data->waiting_for_reserver = FALSE;
-				if (train_data->stop_type == RB_go || train_data->stop_type == RB_slowing || train_data->stop_type == RB_changing_to_lost) {
+				if (train_data->stop_type == RB_go || train_data->stop_type == RB_slowing) {
 					changeSpeed(train_global, train_data, train_data->old_speed);
 					train_data->stop_type = None;
 					// reserveInRunning(train_global, train_data);

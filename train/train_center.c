@@ -58,17 +58,11 @@ void locationPostman(int tid, int landmark_id, int value) {
 }
 
 int isContinuousSensor(track_node *src, track_node *dest, int count) {
-	// If found
-	if(src == dest) {
-		return TRUE;
-	}
-	
 	count--;
-
 	switch(src->type) {
 		case NODE_SENSOR:
 			if (count < 0) {
-				return FALSE;
+				return src == dest;
 			}
 		case NODE_ENTER:
 		case NODE_MERGE:
@@ -105,7 +99,7 @@ inline void handleSensorUpdate(char *new_data, char *saved_data, TrainGlobal *tr
 				new_bit = new_byte & SENSOR_BIT_MASK;
 
 				// If the bit changed
-				if(old_bit != new_bit && new_bit) {
+				if(old_bit != new_bit && (!new_bit)) {
 					landmark_id = sensorIdToLandmark(i, j);
 					recovery_train_data = train_global->recovery_reservation[landmark_id];
 					train_data = train_global->track_reservation[landmark_id];
@@ -236,9 +230,9 @@ track_node *reserveClear(TrainData *train_data, track_node *current, TrainData *
 	if (reservation[current->index] == train_data) {
 		reservation[current->index] = NULL;
 	}
-	if (reservation[current->reverse->index] == train_data) {
-		reservation[current->reverse->index] = NULL;
-	}
+	// if (reservation[current->reverse->index] == train_data) {
+		// reservation[current->reverse->index] = NULL;
+	// }
 	return NULL;
 }
 

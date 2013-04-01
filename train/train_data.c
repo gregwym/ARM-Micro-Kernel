@@ -46,10 +46,10 @@ void init_train37(TrainData *train) {
 	train->direction = FORWARD;
 	train->landmark = NULL;
 	train->ahead_lm = 0;
-	train->accelerations[0] = 4;
-	train->accelerations[1] = 9;
-	train->accelerations[2] = 18;
-	train->accelerations[3] = 10;
+	train->accelerations[0] = 3;
+	train->accelerations[1] = 8;
+	train->accelerations[2] = 16;
+	train->accelerations[3] = 13;
 	train->accelerations[4] = 7;
 	train->deceleration = -14;
 	train->acceleration_time = 1600;

@@ -32,9 +32,9 @@ typedef enum {
 	Entering_Merge,
 	Stopped,
 	Reversing,
+	Pending_Reverse,
 	RB_go,
 	RB_slowing,
-	RB_changing_to_lost
 } StopType;
 
 // typedef enum {
@@ -68,6 +68,7 @@ typedef struct train_data {
 	volatile unsigned int	acceleration_alarm;
 	volatile int			acceleration_step;
 	volatile int			acceleration;
+	volatile int	v_to_0;
 	
 	/* route finding */
 	track_node *route[TRACK_MAX];
