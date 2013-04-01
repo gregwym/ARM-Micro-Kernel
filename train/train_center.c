@@ -85,7 +85,7 @@ inline void handleSensorUpdate(char *new_data, char *saved_data, TrainGlobal *tr
 					train_data = train_global->track_reservation[landmark_id];
 					if(recovery_train_data != NULL) {
 						CreateWithArgs(2, locationPostman, recovery_train_data->tid, landmark_id, new_bit, 0);
-						IDEBUG(DB_RESERVE, train_global->com2_tid, ROW_DEBUG_1 + 3, recovery_train_data->index * WIDTH_DEBUG, "#%s => %d  ", train_global->track_nodes[landmark_id].name, train_data->id);
+						IDEBUG(DB_RESERVE, train_global->com2_tid, ROW_DEBUG_1 + 3, recovery_train_data->index * WIDTH_DEBUG, "#%s => %d  ", train_global->track_nodes[landmark_id].name, recovery_train_data->id);
 					} else if(train_data != NULL) {
 						CreateWithArgs(2, locationPostman, train_data->tid, landmark_id, new_bit, 0);
 						IDEBUG(DB_RESERVE, train_global->com2_tid, ROW_DEBUG_1 + 3, train_data->index * WIDTH_DEBUG, "#%s => %d  ", train_global->track_nodes[landmark_id].name, train_data->id);
@@ -201,9 +201,13 @@ track_node *rejectReverse(TrainData *train_data, track_node *current, TrainData 
 	return NULL;
 }
 
-track_node *reserveBothWay(TrainData *train_data, track_node *current, TrainData **reservation) {
-	reservation[current->index] = train_data;
-	reservation[current->reverse->index] = train_data;
+track_node *reserveClear(TrainData *train_data, track_node *current, TrainData **reservation) {
+	if (reservation[current->index] == train_data) {
+		reservation[current->index] = NULL;
+	}
+	if (reservation[current->reverse->index] == train_data) {
+		reservation[current->reverse->index] = NULL;
+	}
 	return NULL;
 }
 
@@ -255,20 +259,20 @@ inline TrainMsgType handleTrackReserve(TrainGlobal *train_global, ReservationMsg
 		config.landmark_id = train_data->reservation_record.landmark_id;
 		config.distance = train_data->reservation_record.distance;
 		config.num_sensor = num_sensor;
-		config.take_branch = 1;
-		config.normal = reserveOneWay + TEXT_REG_BASE;
+		config.take_branch = SWITCH_TOTAL;
+		config.normal = reserveClear + TEXT_REG_BASE;
 		config.recovery = reserveNothing + TEXT_REG_BASE;
-		traverseReservation(train_global, NULL, &config);
+		traverseReservation(train_global, train_data, &config);
 	}
 	// Clear previous recovery reservation
 	if(train_data->recovery_reservation.landmark_id != -1) {
-		config.landmark_id = train_data->reservation_record.landmark_id;
-		config.distance = train_data->reservation_record.distance;
+		config.landmark_id = train_data->recovery_reservation.landmark_id;
+		config.distance = train_data->recovery_reservation.distance;
 		config.num_sensor = num_sensor;
-		config.take_branch = 1;
+		config.take_branch = SWITCH_TOTAL;
 		config.normal = reserveNothing + TEXT_REG_BASE;
-		config.recovery = reserveOneWay + TEXT_REG_BASE;
-		traverseReservation(train_global, NULL, &config);
+		config.recovery = reserveClear + TEXT_REG_BASE;
+		traverseReservation(train_global, train_data, &config);
 		train_data->recovery_reservation.landmark_id = -1;
 	}
 
