@@ -57,6 +57,32 @@ void locationPostman(int tid, int landmark_id, int value) {
 	Send(tid, (char *)(&msg), sizeof(LocationMsg), NULL, 0);
 }
 
+int isContinuousSensor(track_node *src, track_node *dest, int count) {
+	// If found
+	if(src == dest) {
+		return TRUE;
+	}
+	
+	count--;
+
+	switch(src->type) {
+		case NODE_SENSOR:
+			if (count < 0) {
+				return FALSE;
+			}
+		case NODE_ENTER:
+		case NODE_MERGE:
+			return isContinuousSensor(src->edge[DIR_AHEAD].dest, dest, count);
+		case NODE_BRANCH:
+			return isContinuousSensor(src->edge[DIR_STRAIGHT].dest, dest, count) || 
+				   isContinuousSensor(src->edge[DIR_CURVED].dest, dest, count);
+		default:
+			break;
+	}
+
+	return FALSE;
+}
+
 /* Infomation Handlers */
 inline void handleSensorUpdate(char *new_data, char *saved_data, TrainGlobal *train_global) {
 	int i, j, landmark_id;
@@ -90,7 +116,12 @@ inline void handleSensorUpdate(char *new_data, char *saved_data, TrainGlobal *tr
 						CreateWithArgs(2, locationPostman, train_data->tid, landmark_id, new_bit, 0);
 						IDEBUG(DB_RESERVE, train_global->com2_tid, ROW_DEBUG_1 + 3, train_data->index * WIDTH_DEBUG, "#%s => %d  ", train_global->track_nodes[landmark_id].name, train_data->id);
 					} else {
-						IDEBUG(DB_RESERVE, train_global->com2_tid, ROW_DEBUG_1 + 4, 0, "#%s => ?\t", train_global->track_nodes[landmark_id].name);
+						track_node *current_sensor = &(train_global->track_nodes[landmark_id]);
+						IDEBUG(DB_RESERVE, train_global->com2_tid, ROW_DEBUG_1 + 4, 0, "#%s => ?\t%s", current_sensor->name, train_global->last_lost_sensor == NULL ? "" : train_global->last_lost_sensor->name);
+						if(train_global->last_lost_sensor != NULL && isContinuousSensor(train_global->last_lost_sensor, current_sensor, 1)) {
+							assert(0, "Train is lost");
+						}
+						train_global->last_lost_sensor = current_sensor;
 					}
 				}
 				old_byte = old_byte >> 1;
