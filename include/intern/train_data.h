@@ -99,6 +99,7 @@ typedef struct train_data {
 	track_node * volatile landmark;
 	track_node * volatile predict_dest;
 	track_node * volatile last_receive_sensor;
+	track_node * volatile sensor_for_reserve;
 	volatile int	predict_sensor_num;
 	volatile int	forward_distance;
 	volatile int	ahead_lm;

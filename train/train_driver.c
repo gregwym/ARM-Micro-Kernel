@@ -160,10 +160,6 @@ StopType exitCheck(TrainGlobal *train_global, TrainData *train_data, int stop_di
 	int direction = 0;
 	
 	track_node *checked_node = train_data->landmark;
-	if (train_data->stop_type != None) {
-		IDEBUG(DB_ROUTE, 4, 55, 2 + train_data->index * 40, "stoptype: %d " , train_data->stop_type);
-		assert(train_data->stop_type == None, "stop type is not None in exitCheck");
-	}
 	
 	while (distance < (stop_distance + train_data->ahead_lm)) {
 		switch(checked_node->type) {
@@ -485,7 +481,7 @@ int find_reverse_node(TrainData *train_data, TrainGlobal *train_global, int chec
 }
 
 void reserveInRecovery(TrainGlobal *train_global, TrainData *train_data) {
-	bwprintf(COM2, "Recovery %d + %dmm\n", train_data->landmark->index, (find_stop_dist(train_data) + train_data->ahead_lm) >> DIST_SHIFT);
+	// bwprintf(COM2, "Recovery %d + %dmm\n", train_data->landmark->index, (find_stop_dist(train_data) + train_data->ahead_lm) >> DIST_SHIFT);
 	IDEBUG(DB_RESERVE, 4, ROW_DEBUG_1 + 7, 40 * train_data->index + 2, "Recovery %d + %dmm", train_data->last_receive_sensor->reverse->index, (find_stop_dist(train_data)) >> DIST_SHIFT);
 	CreateWithArgs(RESERVER_PRIORITY, trackReserver, (int)train_global,
 				   (int)train_data, train_data->last_receive_sensor->reverse->index,
@@ -496,18 +492,18 @@ void reserveInRecovery(TrainGlobal *train_global, TrainData *train_data) {
 }
 
 void reserveInRunning(TrainGlobal *train_global, TrainData *train_data) {
-	bwprintf(COM2, "Running %d + %dmm\n", train_data->landmark->index, (find_stop_dist(train_data) + train_data->ahead_lm) >> DIST_SHIFT);
-	track_node * last_receive_sensor = train_data->last_receive_sensor;
+	// bwprintf(COM2, "Running %d + %dmm\n", train_data->landmark->index, (find_stop_dist(train_data) + train_data->ahead_lm) >> DIST_SHIFT);
+	track_node * sensor_for_reserve = train_data->sensor_for_reserve;
 	if (train_data->action != RB_last_ss) {
 		int last_sensor_dist = -1;
-		if(last_receive_sensor != NULL) {
-			last_sensor_dist = calcDistance(last_receive_sensor, train_data->landmark, 12);
+		if(sensor_for_reserve != NULL) {
+			last_sensor_dist = calcDistance(sensor_for_reserve, train_data->landmark, 12);
 		}
 		int reserve_start = train_data->landmark->index;
 		int reserve_dist = (find_stop_dist(train_data) + train_data->ahead_lm) >> DIST_SHIFT;
 
 		if(last_sensor_dist > 0) {
-			reserve_start = last_receive_sensor->index;
+			reserve_start = sensor_for_reserve->index;
 			reserve_dist += last_sensor_dist;
 		}
 		
@@ -520,16 +516,16 @@ void reserveInRunning(TrainGlobal *train_global, TrainData *train_data) {
 	// train_data->dist_since_last_rs = 0;
 }
 
-void reserveInReversing(TrainGlobal *train_global, TrainData *train_data) {
-	bwprintf(COM2, "Reverse %d + %dmm\n", train_data->landmark->index, (find_stop_dist(train_data) + train_data->ahead_lm) >> DIST_SHIFT);
-	IDEBUG(DB_RESERVE, 4, ROW_DEBUG_1 + 7, 40 * train_data->index + 2, "Reverse %d + %dmm", train_data->landmark->index, (find_stop_dist(train_data) + train_data->ahead_lm) >> DIST_SHIFT);
-	CreateWithArgs(RESERVER_PRIORITY, trackReserver, (int)train_global,
-				   (int)train_data, train_data->landmark->index,
-				   (find_stop_dist(train_data) + train_data->ahead_lm) >> DIST_SHIFT);
-	train_data->waiting_for_reserver = TRUE;
-	train_data->last_reservation_time = train_data->timer;
+// void reserveInReversing(TrainGlobal *train_global, TrainData *train_data) {
+	// bwprintf(COM2, "Reverse %d + %dmm\n", train_data->landmark->index, (find_stop_dist(train_data) + train_data->ahead_lm) >> DIST_SHIFT);
+	// IDEBUG(DB_RESERVE, 4, ROW_DEBUG_1 + 7, 40 * train_data->index + 2, "Reverse %d + %dmm", train_data->landmark->index, (find_stop_dist(train_data) + train_data->ahead_lm) >> DIST_SHIFT);
+	// CreateWithArgs(RESERVER_PRIORITY, trackReserver, (int)train_global,
+				   // (int)train_data, train_data->landmark->index,
+				   // (find_stop_dist(train_data) + train_data->ahead_lm) >> DIST_SHIFT);
+	// train_data->waiting_for_reserver = TRUE;
+	// train_data->last_reservation_time = train_data->timer;
 	// train_data->dist_since_last_rs = 0;
-}
+// }
 
 // return route start
 int findRoute(track_node *track_nodes, TrainData *train_data, track_node *dest, track_node **route, int *need_reverse) {
@@ -599,7 +595,8 @@ int updateCheckPoint(TrainData *train_data, track_node **route, int check_point,
 void reverseTrainAndLandmark(TrainGlobal *train_global, TrainData *train_data, char *switch_table) {
 	int train_index = train_data->index;
 	int direction;
-
+	
+	train_data->sensor_for_reserve = NULL;
 	setTrainSpeed(train_data->id, TRAIN_REVERSE, train_global->com1_tid);
 
 	if (train_data->direction == FORWARD) {
@@ -770,7 +767,7 @@ void updateReservation(TrainGlobal *train_global, TrainData *train_data) {
 					reserveInRecovery(train_global, train_data);
 				} else {
 					// reserveInRunning(train_global, train_data);
-					reserveInReversing(train_global, train_data);
+					reserveInRunning(train_global, train_data);
 				}
 			}
 		}
@@ -809,6 +806,7 @@ void changeState(TrainGlobal *train_global, TrainData *train_data, int v_to_0) {
 	int tmp_dist;
 	int result;
 	if (v_to_0) {
+		uiprintf(train_global->com2_tid, ROW_TRAIN + train_data->index * HEIGHT_TRAIN + ROW_NEXT, COLUMN_DATA_3, "%d ", train_data->stop_type);
 		switch(train_data->stop_type) {
 			case Entering_Exit:
 				if (train_data->stop_node != NULL) {
@@ -973,6 +971,7 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 				         COLUMN_DATA_1, "%d  sp: %d ", train_data->velocity, train_data->speed);
 				uiprintf(com2_tid, ROW_TRAIN + train_index * HEIGHT_TRAIN + ROW_CURRENT, COLUMN_DATA_2, "%d  ", train_data->ahead_lm >> DIST_SHIFT);
 				uiprintf(com2_tid, ROW_TRAIN + train_index * HEIGHT_TRAIN + ROW_NEXT, COLUMN_DATA_2, "%d  ", (train_data->forward_distance - train_data->ahead_lm) >> DIST_SHIFT);
+				uiprintf(com2_tid, ROW_TRAIN + train_index * HEIGHT_TRAIN + ROW_CURRENT, COLUMN_DATA_3, "%d ", train_data->action);
 			}
 			continue;
 		}
@@ -1002,6 +1001,7 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 				}
 				
 				train_data->last_receive_sensor = &(track_nodes[msg.location_msg.id]);
+				train_data->sensor_for_reserve = &(track_nodes[msg.location_msg.id]);
 				train_data->predict_sensor_num = 0;
 				need_recalculate = FALSE;
 				

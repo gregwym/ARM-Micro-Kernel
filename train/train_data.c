@@ -75,6 +75,7 @@ void init_train37(TrainData *train) {
 	train->dist_since_last_rs = 0;
 	train->reverse_delay = 10;
 	train->last_receive_sensor = NULL;
+	train->sensor_for_reserve = NULL;
 	train->predict_sensor_num = 0;
 	train->waiting_for_reserver = FALSE;
 	train->is_lost = FALSE;
@@ -155,6 +156,7 @@ void init_train49(TrainData *train) {
 	
 	train->dist_since_last_rs = 0;
 	train->last_receive_sensor = NULL;
+	train->sensor_for_reserve = NULL;
 	train->predict_sensor_num = 0;
 	train->waiting_for_reserver = FALSE;
 	train->last_reservation_time = 0xffffffff;
