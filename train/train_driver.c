@@ -32,6 +32,23 @@ track_node *predictNextSensor(TrainGlobal *train_global, TrainData *train_data) 
 	}
 }
 
+track_node *findNextNode(TrainGlobal *train_global, TrainData *train_data) {
+	int direction;
+	switch(train_data->landmark->type) {
+		case NODE_ENTER:
+		case NODE_MERGE:
+		case NODE_SENSOR:
+			return train_data->landmark->edge[DIR_AHEAD].dest;
+		case NODE_BRANCH:
+			direction = train_global->switch_table[switchIdToIndex(train_data->landmark->num)] - 33;
+			return train_data->landmark->edge[direction].dest;
+		case NODE_EXIT:
+			return train_data->landmark;
+		default:
+			return NULL;
+	}
+}
+
 void trackReserver(TrainGlobal *train_global, TrainData *train_data, int landmark_id, int distance) {
 	int center_tid = train_global->center_tid;
 	int result, driver_tid;
@@ -618,10 +635,11 @@ void reverseTrainAndLandmark(TrainGlobal *train_global, TrainData *train_data, c
 		train_data->direction = FORWARD;
 	}
 	if (train_data->landmark->type != NODE_EXIT) {
-		train_data->landmark = train_data->predict_dest->reverse;
+		track_node *tmp = findNextNode(train_global, train_data);
+		train_data->landmark = tmp->reverse;
+		// train_data->forward_distance = (getNextNodeDist(train_data->landmark, switch_table, &direction) << DIST_SHIFT);
+		train_data->predict_dest = findNextNode(train_global, train_data);
 		train_data->ahead_lm = train_data->forward_distance - train_data->ahead_lm;
-		train_data->forward_distance = (getNextNodeDist(train_data->landmark, switch_table, &direction) << DIST_SHIFT);
-		train_data->predict_dest = train_data->landmark->edge[direction].dest;
 	} else {
 		train_data->landmark = train_data->landmark->reverse;
 		train_data->forward_distance = (getNextNodeDist(train_data->landmark, switch_table, &direction) << DIST_SHIFT);
