@@ -33,7 +33,8 @@ typedef enum {
 	Stopped,
 	Reversing,
 	RB_go,
-	RB_slowing
+	RB_slowing,
+	RB_changing_to_lost
 } StopType;
 
 // typedef enum {

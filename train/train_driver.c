@@ -782,7 +782,7 @@ void updateTrainStatus(TrainGlobal *train_global, TrainData *train_data, int *v_
 }
 
 void updateReservation(TrainGlobal *train_global, TrainData *train_data) {
-	if (train_data->last_reservation_time - train_data->timer > 900) {
+	if (train_data->last_reservation_time - train_data->timer > 400) {
 		if (train_data->waiting_for_reserver) {
 			changeSpeed(train_global, train_data, 0);
 			train_data->acceleration = train_data->deceleration;
@@ -916,16 +916,8 @@ void changeState(TrainGlobal *train_global, TrainData *train_data, int v_to_0) {
 				break;
 			
 			case RB_slowing:
-				reverseTrainAndLandmark(train_global, train_data, train_global->switch_table);
-				result = gotoNode(train_data->landmark, train_data->last_receive_sensor->reverse, train_global, 8);
-				if (!result) {
-					IDEBUG(DB_ROUTE, 4, 57, 40 * train_data->index + 2, "%s -> %s ", train_data->landmark->name, train_data->last_receive_sensor->reverse->name);
-				}
-				uiprintf(train_global->com2_tid, ROW_TRAIN + train_data->index * HEIGHT_TRAIN + ROW_CURRENT + 2, COLUMN_DATA_3, "%s->%s  ", train_data->landmark->name, train_data->last_receive_sensor->reverse->name);
-				
-				train_data->action = RB_last_ss;
-				train_data->stop_type = RB_go;
-				// reserveInRecovery(train_global, train_data);
+				// Wait for last reservation result, then enter recovery mode
+				train_data->stop_type = RB_changing_to_lost;
 				break;
 				
 			case RB_go:
@@ -1131,7 +1123,14 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 			case TRACK_RESERVE_FAIL:
 				Reply(tid, NULL, 0);
 				train_data->waiting_for_reserver = FALSE;
-				if (train_data->stop_type != RB_go) {
+				if (train_data->stop_type == RB_changing_to_lost) {
+					reverseTrainAndLandmark(train_global, train_data, train_global->switch_table);
+					result = gotoNode(train_data->landmark, train_data->last_receive_sensor->reverse, train_global, 8);
+					uiprintf(train_global->com2_tid, ROW_TRAIN + train_data->index * HEIGHT_TRAIN + ROW_CURRENT + 2, COLUMN_DATA_3, "%s->%s  ", train_data->landmark->name, train_data->last_receive_sensor->reverse->name);
+					train_data->stop_type = RB_go;
+					train_data->action = RB_last_ss;
+				}
+				else if (train_data->stop_type != RB_go) {
 					// assert(prev_reserve_dict == train_data->direction, "bidirectional reservation FAILURE!");
 					prev_reserve_dict = train_data->direction;
 					train_data->stop_type = RB_slowing;
@@ -1143,7 +1142,7 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 			case TRACK_RESERVE_SUCCEED:
 				Reply(tid, NULL, 0);
 				train_data->waiting_for_reserver = FALSE;
-				if (train_data->stop_type == RB_go || train_data->stop_type == RB_slowing) {
+				if (train_data->stop_type == RB_go || train_data->stop_type == RB_slowing || train_data->stop_type == RB_changing_to_lost) {
 					changeSpeed(train_global, train_data, train_data->old_speed);
 					train_data->stop_type = None;
 					// reserveInRunning(train_global, train_data);
