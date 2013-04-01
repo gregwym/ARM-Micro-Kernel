@@ -88,6 +88,9 @@ void init_train37(TrainData *train) {
 	train->reservation_record.distance = 0;
 	train->recovery_reservation.landmark_id = -1;
 	train->recovery_reservation.distance = 0;
+	
+	train->reverse_protect = FALSE;
+	train->untrust_sensor = NULL;
 }
 
 void init_train49(TrainData *train) {
@@ -177,4 +180,7 @@ void init_train49(TrainData *train) {
 	train->reservation_record.distance = 0;
 	train->recovery_reservation.landmark_id = -1;
 	train->recovery_reservation.distance = 0;
+	
+	train->reverse_protect = FALSE;
+	train->untrust_sensor = NULL;
 }

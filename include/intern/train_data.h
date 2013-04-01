@@ -111,6 +111,9 @@ typedef struct train_data {
 	volatile int			waiting_for_reserver;
 	Reservation				reservation_record;
 	Reservation				recovery_reservation;
+	
+	int				reverse_protect;
+	track_node *	untrust_sensor;
 } TrainData;
 
 void init_train37(TrainData *train);

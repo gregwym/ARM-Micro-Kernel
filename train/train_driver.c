@@ -8,26 +8,29 @@
 #define RESERVE_CHECKPOINT_LEN 50
 #define RESERVER_PRIORITY 7
 
-void trainReverser(int train_id, int new_speed, int com1_tid, int delay_time) {
-	char cmd[2];
-	cmd[0] = 0;
-	cmd[1] = train_id;
-	if (delay_time != 0) {
-		Puts(com1_tid, cmd, 2);
-
-		// Delay 2s then turn off the solenoid
-		Delay(delay_time / 20);
+track_node *predictNextSensor(TrainGlobal *train_global, TrainData *train_data) {
+	int direction;
+	track_node *checked_node = train_data->last_receive_sensor;
+	checked_node = checked_node->edge[DIR_AHEAD].dest;
+	while (1) {
+		switch(checked_node->type) {
+			case NODE_ENTER:
+			case NODE_MERGE:
+				checked_node = checked_node->edge[DIR_AHEAD].dest;
+				break;
+			case NODE_BRANCH:
+				direction = train_global->switch_table[switchIdToIndex(checked_node->num)] - 33;
+				checked_node = checked_node->edge[direction].dest;
+				break;
+			case NODE_SENSOR:
+				return checked_node;
+			case NODE_EXIT:
+				return train_data->last_receive_sensor;
+			default:
+				return NULL;
+		}
 	}
-
-	// Reverse
-	cmd[0] = TRAIN_REVERSE;
-	Puts(com1_tid, cmd, 2);
-
-	// Re-accelerate
-	cmd[0] = new_speed;
-	Puts(com1_tid, cmd, 2);
 }
-
 
 void trackReserver(TrainGlobal *train_global, TrainData *train_data, int landmark_id, int distance) {
 	int center_tid = train_global->center_tid;
@@ -344,22 +347,25 @@ int dijkstra(track_node *track_nodes, track_node *src,
 	return i;
 }
 
-void changeNextSW(track_node **route, int check_point, char *switch_table, int com1_tid, int com2_tid, int threshold) {
+void changeNextSW(TrainData *train_data, int check_point, char *switch_table, int com1_tid, int com2_tid, int threshold) {
 	// char cmd[2];
 	int distance = 0;
 	// check_point += 1;
+	track_node **route = train_data->route;
 	for (; check_point >= 0 && check_point < TRACK_MAX && distance < 1050; check_point++) {
 		if (route[check_point]->type == NODE_BRANCH && check_point + 1 < TRACK_MAX) {
 			if (route[check_point + 1] == route[check_point]->edge[DIR_STRAIGHT].dest) {
 				if (switch_table[switchIdToIndex(route[check_point]->num)] != SWITCH_STR) {
 					switch_table[switchIdToIndex(route[check_point]->num)] = SWITCH_STR;
 					CreateWithArgs(2, switchChanger, route[check_point]->num, SWITCH_STR, com1_tid, com2_tid);
+					IDEBUG(DB_ROUTE, com2_tid, 49, 2 + train_data->index * 40, "%d change %d  ", train_data->id, route[check_point]->num);
 				}
 				distance += (route[check_point]->edge)[DIR_STRAIGHT].dist;
 			} else if (route[check_point + 1] == route[check_point]->edge[DIR_CURVED].dest) {
 				if (switch_table[switchIdToIndex(route[check_point]->num)] != SWITCH_CUR) {
 					switch_table[switchIdToIndex(route[check_point]->num)] = SWITCH_CUR;
 					CreateWithArgs(2, switchChanger, route[check_point]->num, SWITCH_CUR, com1_tid, com2_tid);
+					IDEBUG(DB_ROUTE, com2_tid, 49, 2 + train_data->index * 40, "%d change %d  ", train_data->id, route[check_point]->num);
 				}
 				distance += route[check_point]->edge[DIR_CURVED].dist;
 			} else {
@@ -371,12 +377,14 @@ void changeNextSW(track_node **route, int check_point, char *switch_table, int c
 					if (switch_table[switchIdToIndex(route[check_point]->num)] != SWITCH_STR) {
 						switch_table[switchIdToIndex(route[check_point]->num)] = SWITCH_STR;
 						CreateWithArgs(2, switchChanger, route[check_point]->num, SWITCH_STR, com1_tid, com2_tid);
+						IDEBUG(DB_ROUTE, com2_tid, 49, 2 + train_data->index * 40, "%d change %d  ", train_data->id, route[check_point]->num);
 					}
 					distance += (route[check_point]->reverse->edge)[DIR_STRAIGHT].dist;
 				} else if (route[check_point]->reverse->edge[DIR_CURVED].dest == route[check_point + 1]) {
 					if (switch_table[switchIdToIndex(route[check_point]->num)] != SWITCH_CUR) {
 						switch_table[switchIdToIndex(route[check_point]->num)] = SWITCH_CUR;
 						CreateWithArgs(2, switchChanger, route[check_point]->num, SWITCH_CUR, com1_tid, com2_tid);
+						IDEBUG(DB_ROUTE, com2_tid, 49, 2 + train_data->index * 40, "%d change %d  ", train_data->id, route[check_point]->num);
 					}
 					distance += (route[check_point]->reverse->edge)[DIR_CURVED].dist;
 				} else {
@@ -387,11 +395,14 @@ void changeNextSW(track_node **route, int check_point, char *switch_table, int c
 						if (switch_table[switchIdToIndex(route[check_point]->edge[DIR_AHEAD].dest->num)] != SWITCH_STR) {
 							switch_table[switchIdToIndex(route[check_point]->edge[DIR_AHEAD].dest->num)] = SWITCH_STR;
 							CreateWithArgs(2, switchChanger, route[check_point]->edge[DIR_AHEAD].dest->num, SWITCH_STR, com1_tid, com2_tid);
+							IDEBUG(DB_ROUTE, com2_tid, 49, 2 + train_data->index * 40, "%d change %d  ", train_data->id, route[check_point]->num);
 						}
 					} else {
 						if (switch_table[switchIdToIndex(route[check_point]->edge[DIR_AHEAD].dest->num)] != SWITCH_CUR) {
 							switch_table[switchIdToIndex(route[check_point]->edge[DIR_AHEAD].dest->num)] = SWITCH_CUR;
 							CreateWithArgs(2, switchChanger, route[check_point]->edge[DIR_AHEAD].dest->num, SWITCH_CUR, com1_tid, com2_tid);
+							
+							IDEBUG(DB_ROUTE, com2_tid, 49, 2 + train_data->index * 40, "%d change %d  ", train_data->id, route[check_point]->num);
 						}
 					}
 				}
@@ -598,6 +609,8 @@ void reverseTrainAndLandmark(TrainGlobal *train_global, TrainData *train_data, c
 	
 	train_data->sensor_for_reserve = NULL;
 	setTrainSpeed(train_data->id, TRAIN_REVERSE, train_global->com1_tid);
+	train_data->reverse_protect = TRUE;
+	train_data->untrust_sensor = predictNextSensor(train_global, train_data);
 
 	if (train_data->direction == FORWARD) {
 		train_data->direction = BACKWARD;
@@ -729,7 +742,7 @@ void updateTrainStatus(TrainGlobal *train_global, TrainData *train_data, int *v_
 			if (tmp != -1) {
 				train_data->check_point = tmp;
 				if (train_data->landmark->type == NODE_SENSOR) {
-					changeNextSW(train_data->route, train_data->check_point, train_global->switch_table, train_global->com1_tid, train_global->com2_tid, find_stop_dist(train_data) >> DIST_SHIFT);
+					changeNextSW(train_data, train_data->check_point, train_global->switch_table, train_global->com1_tid, train_global->com2_tid, find_stop_dist(train_data) >> DIST_SHIFT);
 				}
 			// assert(check_point != -1, "check_point is -1");
 			} else {
@@ -751,7 +764,7 @@ void updateTrainStatus(TrainGlobal *train_global, TrainData *train_data, int *v_
 }
 
 void updateReservation(TrainGlobal *train_global, TrainData *train_data) {
-	if (train_data->last_reservation_time - train_data->timer > 2000) {
+	if (train_data->last_reservation_time - train_data->timer > 900) {
 		if (train_data->waiting_for_reserver) {
 			changeSpeed(train_global, train_data, 0);
 			train_data->acceleration = train_data->deceleration;
@@ -890,6 +903,7 @@ void changeState(TrainGlobal *train_global, TrainData *train_data, int v_to_0) {
 				if (!result) {
 					IDEBUG(DB_ROUTE, 4, 57, 40 * train_data->index + 2, "%s -> %s ", train_data->landmark->name, train_data->last_receive_sensor->reverse->name);
 				}
+				uiprintf(train_global->com2_tid, ROW_TRAIN + train_data->index * HEIGHT_TRAIN + ROW_CURRENT + 2, COLUMN_DATA_3, "%s->%s  ", train_data->landmark->name, train_data->last_receive_sensor->reverse->name);
 				
 				train_data->action = RB_last_ss;
 				train_data->stop_type = RB_go;
@@ -992,7 +1006,19 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 
 			case LOCATION_CHANGE:
 				Reply(tid, NULL, 0);
+				if (train_data->reverse_protect) {
+					if (train_data->untrust_sensor == &(track_nodes[msg.location_msg.id])) {
+						train_data->untrust_sensor = NULL;
+						train_data->reverse_protect = FALSE;
+						continue;
+					} else {
+						train_data->untrust_sensor = NULL;
+						train_data->reverse_protect = FALSE;
+					}
+				}
+				
 				if (train_data->action == RB_last_ss) {
+					uiprintf(train_global->com2_tid, ROW_TRAIN + train_data->index * HEIGHT_TRAIN + ROW_CURRENT + 3, COLUMN_DATA_3, "%s  ", track_nodes[msg.location_msg.id].name);
 					if (train_data->stop_node != NULL) {
 						train_data->action = Off_Route;
 					} else {
@@ -1013,7 +1039,7 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 					if (train_data->check_point == -1) {
 						need_recalculate = TRUE;
 					} else {
-						changeNextSW(train_data->route, train_data->check_point, train_global->switch_table, com1_tid, com2_tid, find_stop_dist(train_data) >> DIST_SHIFT);
+						changeNextSW(train_data, train_data->check_point, train_global->switch_table, com1_tid, com2_tid, find_stop_dist(train_data) >> DIST_SHIFT);
 					}
 				}
 				
@@ -1037,7 +1063,7 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 						} else {
 							train_data->action = Goto_Dest;
 						}
-						changeNextSW(train_data->route, train_data->check_point, train_global->switch_table, com1_tid, com2_tid, find_stop_dist(train_data) >> DIST_SHIFT);
+						changeNextSW(train_data, train_data->check_point, train_global->switch_table, com1_tid, com2_tid, find_stop_dist(train_data) >> DIST_SHIFT);
 					}
 				}
 
@@ -1072,7 +1098,7 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 						train_data->action = Goto_Dest;
 					}
 
-					changeNextSW(train_data->route, train_data->check_point, train_global->switch_table, com1_tid, com2_tid, find_stop_dist(train_data) >> DIST_SHIFT);
+					changeNextSW(train_data, train_data->check_point, train_global->switch_table, com1_tid, com2_tid, find_stop_dist(train_data) >> DIST_SHIFT);
 					// if (check_point != -1) {
 						// sprintf(str_buf, "branch change: %s\n", route[check_point]->name);
 						// Puts(com2_tid, str_buf, 0);
