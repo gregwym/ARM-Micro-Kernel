@@ -109,7 +109,9 @@ void trainBootstrap() {
 	Create(8, trainclockserver);
 	tid = CreateWithArgs(8, trainCenter, (int)(&train_global), 0, 0, 0);
 	train_global.center_tid = tid;
-
+	tid = CreateWithArgs(8, routeServer, (int)(&train_global), 0, 0, 0);
+	train_global.route_server_tid = tid;
+	
 	Receive(&tid, NULL, 0);
 
 	assert(0, "Train Bootstrap exit");

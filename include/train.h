@@ -30,6 +30,7 @@ typedef struct train_global {
 	int com1_tid;
 	int com2_tid;
 	int center_tid;
+	int route_server_tid;
 	track_node	*track_nodes;
 	char		*switch_table;
 	TrainData	*trains_data;
@@ -53,6 +54,11 @@ typedef enum train_msg_type {
 	TRACK_RECOVERY_RESERVE,
 	TRACK_RESERVE_FAIL,
 	TRACK_RESERVE_SUCCEED,
+	FIND_ROUTE,
+	CLEAR_ROUTE,
+	GOTO_DEST,
+	GOTO_MERGE,
+	NEED_REVERSE,
 	TRAIN_MSG_MAX,
 } TrainMsgType;
 
@@ -85,8 +91,15 @@ typedef union train_msg {
 	ReservationMsg	reservation_msg;
 } TrainMsg;
 
+typedef struct {
+	TrainMsgType	type;
+	TrainData		*train_data;
+	track_node		*destination;
+} RouteMsg;
+
 void trainBootstrap();
 void trainCenter(TrainGlobal *train_global);
+void routeServer(TrainGlobal *train_global);
 void trainCmdNotifier();
 void trainSensorNotifier();
 void trainclockserver();
@@ -94,5 +107,6 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data);
 int switchIdToIndex(int id);
 void switchChanger();
 void changeSwitch(int switch_id, int direction, int com1_tid);
+int find_stop_dist(TrainData *train_data);
 
 #endif // __TRAIN_H__

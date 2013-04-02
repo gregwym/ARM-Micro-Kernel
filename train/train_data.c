@@ -46,11 +46,12 @@ void init_train37(TrainData *train) {
 	train->direction = FORWARD;
 	train->landmark = NULL;
 	train->ahead_lm = 0;
-	train->accelerations[0] = 3;
-	train->accelerations[1] = 8;
-	train->accelerations[2] = 16;
-	train->accelerations[3] = 13;
-	train->accelerations[4] = 7;
+	train->accelerations[0] = 0;
+	train->accelerations[1] = 4;
+	train->accelerations[2] = 7;
+	train->accelerations[3] = 20;
+	train->accelerations[4] = 15;
+	train->accelerations[5] = 10;
 	train->deceleration = -14;
 	train->acceleration_time = 1600;
 	train->acceleration = 0;
@@ -73,7 +74,7 @@ void init_train37(TrainData *train) {
 	train->last_reservation_time = 0xffffffff;
 	
 	train->dist_since_last_rs = 0;
-	train->reverse_delay = 10;
+	train->reverse_delay = FALSE;
 	train->last_receive_sensor = NULL;
 	train->sensor_for_reserve = NULL;
 	train->predict_sensor_num = 0;
@@ -141,13 +142,14 @@ void init_train49(TrainData *train) {
 	train->direction = FORWARD;
 	train->landmark = NULL;
 	train->ahead_lm = 0;
-	train->accelerations[0] = 2;
-	train->accelerations[1] = 4;
-	train->accelerations[2] = 7;
-	train->accelerations[3] = 12;
-	train->accelerations[4] = 24;
+	train->accelerations[0] = 0;
+	train->accelerations[1] = 2;
+	train->accelerations[2] = 4;
+	train->accelerations[3] = 7;
+	train->accelerations[4] = 12;
+	train->accelerations[5] = 24;
 	train->deceleration = -15;
-	train->reverse_delay = 10;
+	train->reverse_delay = FALSE;
 	train->acceleration_time = 1400;
 	train->acceleration = 0;
 	train->acceleration_step = -1;

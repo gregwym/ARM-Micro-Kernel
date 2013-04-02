@@ -35,6 +35,7 @@ typedef enum {
 	Pending_Reverse,
 	RB_go,
 	RB_slowing,
+	Finding_Route
 } StopType;
 
 // typedef enum {
@@ -55,11 +56,10 @@ typedef struct train_data {
 	int			id;
 	int			stop_dist[TRAIN_SPEED_MAX];
 	int			velocities[TRAIN_SPEED_MAX];
-	int			accelerations[5];
+	int			accelerations[6];
 	int			acceleration_time;
 	int			ht_length[2];
 	int			deceleration;
-	int			reverse_delay;
 	
 	/* speed and acceleration */
 	volatile int	speed;
@@ -69,6 +69,7 @@ typedef struct train_data {
 	volatile int			acceleration_step;
 	volatile int			acceleration;
 	volatile int	v_to_0;
+	volatile int	reverse_delay;
 	
 	/* route finding */
 	track_node *route[TRACK_MAX];
