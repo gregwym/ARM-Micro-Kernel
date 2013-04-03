@@ -26,20 +26,21 @@ inline void changeSwitch(int switch_id, int direction, int com1_tid) {
 }
 
 /* Workers */
-void switchChanger(int switch_id, int direction, int com1_tid, int com2_tid) {
+void switchChanger(TrainGlobal *train_global, int switch_id, int direction) {
 	char state = (direction == 33 ? 'S' : 'C');
-
+	
 	int index = switch_id > SWITCH_NAMING_MAX ? switch_id - SWITCH_NAMING_MID_BASE + SWITCH_NAMING_MAX : switch_id - SWITCH_NAMING_BASE;
 	int ui_row = index % HEIGHT_SWITCH_TABLE + ROW_SWITCH_TABLE;
 	int ui_column = (index / HEIGHT_SWITCH_TABLE) * COLUMN_WIDTH * 2 + COLUMN_VALUES + COLUMN_WIDTH;
+	train_global->switch_table[index] = direction;
 
-	uiprintf(com2_tid, ui_row, ui_column, "%c", state);
-	changeSwitch(switch_id, direction, com1_tid);
+	uiprintf(train_global->com2_tid, ui_row, ui_column, "%c", state);
+	changeSwitch(switch_id, direction, train_global->com1_tid);
 
 	// Delay 400ms then turn off the solenoid
 	Delay(SWITCH_DELAY);
 
-	Putc(com1_tid, SWITCH_OFF);
+	Putc(train_global->com1_tid, SWITCH_OFF);
 }
 
 void cmdPostman(int tid, TrainMsgType type, int value) {
@@ -58,17 +59,11 @@ void locationPostman(int tid, int landmark_id, int value) {
 }
 
 int isContinuousSensor(track_node *src, track_node *dest, int count) {
-	// If found
-	if(src == dest) {
-		return TRUE;
-	}
-	
 	count--;
-
 	switch(src->type) {
 		case NODE_SENSOR:
 			if (count < 0) {
-				return FALSE;
+				return src == dest;
 			}
 		case NODE_ENTER:
 		case NODE_MERGE:
@@ -105,7 +100,7 @@ inline void handleSensorUpdate(char *new_data, char *saved_data, TrainGlobal *tr
 				new_bit = new_byte & SENSOR_BIT_MASK;
 
 				// If the bit changed
-				if(old_bit != new_bit && new_bit) {
+				if(old_bit != new_bit && (!new_bit)) {
 					landmark_id = sensorIdToLandmark(i, j);
 					recovery_train_data = train_global->recovery_reservation[landmark_id];
 					train_data = train_global->track_reservation[landmark_id];
@@ -236,9 +231,9 @@ track_node *reserveClear(TrainData *train_data, track_node *current, TrainData *
 	if (reservation[current->index] == train_data) {
 		reservation[current->index] = NULL;
 	}
-	if (reservation[current->reverse->index] == train_data) {
-		reservation[current->reverse->index] = NULL;
-	}
+	// if (reservation[current->reverse->index] == train_data) {
+		// reservation[current->reverse->index] = NULL;
+	// }
 	return NULL;
 }
 
