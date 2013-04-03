@@ -147,16 +147,14 @@ int gotoNode(track_node *src, track_node *dest, TrainGlobal *train_global, int d
 			straight = gotoNode(src->edge[DIR_STRAIGHT].dest, dest, train_global, depth - 1);
 			if (straight) {
 				if (train_global->switch_table[switchIdToIndex(src->num)] != SWITCH_STR) {
-					train_global->switch_table[switchIdToIndex(src->num)] = SWITCH_STR;
-					CreateWithArgs(2, switchChanger, src->num, SWITCH_STR, train_global->com1_tid, train_global->com2_tid);
+					CreateWithArgs(2, switchChanger, (int)train_global, src->num, SWITCH_STR, 0);
 				}
 				return straight;
 			}
 			curved = gotoNode(src->edge[DIR_CURVED].dest, dest, train_global, depth - 1);
 			if (curved) {
 				if (train_global->switch_table[switchIdToIndex(src->num)] != SWITCH_CUR) {
-					train_global->switch_table[switchIdToIndex(src->num)] = SWITCH_CUR;
-					CreateWithArgs(2, switchChanger, src->num, SWITCH_CUR, train_global->com1_tid, train_global->com2_tid);
+					CreateWithArgs(2, switchChanger, (int)train_global, src->num, SWITCH_CUR, 0);
 				}
 				return curved;
 			}
@@ -262,7 +260,7 @@ void trainSecretary() {
 	}
 }
 
-void changeNextSW(TrainData *train_data, int check_point, char *switch_table, int com1_tid, int com2_tid, int threshold) {
+void changeNextSW(TrainGlobal *train_global, TrainData *train_data, int check_point, char *switch_table, int threshold) {
 	// char cmd[2];
 	int distance = 0;
 	// check_point += 1;
@@ -271,16 +269,14 @@ void changeNextSW(TrainData *train_data, int check_point, char *switch_table, in
 		if (route[check_point]->type == NODE_BRANCH && check_point + 1 < TRACK_MAX) {
 			if (route[check_point + 1] == route[check_point]->edge[DIR_STRAIGHT].dest) {
 				if (switch_table[switchIdToIndex(route[check_point]->num)] != SWITCH_STR) {
-					switch_table[switchIdToIndex(route[check_point]->num)] = SWITCH_STR;
-					CreateWithArgs(2, switchChanger, route[check_point]->num, SWITCH_STR, com1_tid, com2_tid);
-					IDEBUG(DB_ROUTE, com2_tid, 49, 2 + train_data->index * 40, "%d change %d  ", train_data->id, route[check_point]->num);
+					CreateWithArgs(2, switchChanger, (int)train_global, route[check_point]->num, SWITCH_STR, 0);
+					IDEBUG(DB_ROUTE, train_global->com2_tid, 49, 2 + train_data->index * 40, "%d change %d  ", train_data->id, route[check_point]->num);
 				}
 				distance += (route[check_point]->edge)[DIR_STRAIGHT].dist;
 			} else if (route[check_point + 1] == route[check_point]->edge[DIR_CURVED].dest) {
 				if (switch_table[switchIdToIndex(route[check_point]->num)] != SWITCH_CUR) {
-					switch_table[switchIdToIndex(route[check_point]->num)] = SWITCH_CUR;
-					CreateWithArgs(2, switchChanger, route[check_point]->num, SWITCH_CUR, com1_tid, com2_tid);
-					IDEBUG(DB_ROUTE, com2_tid, 49, 2 + train_data->index * 40, "%d change %d  ", train_data->id, route[check_point]->num);
+					CreateWithArgs(2, switchChanger, (int)train_global, route[check_point]->num, SWITCH_CUR, 0);
+					IDEBUG(DB_ROUTE, train_global->com2_tid, 49, 2 + train_data->index * 40, "%d change %d  ", train_data->id, route[check_point]->num);
 				}
 				distance += route[check_point]->edge[DIR_CURVED].dist;
 			} else {
@@ -290,16 +286,14 @@ void changeNextSW(TrainData *train_data, int check_point, char *switch_table, in
 			if (route[check_point + 1] != route[check_point]->edge[DIR_AHEAD].dest) {
 				if (route[check_point]->reverse->edge[DIR_STRAIGHT].dest == route[check_point + 1]) {
 					if (switch_table[switchIdToIndex(route[check_point]->num)] != SWITCH_STR) {
-						switch_table[switchIdToIndex(route[check_point]->num)] = SWITCH_STR;
-						CreateWithArgs(2, switchChanger, route[check_point]->num, SWITCH_STR, com1_tid, com2_tid);
-						IDEBUG(DB_ROUTE, com2_tid, 49, 2 + train_data->index * 40, "%d change %d  ", train_data->id, route[check_point]->num);
+						CreateWithArgs(2, switchChanger, (int)train_global, route[check_point]->num, SWITCH_STR, 0);
+						IDEBUG(DB_ROUTE, train_global->com2_tid, 49, 2 + train_data->index * 40, "%d change %d  ", train_data->id, route[check_point]->num);
 					}
 					distance += (route[check_point]->reverse->edge)[DIR_STRAIGHT].dist;
 				} else if (route[check_point]->reverse->edge[DIR_CURVED].dest == route[check_point + 1]) {
 					if (switch_table[switchIdToIndex(route[check_point]->num)] != SWITCH_CUR) {
-						switch_table[switchIdToIndex(route[check_point]->num)] = SWITCH_CUR;
-						CreateWithArgs(2, switchChanger, route[check_point]->num, SWITCH_CUR, com1_tid, com2_tid);
-						IDEBUG(DB_ROUTE, com2_tid, 49, 2 + train_data->index * 40, "%d change %d  ", train_data->id, route[check_point]->num);
+						CreateWithArgs(2, switchChanger, (int)train_global, route[check_point]->num, SWITCH_CUR, 0);
+						IDEBUG(DB_ROUTE, train_global->com2_tid, 49, 2 + train_data->index * 40, "%d change %d  ", train_data->id, route[check_point]->num);
 					}
 					distance += (route[check_point]->reverse->edge)[DIR_CURVED].dist;
 				} else {
@@ -308,16 +302,14 @@ void changeNextSW(TrainData *train_data, int check_point, char *switch_table, in
 				if (route[check_point]->edge[DIR_AHEAD].dest->type == NODE_MERGE && route[check_point]->edge[DIR_AHEAD].dist < 240) {
 					if (route[check_point]->edge[DIR_AHEAD].dest->reverse->edge[DIR_STRAIGHT].dest == route[check_point]->reverse) {
 						if (switch_table[switchIdToIndex(route[check_point]->edge[DIR_AHEAD].dest->num)] != SWITCH_STR) {
-							switch_table[switchIdToIndex(route[check_point]->edge[DIR_AHEAD].dest->num)] = SWITCH_STR;
-							CreateWithArgs(2, switchChanger, route[check_point]->edge[DIR_AHEAD].dest->num, SWITCH_STR, com1_tid, com2_tid);
-							IDEBUG(DB_ROUTE, com2_tid, 49, 2 + train_data->index * 40, "%d change %d  ", train_data->id, route[check_point]->num);
+							CreateWithArgs(2, switchChanger, (int)train_global, route[check_point]->edge[DIR_AHEAD].dest->num, SWITCH_STR, 0);
+							IDEBUG(DB_ROUTE, train_global->com2_tid, 49, 2 + train_data->index * 40, "%d change %d  ", train_data->id, route[check_point]->num);
 						}
 					} else {
 						if (switch_table[switchIdToIndex(route[check_point]->edge[DIR_AHEAD].dest->num)] != SWITCH_CUR) {
-							switch_table[switchIdToIndex(route[check_point]->edge[DIR_AHEAD].dest->num)] = SWITCH_CUR;
-							CreateWithArgs(2, switchChanger, route[check_point]->edge[DIR_AHEAD].dest->num, SWITCH_CUR, com1_tid, com2_tid);
+							CreateWithArgs(2, switchChanger, (int)train_global, route[check_point]->edge[DIR_AHEAD].dest->num, SWITCH_CUR, 0);
 							
-							IDEBUG(DB_ROUTE, com2_tid, 49, 2 + train_data->index * 40, "%d change %d  ", train_data->id, route[check_point]->num);
+							IDEBUG(DB_ROUTE, train_global->com2_tid, 49, 2 + train_data->index * 40, "%d change %d  ", train_data->id, route[check_point]->num);
 						}
 					}
 				}
@@ -455,7 +447,7 @@ void updateCurrentLandmark(TrainGlobal *train_global, TrainData *train_data, tra
 	if (sensor_node != NULL) {
 		train_data->landmark = sensor_node;
 	} else {
-		train_data->landmark = train_data->predict_dest;
+		train_data->landmark = findNextNode(train_global, train_data);
 	}
 
 	if (train_data->landmark->type != NODE_EXIT) {
@@ -561,7 +553,7 @@ void updateTrainStatus(TrainGlobal *train_global, TrainData *train_data) {
 			if (tmp != -1) {
 				train_data->check_point = tmp;
 				if (train_data->landmark->type == NODE_SENSOR) {
-					changeNextSW(train_data, train_data->check_point, train_global->switch_table, train_global->com1_tid, train_global->com2_tid, find_stop_dist(train_data) >> DIST_SHIFT);
+					changeNextSW(train_global, train_data, train_data->check_point, train_global->switch_table, find_stop_dist(train_data) >> DIST_SHIFT);
 				}
 			// assert(check_point != -1, "check_point is -1");
 			} else {
@@ -623,20 +615,17 @@ void stopChecking(TrainGlobal *train_global, TrainData *train_data) {
 			if (train_data->stop_type == Entering_Merge) {
 				changeSpeed(train_global, train_data, 0);
 				if (train_global->switch_table[switchIdToIndex(train_data->merge_node->num)] != train_data->merge_state) {
-					train_global->switch_table[switchIdToIndex(train_data->merge_node->num)] = train_data->merge_state;
-					CreateWithArgs(2, switchChanger, train_data->merge_node->num, train_data->merge_state, train_global->com1_tid, train_global->com2_tid);
+					CreateWithArgs(2, switchChanger, (int)train_global, train_data->merge_node->num, train_data->merge_state, 0);
 				}
 				if (train_data->merge_node->edge[DIR_AHEAD].dest->type == NODE_MERGE) {
 					if (train_data->merge_node->edge[DIR_AHEAD].dest->reverse->edge[DIR_STRAIGHT].dest
 							== train_data->merge_node->reverse) {
 						if (train_global->switch_table[switchIdToIndex(train_data->merge_node->edge[DIR_AHEAD].dest->num)] != SWITCH_STR) {
-							train_global->switch_table[switchIdToIndex(train_data->merge_node->edge[DIR_AHEAD].dest->num)] = SWITCH_STR;
-							CreateWithArgs(2, switchChanger, train_data->merge_node->edge[DIR_AHEAD].dest->num, SWITCH_STR, train_global->com1_tid, train_global->com2_tid);
+							CreateWithArgs(2, switchChanger, (int)train_global, train_data->merge_node->edge[DIR_AHEAD].dest->num, SWITCH_STR, 0);
 						}
 					} else {
 						if (train_global->switch_table[switchIdToIndex(train_data->merge_node->edge[DIR_AHEAD].dest->num)] != SWITCH_CUR) {
-							train_global->switch_table[switchIdToIndex(train_data->merge_node->edge[DIR_AHEAD].dest->num)] = SWITCH_CUR;
-							CreateWithArgs(2, switchChanger, train_data->merge_node->edge[DIR_AHEAD].dest->num, SWITCH_CUR, train_global->com1_tid, train_global->com2_tid);
+							CreateWithArgs(2, switchChanger, (int)train_global, train_data->merge_node->edge[DIR_AHEAD].dest->num, SWITCH_CUR, 0);
 						}
 					}
 				}
@@ -659,6 +648,7 @@ void changeState(TrainGlobal *train_global, TrainData *train_data) {
 	if (train_data->v_to_0 && !train_data->waiting_for_reserver) {
 		train_data->v_to_0 = FALSE;
 		uiprintf(train_global->com2_tid, ROW_TRAIN + train_data->index * HEIGHT_TRAIN + ROW_NEXT, COLUMN_DATA_3, "%d ", train_data->stop_type);
+
 		switch(train_data->stop_type) {
 			case Entering_Exit:
 				if (train_data->stop_node != NULL) {
@@ -712,7 +702,9 @@ void changeState(TrainGlobal *train_global, TrainData *train_data) {
 			case RB_slowing:
 				// Wait for last reservation result, then enter recovery mode
 				result = gotoNode(train_data->predict_dest->reverse, train_data->last_receive_sensor->reverse, train_global, 8);
+
 				reverseTrainAndLandmark(train_global, train_data, train_global->switch_table);
+
 				uiprintf(train_global->com2_tid, ROW_TRAIN + train_data->index * HEIGHT_TRAIN + ROW_CURRENT + 2, COLUMN_DATA_3, "%s->%s  ", train_data->landmark->name, train_data->last_receive_sensor->reverse->name);
 				train_data->stop_type = RB_go;
 				train_data->action = RB_last_ss;
@@ -732,7 +724,7 @@ void changeState(TrainGlobal *train_global, TrainData *train_data) {
 
 void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 	track_node *track_nodes = train_global->track_nodes;
-	int tid, result, need_recalculate;
+	int tid, result, need_recalculate, i;
 	int train_id = train_data->id;
 	int train_index = train_data->index;
 
@@ -843,7 +835,7 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 					if (train_data->check_point == -1) {
 						need_recalculate = TRUE;
 					} else {
-						changeNextSW(train_data, train_data->check_point, train_global->switch_table, com1_tid, com2_tid, find_stop_dist(train_data) >> DIST_SHIFT);
+						changeNextSW(train_global, train_data, train_data->check_point, train_global->switch_table, find_stop_dist(train_data) >> DIST_SHIFT);
 					}
 				}
 				
@@ -881,7 +873,7 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 					train_data->stop_type = RB_slowing;
 					changeSpeed(train_global, train_data, 0);
 					IDEBUG(DB_ROUTE, 4, 53, 2 + train_data->index * 40, "re stop: %s, %d    ", train_data->landmark->name, train_data->ahead_lm >> 18);
-					IDEBUG(DB_ROUTE, 4, 54, 5 + train_data->index * 40, "__%s", train_data->direction == FORWARD ? "F" : "B");
+					IDEBUG(DB_ROUTE, 4, 54, 5 + train_data->index * 40, "__%s  ", train_data->direction == FORWARD ? "F" : "B");
 				}
 				break;
 			case TRACK_RESERVE_SUCCEED:
@@ -902,16 +894,20 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 				uiprintf(com2_tid, ROW_TRAIN + train_index * HEIGHT_TRAIN + ROW_ROUTE, COLUMN_DATA_1, "%s  ", train_data->stop_node->name);
 				break;
 			case GOTO_MERGE:
+				Reply(tid, NULL, 0);
+
 				train_data->action = Goto_Merge;
 				train_data->check_point = train_data->route_start;
-				changeNextSW(train_data, train_data->check_point, train_global->switch_table, com1_tid, com2_tid, find_stop_dist(train_data) >> DIST_SHIFT);
+				changeNextSW(train_global, train_data, train_data->check_point, train_global->switch_table, find_stop_dist(train_data) >> DIST_SHIFT);
 				train_data->stop_type = RB_go;
 				uiprintf(com2_tid, ROW_TRAIN + train_index * HEIGHT_TRAIN + ROW_ROUTE, COLUMN_DATA_1, "%s  ", train_data->stop_node->name);
 				break;
 			case GOTO_DEST:
+				Reply(tid, NULL, 0);
+
 				train_data->action = Goto_Dest;
 				train_data->check_point = train_data->route_start;
-				changeNextSW(train_data, train_data->check_point, train_global->switch_table, com1_tid, com2_tid, find_stop_dist(train_data) >> DIST_SHIFT);
+				changeNextSW(train_global, train_data, train_data->check_point, train_global->switch_table, find_stop_dist(train_data) >> DIST_SHIFT);
 				train_data->stop_type = RB_go;
 				uiprintf(com2_tid, ROW_TRAIN + train_index * HEIGHT_TRAIN + ROW_ROUTE, COLUMN_DATA_1, "%s  ", train_data->stop_node->name);
 				break;

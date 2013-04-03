@@ -4,6 +4,9 @@
 #include <train.h>
 #include <ts7200.h>
 
+#define PUNISH_FACTOR 10
+#define REVERSE_PENALTY	500
+
 inline void dijkstra_update(Heap *dist_heap, HeapNode *heap_nodes, track_node **previous,
                             track_node *u, track_node *neighbour, int alter_dist) {
 	// Find the old distance
@@ -73,7 +76,7 @@ int dijkstra(track_node *track_nodes, track_node *src,
 				alter_dist = u_dist + u->edge[DIR_AHEAD].dist;
 				if ((map_record[u->index] && map_record[neighbour->index])
 						|| (map_record[u->reverse->index] && map_record[neighbour->reverse->index])) {
-						alter_dist = alter_dist * 4;
+						alter_dist = u_dist + u->edge[DIR_AHEAD].dist * PUNISH_FACTOR;
 				}
 				dijkstra_update(&dist_heap, heap_nodes, previous, u, neighbour, alter_dist);
 				break;
@@ -82,23 +85,23 @@ int dijkstra(track_node *track_nodes, track_node *src,
 				alter_dist = u_dist + u->edge[DIR_AHEAD].dist;
 				if ((map_record[u->index] && map_record[neighbour->index])
 						|| (map_record[u->reverse->index] && map_record[neighbour->reverse->index])) {
-						alter_dist = alter_dist * 4;
+						alter_dist = u_dist + u->edge[DIR_AHEAD].dist * PUNISH_FACTOR;
 				}
 				dijkstra_update(&dist_heap, heap_nodes, previous, u, neighbour, alter_dist);
 
 				neighbour = u->reverse->edge[DIR_STRAIGHT].dest;
-				alter_dist = u_dist + u->reverse->edge[DIR_STRAIGHT].dist + 400;
+				alter_dist = u_dist + u->reverse->edge[DIR_STRAIGHT].dist + REVERSE_PENALTY;
 				if ((map_record[u->index] && map_record[neighbour->index])
 						|| (map_record[u->reverse->index] && map_record[neighbour->reverse->index])) {
-						alter_dist = (alter_dist - 400) * 4 + 400;
+						alter_dist = u_dist + u->edge[DIR_STRAIGHT].dist * PUNISH_FACTOR + REVERSE_PENALTY;
 				}
 				dijkstra_update(&dist_heap, heap_nodes, previous, u, neighbour, alter_dist);
 
 				neighbour = u->reverse->edge[DIR_CURVED].dest;
-				alter_dist = u_dist + u->reverse->edge[DIR_CURVED].dist + 400;
+				alter_dist = u_dist + u->reverse->edge[DIR_CURVED].dist + REVERSE_PENALTY;
 				if ((map_record[u->index] && map_record[neighbour->index])
 						|| (map_record[u->reverse->index] && map_record[neighbour->reverse->index])) {
-						alter_dist = (alter_dist - 400) * 4 + 400;
+						alter_dist = u_dist + u->edge[DIR_CURVED].dist * PUNISH_FACTOR + REVERSE_PENALTY;
 				}
 				dijkstra_update(&dist_heap, heap_nodes, previous, u, neighbour, alter_dist);
 				break;
@@ -107,7 +110,7 @@ int dijkstra(track_node *track_nodes, track_node *src,
 				alter_dist = u_dist + u->edge[DIR_STRAIGHT].dist;
 				if ((map_record[u->index] && map_record[neighbour->index])
 						|| (map_record[u->reverse->index] && map_record[neighbour->reverse->index])) {
-						alter_dist = alter_dist * 4;
+						alter_dist = u_dist + u->edge[DIR_STRAIGHT].dist * PUNISH_FACTOR;
 				}
 				dijkstra_update(&dist_heap, heap_nodes, previous, u, neighbour, alter_dist);
 
@@ -115,7 +118,7 @@ int dijkstra(track_node *track_nodes, track_node *src,
 				alter_dist = u_dist + u->edge[DIR_CURVED].dist;
 				if ((map_record[u->index] && map_record[neighbour->index])
 						|| (map_record[u->reverse->index] && map_record[neighbour->reverse->index])) {
-						alter_dist = alter_dist * 4;
+						alter_dist = u_dist + u->edge[DIR_CURVED].dist * PUNISH_FACTOR;
 				}
 				dijkstra_update(&dist_heap, heap_nodes, previous, u, neighbour, alter_dist);
 				break;
@@ -141,7 +144,8 @@ int dijkstra(track_node *track_nodes, track_node *src,
 }
 
 // return route start
-int findRoute(track_node *track_nodes, TrainData *train_data, track_node *dest, int *map_record, int *need_reverse) {
+int findRoute(TrainGlobal *train_global, TrainData *train_data, track_node *dest, int *map_record, int *need_reverse) {
+	track_node *track_nodes = train_global->track_nodes;
 	train_data->on_route = TRUE;
 	assert(dest != NULL, "findroute dest is null");
 	int forward_dist = 0;
@@ -165,14 +169,18 @@ int findRoute(track_node *track_nodes, TrainData *train_data, track_node *dest, 
 		int i;
 		for (i = forward_start; i < TRACK_MAX; i++) {
 			train_data->route[i] = forward_route[i];
+			train_data->overall_route[i] = forward_route[i];
 		}
+		uiprintf(train_global->com2_tid, 32, 2 + train_data->index * 40, "dist: %d  ", forward_dist);
 		return forward_start;
 	} else {
 		*need_reverse = 1;
 		int i;
 		for (i = backward_start; i < TRACK_MAX; i++) {
 			train_data->route[i] = backward_route[i];
+			train_data->overall_route[i] = backward_route[i];
 		}
+		uiprintf(train_global->com2_tid, 32, 2 + train_data->index * 40, "dist: %d  ", backward_dist);
 		return backward_start;
 	}
 }
@@ -262,6 +270,10 @@ void routeServer(TrainGlobal *train_global) {
 	int i, tid, result, need_reverse, com1_tid, com2_tid, tmp_dist;
 	com1_tid = train_global->com1_tid;
 	com2_tid = train_global->com2_tid;
+	int col_cnt = 1;
+	
+	char str_buf[1024];
+	char *buf_cursor = str_buf;
 	
 	int map_record[TRACK_MAX];
 	
@@ -275,27 +287,41 @@ void routeServer(TrainGlobal *train_global) {
 		Reply(tid, NULL, 0);
 		switch (msg.type) {
 			case FIND_ROUTE:
-				clearRoute(map_record, msg.train_data->route, msg.train_data->route_start);
-				msg.train_data->route_start = findRoute(train_global->track_nodes, msg.train_data, msg.destination, map_record, &need_reverse);
+				clearRoute(map_record, msg.train_data->overall_route, msg.train_data->overall_route_start);
+				msg.train_data->route_start = findRoute(train_global, msg.train_data, msg.destination, map_record, &need_reverse);
+				msg.train_data->overall_route_start = msg.train_data->route_start;
 				msg.train_data->stop_node = msg.train_data->route[TRACK_MAX - 1];
+				
+				i = msg.train_data->route_start;
+				buf_cursor += sprintf(buf_cursor, "\e[s\e[%d;%dH", TRAIN_ROUTE + msg.train_data->index * 3, COLUMN_FIRST);
+				for(; i < TRACK_MAX; i++) {
+					if (map_record[msg.train_data->route[i]->index] || map_record[msg.train_data->route[i]->reverse->index]) {
+						buf_cursor += sprintf(buf_cursor, "[%s] -> ", msg.train_data->route[i]->name);
+					} else {
+						buf_cursor += sprintf(buf_cursor, "%s -> ", msg.train_data->route[i]->name);
+					}
+				}
+				buf_cursor += sprintf(buf_cursor, "END  <^_^>  \e[u");
+				Puts(com2_tid, str_buf, 0);
+				str_buf[0] = '\0';
+				buf_cursor = str_buf;
+				
 				if (need_reverse) {
-					markRoute(map_record, msg.train_data->route, msg.train_data->route_start);
 					CreateWithArgs(2, routeDelivery, msg.train_data->tid, NEED_REVERSE, 0, 0);
 				} else {
 					if (find_reverse_node(msg.train_data, train_global, msg.train_data->route_start)) {
 						msg.train_data->route_start = dijkstra(train_global->track_nodes, msg.train_data->landmark, msg.train_data->reverse_node, msg.train_data->route, &tmp_dist, map_record);
-						markRoute(map_record, msg.train_data->route, msg.train_data->route_start);
 						CreateWithArgs(2, routeDelivery, msg.train_data->tid, GOTO_MERGE, 0, 0);
 					} else {
-						markRoute(map_record, msg.train_data->route, msg.train_data->route_start);
 						CreateWithArgs(2, routeDelivery, msg.train_data->tid, GOTO_DEST, 0, 0);
 					}
 				}
+				markRoute(map_record, msg.train_data->overall_route, msg.train_data->overall_route_start);
 				break;
 				
 			case CLEAR_ROUTE:
-				clearRoute(map_record, msg.train_data->route, msg.train_data->route_start);
-				msg.train_data->route_start = TRACK_MAX;
+				clearRoute(map_record, msg.train_data->overall_route, msg.train_data->overall_route_start);
+				msg.train_data->overall_route_start = TRACK_MAX;
 				break;
 				
 			default:

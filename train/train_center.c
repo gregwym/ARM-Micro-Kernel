@@ -26,20 +26,21 @@ inline void changeSwitch(int switch_id, int direction, int com1_tid) {
 }
 
 /* Workers */
-void switchChanger(int switch_id, int direction, int com1_tid, int com2_tid) {
+void switchChanger(TrainGlobal *train_global, int switch_id, int direction) {
 	char state = (direction == 33 ? 'S' : 'C');
-
+	
 	int index = switch_id > SWITCH_NAMING_MAX ? switch_id - SWITCH_NAMING_MID_BASE + SWITCH_NAMING_MAX : switch_id - SWITCH_NAMING_BASE;
 	int ui_row = index % HEIGHT_SWITCH_TABLE + ROW_SWITCH_TABLE;
 	int ui_column = (index / HEIGHT_SWITCH_TABLE) * COLUMN_WIDTH * 2 + COLUMN_VALUES + COLUMN_WIDTH;
+	train_global->switch_table[index] = direction;
 
-	uiprintf(com2_tid, ui_row, ui_column, "%c", state);
-	changeSwitch(switch_id, direction, com1_tid);
+	uiprintf(train_global->com2_tid, ui_row, ui_column, "%c", state);
+	changeSwitch(switch_id, direction, train_global->com1_tid);
 
 	// Delay 400ms then turn off the solenoid
 	Delay(SWITCH_DELAY);
 
-	Putc(com1_tid, SWITCH_OFF);
+	Putc(train_global->com1_tid, SWITCH_OFF);
 }
 
 void cmdPostman(int tid, TrainMsgType type, int value) {

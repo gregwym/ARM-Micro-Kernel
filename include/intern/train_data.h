@@ -73,8 +73,10 @@ typedef struct train_data {
 	
 	/* route finding */
 	track_node *route[TRACK_MAX];
+	track_node *overall_route[TRACK_MAX];
 	volatile int	check_point;
 	volatile int	route_start;
+	volatile int	overall_route_start;
 	int 			margin;
 	
 	/* nodes */
