@@ -136,18 +136,11 @@ inline void handleSensorUpdate(TrainGlobal *train_global, CenterData *center_dat
 	}
 }
 
-inline void handleSwitchCommand(CmdMsg *msg, TrainGlobal *train_global, char *buf) {
+inline void handleSwitchCommand(CmdMsg *msg, TrainGlobal *train_global) {
 	int id = msg->id;
 	int value = msg->value;
-	char *switch_table = train_global->switch_table;
 
-	// sprintf(buf, "sw #%d[%d] %d -> %d\n", id, switchIdToIndex(id),
-	        // switch_table[switchIdToIndex(id)], value);
-
-	CreateWithArgs(2, switchChanger, id, value, train_global->com1_tid, train_global->com2_tid);
-
-	switch_table[switchIdToIndex(id)] = value;
-	// Puts(train_global->com2_tid, buf, 0);
+	CreateWithArgs(2, switchChanger, (int)train_global, id, value, 0);
 }
 
 typedef struct traverse_config {
@@ -422,7 +415,7 @@ void trainCenter(TrainGlobal *train_global) {
 				break;
 			case CMD_SWITCH:
 				Reply(tid, NULL, 0);
-				handleSwitchCommand(&(msg.cmd_msg), train_global, str_buf);
+				handleSwitchCommand(&(msg.cmd_msg), train_global);
 				break;
 			case CMD_QUIT:
 				Halt();

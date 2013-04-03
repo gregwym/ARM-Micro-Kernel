@@ -73,6 +73,19 @@ void trackReserver(TrainGlobal *train_global, TrainData *train_data, int landmar
 	assert(result == 0, "Reserver fail to send reservation result to the driver");
 }
 
+void relocationRequest(TrainGlobal *train_global, TrainData *train_data) {
+	int center_tid = train_global->center_tid;
+	int result;
+
+	LocationMsg location_msg;
+	location_msg.type = LOCATION_RECOVERY;
+	location_msg.id = train_data->id;
+	location_msg.value = getTimerValue(TIMER3_BASE);
+
+	result = Send(center_tid, (char *)(&location_msg), sizeof(LocationMsg), NULL, 0);
+	assert(result == 0, "Relocation failed to send to center");
+}
+
 void routeRequest(TrainGlobal *train_global, TrainData *train_data, track_node *dest) {
 	int result;
 	RouteMsg msg;
@@ -567,8 +580,10 @@ void updateTrainStatus(TrainGlobal *train_global, TrainData *train_data) {
 		if (train_data->landmark->type == NODE_SENSOR && train_data->last_receive_sensor != NULL) {
 			train_data->predict_sensor_num++;
 			if (train_data->predict_sensor_num > 1) {
-				uiprintf(train_global->com2_tid, 51, 2, "train %d is trapped!", train_data->id);
-				// todo
+				changeSpeed(train_global, train_data, 16);
+				train_data->stop_type = Stopped;
+				// uiprintf(train_global->com2_tid, 51, 2, "train %d is trapped!", train_data->id);
+				CreateWithArgs(2, relocationRequest, (int)train_global, (int)train_data, 0, 0);
 			}
 		}
 	}
@@ -578,7 +593,7 @@ void updateReservation(TrainGlobal *train_global, TrainData *train_data) {
 	if (train_data->last_reservation_time - train_data->timer > 400) {
 		if (train_data->waiting_for_reserver) {
 			changeSpeed(train_global, train_data, 0);
-			train_data->acceleration = train_data->deceleration;
+			// train_data->acceleration = train_data->deceleration;
 			train_data->stop_type = RB_slowing;
 			// train_data->dist_since_last_rs = 0;
 		} else {
