@@ -78,8 +78,8 @@ void trainBootstrap() {
 	/* Train Data */
 	TrainData trains_data[TRAIN_MAX];
 	TrainData *train_id_data[TRAIN_ID_MAX];
-	init_train37(&(trains_data[0]));
-	init_train49(&(trains_data[1]));
+	init_train49(&(trains_data[0]));
+	init_train50(&(trains_data[1]));
 	for(i = 0; i < TRAIN_MAX; i++) {
 		trains_data[i].index = i;
 		train_id_data[trains_data[i].id] = &(trains_data[i]);
@@ -109,7 +109,9 @@ void trainBootstrap() {
 	Create(8, trainclockserver);
 	tid = CreateWithArgs(8, trainCenter, (int)(&train_global), 0, 0, 0);
 	train_global.center_tid = tid;
-
+	tid = CreateWithArgs(8, routeServer, (int)(&train_global), 0, 0, 0);
+	train_global.route_server_tid = tid;
+	
 	Receive(&tid, NULL, 0);
 
 	assert(0, "Train Bootstrap exit");
