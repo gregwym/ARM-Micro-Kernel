@@ -3,11 +3,13 @@
 #include <services.h>
 #include <train.h>
 #include <kern/md_const.h>
+#include <ts7200.h>
 
 #define SWITCH_DELAY		40
 #define SWITCH_INIT_DELAY	500
 
 #define TRAIN_INIT_DELAY	200
+#define RECOVERY_TIME_THRESHOLD	4000
 
 /* Helpers */
 inline int switchIdToIndex(int id) {
@@ -28,7 +30,7 @@ inline void changeSwitch(int switch_id, int direction, int com1_tid) {
 /* Workers */
 void switchChanger(TrainGlobal *train_global, int switch_id, int direction) {
 	char state = (direction == 33 ? 'S' : 'C');
-	
+
 	int index = switch_id > SWITCH_NAMING_MAX ? switch_id - SWITCH_NAMING_MID_BASE + SWITCH_NAMING_MAX : switch_id - SWITCH_NAMING_BASE;
 	int ui_row = index % HEIGHT_SWITCH_TABLE + ROW_SWITCH_TABLE;
 	int ui_column = (index / HEIGHT_SWITCH_TABLE) * COLUMN_WIDTH * 2 + COLUMN_VALUES + COLUMN_WIDTH;
@@ -69,7 +71,7 @@ int isContinuousSensor(track_node *src, track_node *dest, int count) {
 		case NODE_MERGE:
 			return isContinuousSensor(src->edge[DIR_AHEAD].dest, dest, count);
 		case NODE_BRANCH:
-			return isContinuousSensor(src->edge[DIR_STRAIGHT].dest, dest, count) || 
+			return isContinuousSensor(src->edge[DIR_STRAIGHT].dest, dest, count) ||
 				   isContinuousSensor(src->edge[DIR_CURVED].dest, dest, count);
 		default:
 			break;
@@ -79,10 +81,11 @@ int isContinuousSensor(track_node *src, track_node *dest, int count) {
 }
 
 /* Infomation Handlers */
-inline void handleSensorUpdate(char *new_data, char *saved_data, TrainGlobal *train_global) {
+inline void handleSensorUpdate(TrainGlobal *train_global, CenterData *center_data, char *new_data) {
 	int i, j, landmark_id;
 	char old_byte, new_byte, old_bit, new_bit;
 	TrainData *recovery_train_data, *train_data;
+	char *saved_data = center_data->sensor_data;
 
 	char buf[128];
 	char *buf_cursor = buf;
@@ -112,11 +115,14 @@ inline void handleSensorUpdate(char *new_data, char *saved_data, TrainGlobal *tr
 						IDEBUG(DB_RESERVE, train_global->com2_tid, ROW_DEBUG_1 + 3, train_data->index * WIDTH_DEBUG, "#%s => %d  ", train_global->track_nodes[landmark_id].name, train_data->id);
 					} else {
 						track_node *current_sensor = &(train_global->track_nodes[landmark_id]);
-						IDEBUG(DB_RESERVE, train_global->com2_tid, ROW_DEBUG_1 + 4, 0, "#%s => ?\t%s", current_sensor->name, train_global->last_lost_sensor == NULL ? "" : train_global->last_lost_sensor->name);
-						if(train_global->last_lost_sensor != NULL && isContinuousSensor(train_global->last_lost_sensor, current_sensor, 1)) {
-							assert(0, "Train is lost");
+						IDEBUG(DB_RESERVE, train_global->com2_tid, ROW_DEBUG_1 + 4, (center_data->lost_count % 10) * COLUMN_WIDTH, "#%s  ", current_sensor->name);
+						if(center_data->last_lost_sensor != NULL && isContinuousSensor(center_data->last_lost_sensor, current_sensor, 1)) {
+							// assert(0, "Train is lost");
+							IDEBUG(DB_RESERVE, train_global->com2_tid, ROW_DEBUG_1 + 5, 0, "Train lost at %s", current_sensor->name);
 						}
-						train_global->last_lost_sensor = current_sensor;
+						center_data->last_lost_sensor = current_sensor;
+						center_data->last_lost_timestamp = getTimerValue(TIMER3_BASE);
+						center_data->lost_count++;
 					}
 				}
 				old_byte = old_byte >> 1;
@@ -130,18 +136,11 @@ inline void handleSensorUpdate(char *new_data, char *saved_data, TrainGlobal *tr
 	}
 }
 
-inline void handleSwitchCommand(CmdMsg *msg, TrainGlobal *train_global, char *buf) {
+inline void handleSwitchCommand(CmdMsg *msg, TrainGlobal *train_global) {
 	int id = msg->id;
 	int value = msg->value;
-	char *switch_table = train_global->switch_table;
 
-	// sprintf(buf, "sw #%d[%d] %d -> %d\n", id, switchIdToIndex(id),
-	        // switch_table[switchIdToIndex(id)], value);
-
-	CreateWithArgs(2, switchChanger, id, value, train_global->com1_tid, train_global->com2_tid);
-
-	switch_table[switchIdToIndex(id)] = value;
-	// Puts(train_global->com2_tid, buf, 0);
+	CreateWithArgs(2, switchChanger, (int)train_global, id, value, 0);
 }
 
 typedef struct traverse_config {
@@ -329,6 +328,22 @@ inline TrainMsgType handleTrackReserve(TrainGlobal *train_global, ReservationMsg
 	return TRACK_RESERVE_SUCCEED;
 }
 
+void handleLocationRecovery(TrainGlobal *train_global, CenterData *center_data, int train_id, int timestamp) {
+	TrainData* train_data = train_global->train_id_data[train_id];
+	int time_diff = center_data->last_lost_timestamp - timestamp;
+	time_diff = time_diff > 0 ? time_diff : -1 * time_diff;
+
+	assert(train_data != NULL, "Unknown train_id");
+
+	if (center_data->last_lost_sensor != NULL && time_diff < RECOVERY_TIME_THRESHOLD) {
+		int landmark_id = center_data->last_lost_sensor->index;
+		CreateWithArgs(2, locationPostman, train_data->tid, landmark_id, 0, 0);
+		IDEBUG(DB_RESERVE, train_global->com2_tid, ROW_DEBUG_1 + 5, train_data->index * WIDTH_DEBUG, "#%d recovery to #%s  ", train_id, train_global->track_nodes[landmark_id].name);
+	} else {
+		IDEBUG(DB_RESERVE, train_global->com2_tid, ROW_DEBUG_1 + 5, train_data->index * WIDTH_DEBUG, "Unable to recovery #%d", train_id);
+	}
+}
+
 /* Train Center */
 void trainCenter(TrainGlobal *train_global) {
 
@@ -342,6 +357,8 @@ void trainCenter(TrainGlobal *train_global) {
 
 	Putc(com1_tid, SYSTEM_START);
 
+	CenterData center_data;
+
 	/* SensorData */
 	char sensor_data[SENSOR_BYTES_TOTAL];
 	memset(sensor_data, 0, SENSOR_BYTES_TOTAL);
@@ -349,6 +366,10 @@ void trainCenter(TrainGlobal *train_global) {
 	for(i = 0; i < SENSOR_DECODER_TOTAL; i++) {
 		sensor_decoder_ids[i] = 'A' + i;
 	}
+	center_data.sensor_data = sensor_data;
+	center_data.last_lost_sensor = NULL;
+	center_data.last_lost_timestamp = 0;
+	center_data.lost_count = 0;
 
 	/* Initialize Train Drivers */
 	TrainData *trains_data = train_global->trains_data;
@@ -377,7 +398,7 @@ void trainCenter(TrainGlobal *train_global) {
 		switch (msg.type) {
 			case SENSOR_DATA:
 				Reply(tid, NULL, 0);
-				handleSensorUpdate(msg.sensor_msg.sensor_data, sensor_data, train_global);
+				handleSensorUpdate(train_global, &center_data, msg.sensor_msg.sensor_data);
 				break;
 			case CMD_SPEED:
 			case CMD_GOTO:
@@ -394,7 +415,7 @@ void trainCenter(TrainGlobal *train_global) {
 				break;
 			case CMD_SWITCH:
 				Reply(tid, NULL, 0);
-				handleSwitchCommand(&(msg.cmd_msg), train_global, str_buf);
+				handleSwitchCommand(&(msg.cmd_msg), train_global);
 				break;
 			case CMD_QUIT:
 				Halt();
@@ -403,6 +424,10 @@ void trainCenter(TrainGlobal *train_global) {
 			case TRACK_RECOVERY_RESERVE:
 				msg.type = handleTrackReserve(train_global, &(msg.reservation_msg));
 				Reply(tid, (char *)(&(msg.type)), sizeof(TrainMsgType));
+				break;
+			case LOCATION_RECOVERY:
+				Reply(tid, NULL, 0);
+				handleLocationRecovery(train_global, &center_data, msg.location_msg.id, msg.location_msg.value);
 				break;
 			default:
 				sprintf(str_buf, "Center got unknown msg, type: %d\n", msg.type);
