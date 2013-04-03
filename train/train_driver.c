@@ -61,14 +61,14 @@ void trackReserver(TrainGlobal *train_global, TrainData *train_data, int landmar
 	msg.distance = distance;
 	msg.num_sensor = 1;
 	driver_tid = MyParentTid();
-	
+
 
 	// Send reservation request to the center
-	IDEBUG(DB_RESERVE, 4, ROW_DEBUG_1 + 5, 40 * train_data->index + 2, "Reserving %d + %dmm", landmark_id, distance);
+	// IDEBUG(DB_RESERVE, 4, ROW_DEBUG_1 + 6, 40 * train_data->index + 2, "Reserving %d + %dmm", landmark_id, distance);
 	result = Send(center_tid, (char *)(&msg), sizeof(ReservationMsg), (char *)(&reply), sizeof(TrainMsgType));
 	assert(result > 0, "Reserver fail to receive reply from center");
 
-	IDEBUG(DB_RESERVE, 4, ROW_DEBUG_1 + 6, 40 * train_data->index + 2, "Delivering %d + %dmm", landmark_id, distance);
+	// IDEBUG(DB_RESERVE, 4, ROW_DEBUG_1 + 6, 40 * train_data->index + 2, "Delivering %d + %dmm", landmark_id, distance);
 	result = Send(driver_tid, (char *)(&reply), sizeof(TrainMsgType), NULL, 0);
 	assert(result == 0, "Reserver fail to send reservation result to the driver");
 }
@@ -186,9 +186,9 @@ int getNextNodeDist(track_node *cur_node, char *switch_table, int *direction) {
 StopType exitCheck(TrainGlobal *train_global, TrainData *train_data, int stop_distance) {
 	int distance = 0;
 	int direction = 0;
-	
+
 	track_node *checked_node = train_data->landmark;
-	
+
 	while (distance < (stop_distance + train_data->ahead_lm)) {
 		switch(checked_node->type) {
 			case NODE_SENSOR:
@@ -219,7 +219,7 @@ StopType destCheck(TrainGlobal *train_global, TrainData *train_data, int stop_di
 	assert(train_data->stop_type == None && (train_data->action == Goto_Dest || train_data->action == Goto_Merge), "stop type or action invalid in destCheck");
 	assert(stop_node != NULL, "stop node is NULL in destCheck");
 	assert(train_data->check_point != -1, "check point is -1 in destCheck");
-	
+
 	int distance = 0;
 	int check_point = train_data->check_point;
 	track_node **route = train_data->route;
@@ -308,7 +308,7 @@ void changeNextSW(TrainGlobal *train_global, TrainData *train_data, int check_po
 					} else {
 						if (switch_table[switchIdToIndex(route[check_point]->edge[DIR_AHEAD].dest->num)] != SWITCH_CUR) {
 							CreateWithArgs(2, switchChanger, (int)train_global, route[check_point]->edge[DIR_AHEAD].dest->num, SWITCH_CUR, 0);
-							
+
 							IDEBUG(DB_ROUTE, train_global->com2_tid, 49, 2 + train_data->index * 40, "%d change %d  ", train_data->id, route[check_point]->num);
 						}
 					}
@@ -368,7 +368,7 @@ void reserveInRunning(TrainGlobal *train_global, TrainData *train_data) {
 			reserve_start = sensor_for_reserve->index;
 			reserve_dist += last_sensor_dist;
 		}
-		
+
 		IDEBUG(DB_RESERVE, 4, ROW_DEBUG_1 + 7, 40 * train_data->index + 2, "Running %d + %dmm, time: %u", reserve_start, reserve_dist, 0xffffffff - train_data->timer);
 		CreateWithArgs(RESERVER_PRIORITY, trackReserver, (int)train_global,
 					   (int)train_data, reserve_start, reserve_dist);
@@ -410,7 +410,7 @@ int updateCheckPoint(TrainData *train_data, track_node **route, int check_point,
 void reverseTrainAndLandmark(TrainGlobal *train_global, TrainData *train_data, char *switch_table) {
 	int train_index = train_data->index;
 	int direction;
-	
+
 	setTrainSpeed(train_data->id, TRAIN_REVERSE, train_global->com1_tid);
 	train_data->reverse_protect = TRUE;
 	train_data->reverse_delay = TRUE;
@@ -522,7 +522,7 @@ void updateTrainStatus(TrainGlobal *train_global, TrainData *train_data) {
 				assert(0, "invalid acceleration_step");
 		}
 	}
-	
+
 	// handle velocity
 	train_data->velocity = train_data->velocity + (train_data->prev_timer - train_data->timer) * train_data->acceleration;
 	if (train_data->acceleration > 0) {
@@ -541,11 +541,11 @@ void updateTrainStatus(TrainGlobal *train_global, TrainData *train_data) {
 			}
 		}
 	}
-	
+
 	// location update
 	train_data->ahead_lm = train_data->ahead_lm + train_data->velocity * (train_data->prev_timer - train_data->timer);
 	// train_data->dist_since_last_rs += train_data->velocity * (train_data->prev_timer - train_data->timer);
-	
+
 	if (train_data->ahead_lm > train_data->forward_distance) {
 		updateCurrentLandmark(train_global, train_data, NULL, train_global->switch_table);
 		if (train_data->action == Goto_Dest || train_data->action == Goto_Merge) {
@@ -562,7 +562,7 @@ void updateTrainStatus(TrainGlobal *train_global, TrainData *train_data) {
 				IDEBUG(DB_ROUTE, 4, ROW_DEBUG_2 + 2, 2 + train_data->index * 40, "off route: %s   ", train_data->landmark->name);
 			}
 		}
-		
+
 		// lost checking
 		if (train_data->landmark->type == NODE_SENSOR && train_data->last_receive_sensor != NULL) {
 			train_data->predict_sensor_num++;
@@ -597,20 +597,20 @@ void updateReservation(TrainGlobal *train_global, TrainData *train_data) {
 		}
 	}
 }
-	
+
 void stopChecking(TrainGlobal *train_global, TrainData *train_data) {
 	if (train_data->speed % 16 != 0) {
 		assert(train_data->acceleration >= 0, "already decelerating in stop checking");
 		assert(train_data->stop_type == None, "stop type is not None in stop checking");
 		if (train_data->action == Free_Run || train_data->action == Off_Route) {
-			train_data->stop_type = exitCheck(train_global, train_data, 
+			train_data->stop_type = exitCheck(train_global, train_data,
 										find_stop_dist(train_data));
 			if (train_data->stop_type == Entering_Exit) {
 				changeSpeed(train_global, train_data, 0);
 				// IDEBUG(DB_ROUTE, 4, ROW_DEBUG_2 + 5, COLUMN_FIRST, "stop, %s, %d v: %d  sd: %d          ", train_data->landmark->name, train_data->ahead_lm >> 18, train_data->velocity, find_stop_dist(train_data) >> 18);
 			}
 		} else if (train_data->action == Goto_Merge) {
-			train_data->stop_type = destCheck(train_global, train_data, 
+			train_data->stop_type = destCheck(train_global, train_data,
 										find_stop_dist(train_data), train_data->reverse_node, train_data->reverse_node_offset);
 			if (train_data->stop_type == Entering_Merge) {
 				changeSpeed(train_global, train_data, 0);
@@ -631,7 +631,7 @@ void stopChecking(TrainGlobal *train_global, TrainData *train_data) {
 				}
 			}
 		} else if (train_data->action == Goto_Dest) {
-			train_data->stop_type = destCheck(train_global, train_data, 
+			train_data->stop_type = destCheck(train_global, train_data,
 										find_stop_dist(train_data), train_data->stop_node, 0);
 			if (train_data->stop_type == Entering_Dest) {
 				changeSpeed(train_global, train_data, 0);
@@ -661,14 +661,14 @@ void changeState(TrainGlobal *train_global, TrainData *train_data) {
 					train_data->stop_type = None;
 				}
 				break;
-				
+
 			case Entering_Dest:
 				train_data->stop_type = None;
 				train_data->stop_node = NULL;
 				train_data->action = Free_Run;
 				uiprintf(train_global->com2_tid, ROW_TRAIN + train_data->index * HEIGHT_TRAIN + ROW_ROUTE, COLUMN_DATA_1, "    ");
 				break;
-				
+
 			case Entering_Merge:
 
 				reverseTrainAndLandmark(train_global, train_data, train_global->switch_table);
@@ -676,13 +676,13 @@ void changeState(TrainGlobal *train_global, TrainData *train_data) {
 				train_data->reverse_node = NULL;
 				train_data->reverse_node_offset = 0;
 				train_data->merge_node = NULL;
-				
+
 				CreateWithArgs(2, routeRequest, (int)train_global, (int)train_data, (int)train_data->stop_node, 0);
 				train_data->check_point = -1;
 				train_data->action = Off_Route;
 				train_data->stop_type = Finding_Route;
 				break;
-				
+
 			case Reversing:
 				reverseTrainAndLandmark(train_global, train_data, train_global->switch_table);
 				// reserveInReversing(train_global, train_data);
@@ -694,11 +694,11 @@ void changeState(TrainGlobal *train_global, TrainData *train_data) {
 					train_data->stop_type = Finding_Route;
 				}
 				break;
-			
+
 			case Stopped:
 				train_data->stop_type = None;
 				break;
-			
+
 			case RB_slowing:
 				// Wait for last reservation result, then enter recovery mode
 				result = gotoNode(train_data->predict_dest->reverse, train_data->last_receive_sensor->reverse, train_global, 8);
@@ -710,7 +710,7 @@ void changeState(TrainGlobal *train_global, TrainData *train_data) {
 				train_data->action = RB_last_ss;
 				// train_data->stop_type = RB_changing_to_lost;
 				break;
-				
+
 			case RB_go:
 				assert(0, "should stop in RB_last_ss or RB_go");
 				break;
@@ -724,7 +724,7 @@ void changeState(TrainGlobal *train_global, TrainData *train_data) {
 
 void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 	track_node *track_nodes = train_global->track_nodes;
-	int tid, result, need_recalculate, i;
+	int tid, result, need_recalculate;
 	int train_id = train_data->id;
 	int train_index = train_data->index;
 
@@ -757,7 +757,7 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 	cmd[1] = train_id;
 
 	// iprintf(com2_tid, 10, "\e[s\e[20;2Hcom2: %d \e[u", com2_tid);
-	
+
 	Delay(1000);
 
 	while(1) {
@@ -766,13 +766,13 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 		if (tid == secretary_tid) {
 			Reply(tid, NULL, 0);
 			train_data->timer = getTimerValue(TIMER3_BASE);
-			
+
 			updateTrainStatus(train_global, train_data);
 			updateReservation(train_global, train_data);
 			stopChecking(train_global, train_data);
 			changeState(train_global, train_data);
 			train_data->prev_timer = train_data->timer;
-			
+
 			cnt++;
 			if (cnt == 8) cnt = 0;
 
@@ -812,7 +812,7 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 						train_data->reverse_protect = FALSE;
 					}
 				}
-				
+
 				if (train_data->action == RB_last_ss) {
 					uiprintf(train_global->com2_tid, ROW_TRAIN + train_data->index * HEIGHT_TRAIN + ROW_CURRENT + 3, COLUMN_DATA_3, "%s  ", track_nodes[msg.location_msg.id].name);
 					if (train_data->stop_node != NULL) {
@@ -821,12 +821,12 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 						train_data->action = Free_Run;
 					}
 				}
-				
+
 				train_data->last_receive_sensor = &(track_nodes[msg.location_msg.id]);
 				train_data->sensor_for_reserve = &(track_nodes[msg.location_msg.id]);
 				train_data->predict_sensor_num = 0;
 				need_recalculate = FALSE;
-				
+
 				updateCurrentLandmark(train_global, train_data, &(track_nodes[msg.location_msg.id]), train_global->switch_table);
 				if (train_data->action == Off_Route && train_data->stop_type == None) {
 					need_recalculate = TRUE;
@@ -838,7 +838,7 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 						changeNextSW(train_global, train_data, train_data->check_point, train_global->switch_table, find_stop_dist(train_data) >> DIST_SHIFT);
 					}
 				}
-				
+
 				if (need_recalculate) {
 					CreateWithArgs(2, routeRequest, (int)train_global, (int)train_data, (int)(train_data->stop_node), 0);
 					changeSpeed(train_global, train_data, 0);
@@ -850,7 +850,7 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 				break;
 			case CMD_GOTO:
 				Reply(tid, NULL, 0);
-				
+
 				CreateWithArgs(2, routeRequest, (int)train_global, (int)train_data, (int)(&(track_nodes[msg.location_msg.value])), 0);
 				if (train_data->speed % 16  != 0) {
 					changeSpeed(train_global, train_data, 0);
@@ -858,7 +858,7 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 				train_data->check_point = -1;
 				train_data->action = Off_Route;
 				train_data->stop_type = Finding_Route;
-				
+
 				break;
 			case CMD_MARGIN:
 				Reply(tid, NULL, 0);

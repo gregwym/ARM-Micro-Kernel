@@ -44,7 +44,7 @@ typedef enum {
 	// RS_Reversing,
 	// RS_Recovery
 // } RSType;
-	
+
 
 typedef struct reservation {
 	volatile int landmark_id;
@@ -60,7 +60,7 @@ typedef struct train_data {
 	int			acceleration_time;
 	int			ht_length[2];
 	int			deceleration;
-	
+
 	/* speed and acceleration */
 	volatile int	speed;
 	volatile int	old_speed;
@@ -70,7 +70,7 @@ typedef struct train_data {
 	volatile int			acceleration;
 	volatile int	v_to_0;
 	volatile int	reverse_delay;
-	
+
 	/* route finding */
 	track_node *route[TRACK_MAX];
 	track_node *overall_route[TRACK_MAX];
@@ -78,7 +78,7 @@ typedef struct train_data {
 	volatile int	route_start;
 	volatile int	overall_route_start;
 	int 			margin;
-	
+
 	/* nodes */
 	track_node *exit_node;
 	track_node *stop_node;
@@ -86,12 +86,12 @@ typedef struct train_data {
 	int reverse_node_offset;
 	track_node *merge_node;
 	int merge_state;
-	
-	
+
+
 	/* timer */
 	volatile unsigned int timer;
 	volatile unsigned int prev_timer;
-	
+
 
 	/* Volatile Data */
 	int				index;
@@ -111,17 +111,18 @@ typedef struct train_data {
 	volatile int	dist_since_last_rs;
 	volatile int	is_lost;
 	volatile int	on_route;
-	
+
 	volatile unsigned int 	last_reservation_time;
 	volatile int			waiting_for_reserver;
 	Reservation				reservation_record;
 	Reservation				recovery_reservation;
-	
+
 	int				reverse_protect;
 	track_node *	untrust_sensor;
 } TrainData;
 
 void init_train37(TrainData *train);
 void init_train49(TrainData *train);
+void init_train50(TrainData *train);
 
 #endif // __TRAIN_DATA_H__

@@ -270,13 +270,12 @@ void routeServer(TrainGlobal *train_global) {
 	int i, tid, result, need_reverse, com1_tid, com2_tid, tmp_dist;
 	com1_tid = train_global->com1_tid;
 	com2_tid = train_global->com2_tid;
-	int col_cnt = 1;
-	
+
 	char str_buf[1024];
 	char *buf_cursor = str_buf;
-	
+
 	int map_record[TRACK_MAX];
-	
+
 	for (i = 0; i < TRACK_MAX; i++) {
 		map_record[i] = 0;
 	}
@@ -291,7 +290,7 @@ void routeServer(TrainGlobal *train_global) {
 				msg.train_data->route_start = findRoute(train_global, msg.train_data, msg.destination, map_record, &need_reverse);
 				msg.train_data->overall_route_start = msg.train_data->route_start;
 				msg.train_data->stop_node = msg.train_data->route[TRACK_MAX - 1];
-				
+
 				i = msg.train_data->route_start;
 				buf_cursor += sprintf(buf_cursor, "\e[s\e[%d;%dH", TRAIN_ROUTE + msg.train_data->index * 3, COLUMN_FIRST);
 				for(; i < TRACK_MAX; i++) {
@@ -305,7 +304,7 @@ void routeServer(TrainGlobal *train_global) {
 				Puts(com2_tid, str_buf, 0);
 				str_buf[0] = '\0';
 				buf_cursor = str_buf;
-				
+
 				if (need_reverse) {
 					CreateWithArgs(2, routeDelivery, msg.train_data->tid, NEED_REVERSE, 0, 0);
 				} else {
@@ -318,12 +317,12 @@ void routeServer(TrainGlobal *train_global) {
 				}
 				markRoute(map_record, msg.train_data->overall_route, msg.train_data->overall_route_start);
 				break;
-				
+
 			case CLEAR_ROUTE:
 				clearRoute(map_record, msg.train_data->overall_route, msg.train_data->overall_route_start);
 				msg.train_data->overall_route_start = TRACK_MAX;
 				break;
-				
+
 			default:
 				assert(0, "routeServer receive invalid msg type");
 		}
