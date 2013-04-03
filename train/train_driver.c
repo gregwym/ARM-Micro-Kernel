@@ -278,7 +278,8 @@ void changeNextSW(TrainGlobal *train_global, TrainData *train_data, int check_po
 	int distance = 0;
 	// check_point += 1;
 	track_node **route = train_data->route;
-	for (; check_point >= 0 && check_point < TRACK_MAX && distance < 1050; check_point++) {
+	int ahead_lm = train_data->ahead_lm >> DIST_SHIFT;
+	for (; check_point >= 0 && check_point < TRACK_MAX && distance < threshold + ahead_lm; check_point++) {
 		if (route[check_point]->type == NODE_BRANCH && check_point + 1 < TRACK_MAX) {
 			if (route[check_point + 1] == route[check_point]->edge[DIR_STRAIGHT].dest) {
 				if (switch_table[switchIdToIndex(route[check_point]->num)] != SWITCH_STR) {
@@ -358,8 +359,9 @@ int find_stop_dist(TrainData *train_data) {
 void reserveInRecovery(TrainGlobal *train_global, TrainData *train_data) {
 	// bwprintf(COM2, "Recovery %d + %dmm\n", train_data->landmark->index, (find_stop_dist(train_data) + train_data->ahead_lm) >> DIST_SHIFT);
 	IDEBUG(DB_RESERVE, 4, ROW_DEBUG_1 + 7, 40 * train_data->index + 2, "Recovery %d + %dmm", train_data->last_receive_sensor->reverse->index, (find_stop_dist(train_data)) >> DIST_SHIFT);
+	int index = train_data->last_receive_sensor == NULL ? train_data->landmark->index : train_data->last_receive_sensor->reverse->index;
 	CreateWithArgs(RESERVER_PRIORITY, trackReserver, (int)train_global,
-				   (int)train_data, train_data->last_receive_sensor->reverse->index,
+				   (int)train_data, index,
 				   (find_stop_dist(train_data)) >> DIST_SHIFT);
 	train_data->waiting_for_reserver = TRUE;
 	train_data->last_reservation_time = train_data->timer;
@@ -565,9 +567,6 @@ void updateTrainStatus(TrainGlobal *train_global, TrainData *train_data) {
 			int tmp = updateCheckPoint(train_data, train_data->route, train_data->check_point, train_data->route_start);
 			if (tmp != -1) {
 				train_data->check_point = tmp;
-				if (train_data->landmark->type == NODE_SENSOR) {
-					changeNextSW(train_global, train_data, train_data->check_point, train_global->switch_table, find_stop_dist(train_data) >> DIST_SHIFT);
-				}
 			// assert(check_point != -1, "check_point is -1");
 			} else {
 				train_data->check_point = -1;
@@ -591,6 +590,7 @@ void updateTrainStatus(TrainGlobal *train_global, TrainData *train_data) {
 
 void updateReservation(TrainGlobal *train_global, TrainData *train_data) {
 	if (train_data->last_reservation_time - train_data->timer > 400) {
+		changeNextSW(train_global, train_data, train_data->check_point, train_global->switch_table, find_stop_dist(train_data) >> DIST_SHIFT);
 		if (train_data->waiting_for_reserver) {
 			changeSpeed(train_global, train_data, 0);
 			// train_data->acceleration = train_data->deceleration;
@@ -849,8 +849,6 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 					train_data->check_point = updateCheckPoint(train_data, train_data->route, train_data->check_point, train_data->route_start);
 					if (train_data->check_point == -1) {
 						need_recalculate = TRUE;
-					} else {
-						changeNextSW(train_global, train_data, train_data->check_point, train_global->switch_table, find_stop_dist(train_data) >> DIST_SHIFT);
 					}
 				}
 
