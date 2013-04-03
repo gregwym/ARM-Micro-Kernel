@@ -118,6 +118,57 @@ int deliverCmd(char *input, const char **train_cmds, int tid) {
 			input = str2token(input, token, 8);
 			cmd_msg.value = tr_atoi(token);
 			break;
+		case CMD_SET:
+			input = str2token(input, token, 8);
+			cmd_msg.id = tr_atoi(token);
+
+			input = str2token(input, token, 8);
+			if (token[0] <= 'E' && token[0] >= 'A' && token[1] >= '1' && token[1] <= '9') {
+				cmd_msg.value = (token[0] - 'A') * 16 + tr_atoi(&(token[1])) - 1;
+			} else if (token[0] == 'B' && token[1] == 'R' && token[2] >= '1' && token[2] <= '9') {
+				int index = tr_atoi(&(token[2]));
+				if (index <= 18) {
+					cmd_msg.value = 80 + (index - 1) * 2;
+				} else if (index <= 156 && index >= 153) {
+					cmd_msg.value = 116 + (index - 153) * 2;
+				} else {
+					return -1;
+				}
+			} else if (token[0] == 'M' && token[1] == 'R' && token[2] >= '1' && token[2] <= '9') {
+				int index = tr_atoi(&(token[2]));
+				if (index <= 18) {
+					cmd_msg.value = 80 + (index - 1) * 2 + 1;
+				} else if (index <= 156 && index >= 153) {
+					cmd_msg.value = 116 + (index - 153) * 2 + 1;
+				} else {
+					return -1;
+				}
+			} else if (token[0] == 'E' && token[1] == 'N' && token[2] >= '1' && token[2] <= '9') {
+				int index = tr_atoi(&(token[2]));
+				if (index <= 5) {
+					cmd_msg.value = 124 + (index - 1) * 2;
+				} else if (index == 7) {
+					cmd_msg.value = 134;
+				} else if (index == 9 || index == 10) {
+					cmd_msg.value = 136 + (index - 9) * 2;
+				} else {
+					return -1;
+				}
+			} else if (token[0] == 'E' && token[1] == 'X' && token[2] >= '1' && token[2] <= '9') {
+				int index = tr_atoi(&(token[2]));
+				if (index <= 5) {
+					cmd_msg.value = 124 + (index - 1) * 2 + 1;
+				} else if (index == 7) {
+					cmd_msg.value = 135;
+				} else if (index == 9 || index == 10) {
+					cmd_msg.value = 136 + (index - 9) * 2 + 1;
+				} else {
+					return -1;
+				}
+			} else {
+				return -1;
+			}
+			break;
 		case CMD_QUIT:
 			break;
 		default:
@@ -141,6 +192,7 @@ void trainCmdNotifier() {
 	train_cmds[CMD_QUIT] = "q";
 	train_cmds[CMD_GOTO] = "to";
 	train_cmds[CMD_MARGIN] = "mg";
+	train_cmds[CMD_SET] = "set";
 
 	while (1) {
 		ch = Getc(com2_tid);

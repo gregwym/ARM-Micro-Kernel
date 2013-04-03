@@ -877,6 +877,9 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 				Reply(tid, NULL, 0);
 				train_data->margin = msg.cmd_msg.value;
 				break;
+			case CMD_SET:
+				updateCurrentLandmark(train_global, train_data, &(track_nodes[msg.location_msg.value]), train_global->switch_table);
+				break;
 			case TRACK_RESERVE_FAIL:
 				Reply(tid, NULL, 0);
 				train_data->waiting_for_reserver = FALSE;
