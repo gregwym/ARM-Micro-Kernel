@@ -83,6 +83,9 @@ void trainDriver(TrainGlobal *train_global, TrainProperties *train_properties) {
 	unsigned int t1 = 0xffffffff;
 	unsigned int t2 = 0;
 	unsigned int dist_traveled = -1;
+	int ss_cnt = 0;
+	int v_list[15];
+	int i;
 
 	while(1) {
 		result = Receive(&tid, (char *)(&msg), sizeof(TrainMsg));
@@ -101,14 +104,27 @@ void trainDriver(TrainGlobal *train_global, TrainProperties *train_properties) {
 			case LOCATION_CHANGE:
 				Reply(tid, NULL, 0);
 				if(msg.location_msg.value) {
+					ss_cnt++;
+					if (ss_cnt == 10) {
+						t1 = getTimerValue(TIMER3_BASE);
+						dist_traveled = 0;
+					} else if (ss_cnt == 200 + speed * 5) {
+						t2 = getTimerValue(TIMER3_BASE);
+						v_list[speed] = (((dist_traveled << 15) / (t1 - t2)) << 3);
+						sprintf(str_buf, "speed %d: %u \n", speed, v_list[speed]);
+						Puts(com2_tid, str_buf, 0);
+						str_buf[0] = '\0';
+						ss_cnt = 0;
+						speed++;
+						if (speed == 15) {
+							setTrainSpeed(train_id, 0, com1_tid);
+						} else {
+							setTrainSpeed(train_id, speed, com1_tid);
+						}
+					}
 					cur_landmark = &(track_nodes[msg.location_msg.id]);
-					t2 = getTimerValue(TIMER3_BASE);
-					dist_traveled = calcDistance(prev_landmark, cur_landmark, 5);
-					dist_traveled = dist_traveled << 18;
-					sprintf(str_buf, "T#%d->%s\t%d\t%u\t%u\n", train_id, track_nodes[msg.location_msg.id].name, speed, dist_traveled / (t1 - t2), dist_traveled);
-					Puts(com2_tid, str_buf, 0);
+					dist_traveled += calcDistance(prev_landmark, cur_landmark, 5);
 					prev_landmark = cur_landmark;
-					t1 = t2;
 				}
 				break;
 			default:

@@ -119,7 +119,7 @@ void trainCenter(TrainGlobal *train_global) {
 
 	/* TrainDrivers */
 	TrainProperties train_properties[NUM_TRAIN];
-	train_properties[0].id = 49;
+	train_properties[0].id = 50;
 	train_properties[0].tid = CreateWithArgs(6, trainDriver, (int)train_global, (int)&(train_properties[0]), 0, 0);
 	train_global->train_properties = train_properties;
 
