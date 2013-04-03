@@ -1,4 +1,5 @@
 #include <klib.h>
+#include <unistd.h>
 
 void _assert(char *pos, char *test, char *msg){
 	/* print assertion message and abort */
