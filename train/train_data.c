@@ -213,16 +213,16 @@ void init_train50(TrainData *train) {
 	train->velocities[2] = 7000;
 	train->velocities[3] = 14000;
 	train->velocities[4] = 22000;
-	train->velocities[5] = 30806;
-	train->velocities[6] = 37480;
-	train->velocities[7] = 45353;
-	train->velocities[8] = 52576;
-	train->velocities[9] = 60401;
-	train->velocities[10] = 67589;
-	train->velocities[11] = 75342;
-	train->velocities[12] = 82189;
-	train->velocities[13] = 85000;
-	train->velocities[14] = 84500;
+	train->velocities[5] = 28832;
+	train->velocities[6] = 35856;
+	train->velocities[7] = 43664;
+	train->velocities[8] = 50552;
+	train->velocities[9] = 57464;
+	train->velocities[10] = 63696;
+	train->velocities[11] = 69992;
+	train->velocities[12] = 76608;
+	train->velocities[13] = 82720;
+	train->velocities[14] = 82872;
 
 	train->ht_length[0] = 50;
 	train->ht_length[1] = 180;

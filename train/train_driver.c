@@ -716,8 +716,9 @@ void changeState(TrainGlobal *train_global, TrainData *train_data) {
 
 			case RB_slowing:
 				// Wait for last reservation result, then enter recovery mode
-				result = gotoNode(train_data->predict_dest->reverse, train_data->last_receive_sensor->reverse, train_global, 8);
-
+				if (train_data->last_receive_sensor != NULL ) {
+					result = gotoNode(train_data->predict_dest->reverse, train_data->last_receive_sensor->reverse, train_global, 8);
+				}
 				reverseTrainAndLandmark(train_global, train_data, train_global->switch_table);
 
 				uiprintf(train_global->com2_tid, ROW_TRAIN + train_data->index * HEIGHT_TRAIN + ROW_CURRENT + 2, COLUMN_DATA_3, "%s->%s  ", train_data->landmark->name, train_data->last_receive_sensor->reverse->name);
