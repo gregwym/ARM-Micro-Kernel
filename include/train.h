@@ -26,6 +26,13 @@
 
 #define TRAIN_REVERSE 15
 
+typedef struct center_data {
+	char			*sensor_data;
+	track_node		*last_lost_sensor;
+	unsigned int	last_lost_timestamp;
+	int				lost_count;
+} CenterData;
+
 typedef struct train_global {
 	int com1_tid;
 	int com2_tid;
@@ -37,7 +44,6 @@ typedef struct train_global {
 	TrainData	**train_id_data;
 	TrainData	**track_reservation;
 	TrainData	**recovery_reservation;
-	track_node	*last_lost_sensor;
 } TrainGlobal;
 
 typedef enum train_msg_type {
@@ -50,6 +56,7 @@ typedef enum train_msg_type {
 	CMD_MAX,
 	SENSOR_DATA,
 	LOCATION_CHANGE,
+	LOCATION_RECOVERY,
 	TRACK_RESERVE,
 	TRACK_RECOVERY_RESERVE,
 	TRACK_RESERVE_FAIL,

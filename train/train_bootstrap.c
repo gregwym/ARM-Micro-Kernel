@@ -101,7 +101,6 @@ void trainBootstrap() {
 	train_global.train_id_data = train_id_data;
 	train_global.track_reservation = track_reservation;
 	train_global.recovery_reservation = recovery_reservation;
-	train_global.last_lost_sensor = NULL;
 
 	/* initial UI */
 	initializeUI(train_global.com2_tid, trains_data);
