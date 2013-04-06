@@ -35,10 +35,12 @@ typedef struct train_global {
 	char		*switch_table;
 	TrainData	*trains_data;
 	TrainData	**train_id_data;
+	Orbit		*orbits;
 	TrainData	**track_reservation;
 	TrainData	**recovery_reservation;
 } TrainGlobal;
 
+/* Messages */
 typedef enum train_msg_type {
 	// Train commands
 	CMD_SPEED = 0,
@@ -48,6 +50,7 @@ typedef enum train_msg_type {
 	CMD_GOTO,
 	CMD_MARGIN,
 	CMD_SET,
+	CMD_ORBIT,
 	CMD_MAX,
 	// Location update
 	SENSOR_DATA,
@@ -84,6 +87,12 @@ typedef struct pair_msg LocationMsg;
 
 typedef struct {
 	TrainMsgType	type;
+	TrainData		*train_data;
+	track_node		*destination;
+} RouteMsg;
+
+typedef struct {
+	TrainMsgType	type;
 	TrainData*		train_data;
 	int				landmark_id;
 	int				distance;
@@ -107,12 +116,6 @@ typedef union train_msg {
 	ReservationMsg	reservation_msg;
 	SatelliteReport	satellite_report;
 } TrainMsg;
-
-typedef struct {
-	TrainMsgType	type;
-	TrainData		*train_data;
-	track_node		*destination;
-} RouteMsg;
 
 typedef struct center_data {
 	char			*sensor_data;

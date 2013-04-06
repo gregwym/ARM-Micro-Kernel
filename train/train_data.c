@@ -38,6 +38,23 @@ void init_train37(TrainData *train) {
 
 	train->ht_length[0] = 50;
 	train->ht_length[1] = 160;
+	
+	train->timer = 0xffffffff;
+	train->prev_timer = 0xffffffff;
+	train->sensor_timeout = 0;
+	
+	train->last_report_time = 0xffffffff;
+	train->waiting_for_reporter = FALSE;
+	train->next_sensor = NULL;
+	
+	train->parent_train = NULL;
+	train->follow_mode = Percentage;
+	train->follow_dist = 200;
+	train->follow_percentage = 50;
+	train->dist_traveled = 0;
+	
+	train->orbit = NULL;
+	train->check_point = -1;
 
 	train->tid = -1;
 	train->speed = 0;
@@ -57,12 +74,6 @@ void init_train37(TrainData *train) {
 	train->acceleration = 0;
 	train->acceleration_step = -1;
 	train->acceleration_alarm = 0;
-
-	
-	train->timer = 0xffffffff;
-	train->prev_timer = 0xffffffff;
-	train->sensor_timeout = 0;
-	
 
 	train->last_receive_sensor = NULL;
 
@@ -115,14 +126,18 @@ void init_train49(TrainData *train) {
 	train->timer = 0xffffffff;
 	train->prev_timer = 0xffffffff;
 	train->sensor_timeout = 0;
+	
 	train->last_report_time = 0xffffffff;
 	train->waiting_for_reporter = FALSE;
+	train->next_sensor = NULL;
 	
-	train->dist_traveled = 0;
+	train->parent_train = NULL;
+	train->follow_mode = Percentage;
 	train->follow_dist = 200;
 	train->follow_percentage = 50;
-	train->follow_mode = Percentage;
+	train->dist_traveled = 0;
 	
+	train->orbit = NULL;
 	train->check_point = -1;
 
 	train->tid = -1;
@@ -144,7 +159,6 @@ void init_train49(TrainData *train) {
 	train->acceleration = 0;
 	train->acceleration_step = -1;
 	train->acceleration_alarm = 0;
-	
 
 	train->action = To_Orbit;
 
@@ -195,14 +209,18 @@ void init_train50(TrainData *train) {
 	train->timer = 0xffffffff;
 	train->prev_timer = 0xffffffff;
 	train->sensor_timeout = 0;
+	
 	train->last_report_time = 0xffffffff;
 	train->waiting_for_reporter = FALSE;
+	train->next_sensor = NULL;
 	
+	train->parent_train = NULL;
+	train->follow_mode = Percentage;
+	train->follow_dist = 200;
+	train->follow_percentage = 50;
 	train->dist_traveled = 0;
-	train->follow_dist = 270;
-	train->follow_percentage = 1;
-	train->follow_mode = MM;
 	
+	train->orbit = NULL;
 	train->check_point = -1;
 
 	train->tid = -1;
