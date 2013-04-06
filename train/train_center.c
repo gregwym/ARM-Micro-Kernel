@@ -337,11 +337,27 @@ void handleLocationRecovery(TrainGlobal *train_global, CenterData *center_data, 
 
 	if (center_data->last_lost_sensor != NULL && time_diff < RECOVERY_TIME_THRESHOLD) {
 		int landmark_id = center_data->last_lost_sensor->index;
+		center_data->last_lost_sensor = NULL;
 		CreateWithArgs(2, locationPostman, train_data->tid, landmark_id, 0, 0);
 		IDEBUG(DB_RESERVE, train_global->com2_tid, ROW_DEBUG_1 + 5, train_data->index * WIDTH_DEBUG, "#%d recovery to #%s  ", train_id, train_global->track_nodes[landmark_id].name);
 	} else {
 		IDEBUG(DB_RESERVE, train_global->com2_tid, ROW_DEBUG_1 + 5, train_data->index * WIDTH_DEBUG, "Unable to recovery #%d", train_id);
 	}
+}
+
+void saveSatelliteReport(TrainGlobal *train_global, CenterData *center_data, SatelliteReport *satellite_report) {
+	// Save report
+	SatelliteReport *satellite_reports = center_data->satellite_reports;
+	int train_index = satellite_report->train_data->index;
+	memcpy(&(satellite_reports[train_index]), satellite_report, sizeof(SatelliteReport));
+
+	// Update sensor reservation
+	// TODO
+}
+
+void fetchSatelliteReport(TrainGlobal *train_global, CenterData *center_data, SatelliteReport *satellite_report, int train_index) {
+	SatelliteReport *satellite_reports = center_data->satellite_reports;
+	memcpy(satellite_report, &(satellite_reports[train_index]), sizeof(SatelliteReport));
 }
 
 /* Train Center */
@@ -374,10 +390,17 @@ void trainCenter(TrainGlobal *train_global) {
 	/* Initialize Train Drivers */
 	TrainData *trains_data = train_global->trains_data;
 	TrainData **train_id_data = train_global->train_id_data;
+	SatelliteReport satellite_reports[TRAIN_MAX];
 	for(i = 0; i < TRAIN_MAX; i++) {
 		assert(trains_data[i].id < TRAIN_ID_MAX, "Exceed max train number");
 		trains_data[i].tid = CreateWithArgs(9, trainDriver, (int)train_global, (int)&(trains_data[i]), 0, 0);
+		satellite_reports[i].type = SATELLITE_REPORT;
+		satellite_reports[i].train_data = &(trains_data[i]);
+		satellite_reports[i].orbit_id = -1;
+		satellite_reports[i].distance = -1;
+		satellite_reports[i].parent_data = NULL;
 	}
+	center_data.satellite_reports = satellite_reports;
 	Delay(TRAIN_INIT_DELAY);
 
 	/* Initialize switches */
@@ -428,6 +451,15 @@ void trainCenter(TrainGlobal *train_global) {
 			case LOCATION_RECOVERY:
 				Reply(tid, NULL, 0);
 				handleLocationRecovery(train_global, &center_data, msg.location_msg.id, msg.location_msg.value);
+				break;
+			case SATELLITE_REPORT:
+				saveSatelliteReport(train_global, &center_data, &(msg.satellite_report));
+				if(msg.satellite_report.parent_data != NULL) {
+					fetchSatelliteReport(train_global, &center_data, &(msg.satellite_report), msg.satellite_report.parent_data->index);
+					Reply(tid, (char *)(&(msg.satellite_report)), sizeof(SatelliteReport));
+				} else {
+					Reply(tid, NULL, 0);
+				}
 				break;
 			default:
 				sprintf(str_buf, "Center got unknown msg, type: %d\n", msg.type);
