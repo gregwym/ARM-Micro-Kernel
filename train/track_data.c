@@ -2376,17 +2376,16 @@ void init_orbit1(Orbit *orbit, track_node *track) {
 	orbit->orbit_start = &(track[14]);
 	orbit->orbit_route[0] = orbit->orbit_start;
 	orbit->orbit_length = 5313;
-	int i = 0;
 	while (1) {
-		switch(orbit_route[i]->type) {
+		switch(orbit->orbit_route[i]->type) {
 			case NODE_ENTER:
 			case NODE_SENSOR:
 			case NODE_MERGE:
-				tmp = orbit_route[i]->edge[DIR_AHEAD].dest;
+				tmp = orbit->orbit_route[i]->edge[DIR_AHEAD].dest;
 				break;
 			case NODE_BRANCH:
-				direction = orbit->orbit_switches[switchIdToIndex(orbit_route[i]->num)] - 33;
-				tmp = orbit_route[i]->edge[direction].dest;
+				direction = orbit->orbit_switches[switchIdToIndex(orbit->orbit_route[i]->num)] - 33;
+				tmp = orbit->orbit_route[i]->edge[direction].dest;
 				break;
 			case NODE_EXIT:
 				assert(0, "orbit1 init hit an exit point");
@@ -2395,9 +2394,9 @@ void init_orbit1(Orbit *orbit, track_node *track) {
 		}
 	
 		if (tmp != orbit->orbit_start) {
-			orbit_route[i + 1] = tmp;
+			orbit->orbit_route[i + 1] = tmp;
 		} else {
-			orbit->orbit_length = i + 1;
+			orbit->nodes_num = i + 1;
 			break;
 		}
 		i++;

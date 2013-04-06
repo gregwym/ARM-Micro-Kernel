@@ -14,7 +14,8 @@ void init_trackb(track_node *track);
 typedef struct {
 	int id;
 	int orbit_length;
-	track_node **orbit_route[50];
+	int nodes_num;
+	track_node *orbit_route[50];
 	track_node *orbit_start;
 	char orbit_switches[22];
 } Orbit;

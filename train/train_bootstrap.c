@@ -85,8 +85,9 @@ void trainBootstrap() {
 	init_train49(&(trains_data[0]));
 	init_train50(&(trains_data[1]));
 	
-	trains_data[0].orbit = &(orbit[0]);
-	trains_data[1].orbit = &(orbit[0]);
+	trains_data[0].orbit = &(orbits[0]);
+	trains_data[1].orbit = &(orbits[0]);
+	trains_data[1].parent_train = &(trains_data[0]);
 
 	
 	for(i = 0; i < TRAIN_MAX; i++) {
@@ -117,8 +118,8 @@ void trainBootstrap() {
 	Create(8, trainclockserver);
 	tid = CreateWithArgs(8, trainCenter, (int)(&train_global), 0, 0, 0);
 	train_global.center_tid = tid;
-	tid = CreateWithArgs(8, routeServer, (int)(&train_global), 0, 0, 0);
-	train_global.route_server_tid = tid;
+	// tid = CreateWithArgs(8, routeServer, (int)(&train_global), 0, 0, 0);
+	// train_global.route_server_tid = tid;
 	
 	Receive(&tid, NULL, 0);
 
