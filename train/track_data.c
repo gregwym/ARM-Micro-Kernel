@@ -2370,12 +2370,14 @@ void init_orbit1(Orbit *orbit, track_node *track) {
 	for (i = 0; i < 22; i++) {
 		orbit->orbit_switches[i] = SWITCH_CUR;
 	}
+	orbit->orbit_switches[3] = SWITCH_STR;
 	orbit->orbit_switches[8] = SWITCH_STR;
-	orbit->orbit_switches[11] = SWITCH_STR;
+	orbit->orbit_switches[10] = SWITCH_STR;
 	
 	orbit->orbit_start = &(track[14]);
 	orbit->orbit_route[0] = orbit->orbit_start;
 	orbit->orbit_length = 5313;
+	i = 0;
 	while (1) {
 		switch(orbit->orbit_route[i]->type) {
 			case NODE_ENTER:

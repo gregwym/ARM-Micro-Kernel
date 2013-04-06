@@ -65,14 +65,13 @@ void init_train37(TrainData *train) {
 	
 
 	train->last_receive_sensor = NULL;
-	train->waiting_for_reserver = FALSE;
 
 	train->action = To_Orbit;
 
-	// train->reservation_record.landmark_id = 132;
-	// train->reservation_record.distance = 0;
-	// train->recovery_reservation.landmark_id = -1;
-	// train->recovery_reservation.distance = 0;
+	train->reservation_record.landmark_id = 132;
+	train->reservation_record.distance = 0;
+	train->recovery_reservation.landmark_id = -1;
+	train->recovery_reservation.distance = 0;
 }
 
 void init_train49(TrainData *train) {
@@ -116,6 +115,15 @@ void init_train49(TrainData *train) {
 	train->timer = 0xffffffff;
 	train->prev_timer = 0xffffffff;
 	train->sensor_timeout = 0;
+	train->last_report_time = 0xffffffff;
+	train->waiting_for_reporter = FALSE;
+	
+	train->dist_traveled = 0;
+	train->follow_dist = 200;
+	train->follow_percentage = 50;
+	train->follow_mode = Percentage;
+	
+	train->check_point = -1;
 
 	train->tid = -1;
 	train->speed = 0;
@@ -137,14 +145,13 @@ void init_train49(TrainData *train) {
 	train->acceleration_step = -1;
 	train->acceleration_alarm = 0;
 	
-	train->waiting_for_reserver = FALSE;
 
 	train->action = To_Orbit;
 
-	train->reservation_record.landmark_id = 132;
-	// train->reservation_record.distance = 0;
-	// train->recovery_reservation.landmark_id = -1;
-	// train->recovery_reservation.distance = 0;
+	train->reservation_record.landmark_id = 24;
+	train->reservation_record.distance = 0;
+	train->recovery_reservation.landmark_id = -1;
+	train->recovery_reservation.distance = 0;
 }
 
 void init_train50(TrainData *train) {
@@ -188,6 +195,15 @@ void init_train50(TrainData *train) {
 	train->timer = 0xffffffff;
 	train->prev_timer = 0xffffffff;
 	train->sensor_timeout = 0;
+	train->last_report_time = 0xffffffff;
+	train->waiting_for_reporter = FALSE;
+	
+	train->dist_traveled = 0;
+	train->follow_dist = 200;
+	train->follow_percentage = 1;
+	train->follow_mode = Percentage;
+	
+	train->check_point = -1;
 
 	train->tid = -1;
 	train->speed = 0;
@@ -211,8 +227,8 @@ void init_train50(TrainData *train) {
 
 	train->action = To_Orbit;
 
-	train->reservation_record.landmark_id = 134;
-	// train->reservation_record.distance = 0;
-	// train->recovery_reservation.landmark_id = -1;
-	// train->recovery_reservation.distance = 0;
+	train->reservation_record.landmark_id = 26;
+	train->reservation_record.distance = 0;
+	train->recovery_reservation.landmark_id = -1;
+	train->recovery_reservation.distance = 0;
 }

@@ -93,10 +93,10 @@ typedef struct {
 typedef struct {
 	TrainMsgType	type;
 	TrainData*		train_data;
-	int				orbit_id;
+	Orbit*			orbit;
 	int				distance;
 	track_node*		next_sensor;
-	TrainData*		parent_data;
+	TrainData*		parent_train;
 } SatelliteReport;
 
 typedef union train_msg {

@@ -58,18 +58,25 @@ typedef struct train_data {
 	track_node *exit_node;
 
 	/* train following */
-	struct train_data *	volatile  parent_train;
+	struct train_data *	volatile  	parent_train;
 	volatile int					follow_dist;
 	volatile int					follow_percentage;
 	volatile int					dist_traveled;
+	FollowMode						follow_mode;
 	
 	/* orbit */
 	Orbit *orbit;
+	volatile int			check_point;
 
 	/* timer */
 	volatile unsigned int timer;
 	volatile unsigned int prev_timer;
 	volatile unsigned int sensor_timeout;
+	
+	/* report */
+	volatile unsigned int	last_report_time;
+	volatile int			waiting_for_reporter;
+	track_node * volatile 	next_sensor;
 
 	/* Volatile Data */
 	int				index;
@@ -85,8 +92,6 @@ typedef struct train_data {
 	volatile int	forward_distance;
 	volatile int	ahead_lm;
 
-	// volatile unsigned int 	last_reservation_time;
-	volatile int			waiting_for_reserver;
 	Reservation				reservation_record;
 	Reservation				recovery_reservation;
 

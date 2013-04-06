@@ -355,10 +355,16 @@ void saveSatelliteReport(TrainGlobal *train_global, CenterData *center_data, Sat
 	memcpy(&(satellite_reports[train_data->index]), satellite_report, sizeof(SatelliteReport));
 
 	// Clear last sensor reservation
-	track_reservation[train_data->reservation_record.landmark_id] = NULL;
+	if (track_reservation[train_data->reservation_record.landmark_id] == train_data) {
+		track_reservation[train_data->reservation_record.landmark_id] = NULL;
+	}
 	// Update sensor reservation
 	track_reservation[sensor_index] = train_data;
 	train_data->reservation_record.landmark_id = sensor_index;
+	
+	IDEBUG(DB_RESERVE, train_global->com2_tid, ROW_DEBUG_1,
+	       WIDTH_DEBUG * train_data->index, "#%dR %s    ",
+	       train_data->id, train_global->track_nodes[sensor_index].name);
 }
 
 void fetchSatelliteReport(TrainGlobal *train_global, CenterData *center_data, SatelliteReport *satellite_report, int train_index) {
@@ -402,9 +408,9 @@ void trainCenter(TrainGlobal *train_global) {
 		trains_data[i].tid = CreateWithArgs(9, trainDriver, (int)train_global, (int)&(trains_data[i]), 0, 0);
 		satellite_reports[i].type = SATELLITE_REPORT;
 		satellite_reports[i].train_data = &(trains_data[i]);
-		satellite_reports[i].orbit_id = -1;
+		satellite_reports[i].orbit = NULL;
 		satellite_reports[i].distance = -1;
-		satellite_reports[i].parent_data = NULL;
+		satellite_reports[i].parent_train = NULL;
 	}
 	center_data.satellite_reports = satellite_reports;
 	Delay(TRAIN_INIT_DELAY);
@@ -460,8 +466,8 @@ void trainCenter(TrainGlobal *train_global) {
 				break;
 			case SATELLITE_REPORT:
 				saveSatelliteReport(train_global, &center_data, &(msg.satellite_report));
-				if(msg.satellite_report.parent_data != NULL) {
-					fetchSatelliteReport(train_global, &center_data, &(msg.satellite_report), msg.satellite_report.parent_data->index);
+				if(msg.satellite_report.parent_train != NULL) {
+					fetchSatelliteReport(train_global, &center_data, &(msg.satellite_report), msg.satellite_report.parent_train->index);
 					Reply(tid, (char *)(&(msg.satellite_report)), sizeof(SatelliteReport));
 				} else {
 					Reply(tid, NULL, 0);

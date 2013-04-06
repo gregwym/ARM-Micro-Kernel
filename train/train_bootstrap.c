@@ -87,6 +87,7 @@ void trainBootstrap() {
 	
 	trains_data[0].orbit = &(orbits[0]);
 	trains_data[1].orbit = &(orbits[0]);
+	trains_data[1].parent_train = NULL;
 	trains_data[1].parent_train = &(trains_data[0]);
 
 	
