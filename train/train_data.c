@@ -199,9 +199,9 @@ void init_train50(TrainData *train) {
 	train->waiting_for_reporter = FALSE;
 	
 	train->dist_traveled = 0;
-	train->follow_dist = 200;
+	train->follow_dist = 270;
 	train->follow_percentage = 1;
-	train->follow_mode = Percentage;
+	train->follow_mode = MM;
 	
 	train->check_point = -1;
 

@@ -519,6 +519,9 @@ void updateTrainStatus(TrainGlobal *train_global, TrainData *train_data) {
 
 void updateReport(TrainGlobal *train_global, TrainData *train_data) {
 	if (train_data->last_report_time - train_data->timer > 400 && !train_data->waiting_for_reporter) {
+		if (train_data->action == On_Orbit) {
+			train_data->dist_traveled = measureDist(train_data);
+		}
 		CreateWithArgs(2, stReport, (int)train_global, (int)train_data, 0, 0);
 		train_data->waiting_for_reporter = TRUE;
 		train_data->last_report_time = train_data->timer;
@@ -563,6 +566,7 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 	
 	int expect_dist_diff = 0;
 	int actual_dist_diff = 0;
+
 
 	while(1) {
 		result = Receive(&tid, (char *)(&msg), sizeof(TrainMsg));
@@ -644,13 +648,23 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 							expect_dist_diff = train_data->follow_dist;
 						}
 						actual_dist_diff = (msg.satellite_report.distance + train_data->orbit->orbit_length - train_data->dist_traveled) % train_data->orbit->orbit_length;
-						
-						if (actual_dist_diff > expect_dist_diff) {
-							changeSpeed(train_global, train_data, 12);
-						} else {
+						result = actual_dist_diff - expect_dist_diff;
+						if (result > 200) {
+							changeSpeed(train_global, train_data, 28);
+						} else if (result > 0) {
+							changeSpeed(train_global, train_data, 27);
+						} else if (result < -200) {
 							changeSpeed(train_global, train_data, 8);
+						} else if (result < 0) {
+							changeSpeed(train_global, train_data, 9);
+						} else {
+							changeSpeed(train_global, train_data, 26);
 						}
 					}
+				}
+				if (train_data->action == On_Orbit) {
+					uiprintf(com2_tid, 36, train_data->index * 40 + 2, "%d  ", train_data->dist_traveled);
+					uiprintf(com2_tid, 37, train_data->index * 40 + 2, "%d  ", (train_data->dist_traveled * 100) / train_data->orbit->orbit_length);
 				}
 				break;
 			
