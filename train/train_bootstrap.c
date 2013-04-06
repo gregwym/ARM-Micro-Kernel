@@ -74,12 +74,22 @@ void trainBootstrap() {
 	/* Switch Data */
 	char switch_table[SWITCH_TOTAL];
 	memset(switch_table, SWITCH_CUR, SWITCH_TOTAL);
+	
+	/* Orbit Data */
+	Orbit orbits[4];
+	init_orbit1(&(orbits[0]), track_nodes);
 
 	/* Train Data */
 	TrainData trains_data[TRAIN_MAX];
 	TrainData *train_id_data[TRAIN_ID_MAX];
 	init_train49(&(trains_data[0]));
 	init_train50(&(trains_data[1]));
+	
+	trains_data[0].orbit = &(orbits[0]);
+	trains_data[1].orbit = &(orbits[0]);
+	trains_data[1].parent_train = &(trains_data[0]);
+
+	
 	for(i = 0; i < TRAIN_MAX; i++) {
 		trains_data[i].index = i;
 		train_id_data[trains_data[i].id] = &(trains_data[i]);
@@ -108,8 +118,8 @@ void trainBootstrap() {
 	Create(8, trainclockserver);
 	tid = CreateWithArgs(8, trainCenter, (int)(&train_global), 0, 0, 0);
 	train_global.center_tid = tid;
-	tid = CreateWithArgs(8, routeServer, (int)(&train_global), 0, 0, 0);
-	train_global.route_server_tid = tid;
+	// tid = CreateWithArgs(8, routeServer, (int)(&train_global), 0, 0, 0);
+	// train_global.route_server_tid = tid;
 	
 	Receive(&tid, NULL, 0);
 
