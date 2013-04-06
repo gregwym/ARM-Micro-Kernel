@@ -18,32 +18,15 @@ typedef enum {
 } TrainDirection;
 
 typedef enum {
-	Free_Run,
-	Goto_Merge,
-	Goto_Dest,
-	Off_Route,
-	RB_last_ss
+	To_Orbit,
+	On_Orbit,
 } Action;
 
 typedef enum {
-	None,
-	Entering_Exit,
-	Entering_Dest,
-	Entering_Merge,
-	Stopped,
-	Reversing,
-	Pending_Reverse,
-	RB_go,
-	RB_slowing,
-	Finding_Route
-} StopType;
+	MM,
+	Percentage,
+} FollowMode;
 
-// typedef enum {
-	// RS_None,
-	// RS_Running,
-	// RS_Reversing,
-	// RS_Recovery
-// } RSType;
 
 
 typedef struct reservation {
@@ -71,27 +54,22 @@ typedef struct train_data {
 	volatile int	v_to_0;
 	volatile int	reverse_delay;
 
-	/* route finding */
-	track_node *route[TRACK_MAX];
-	track_node *overall_route[TRACK_MAX];
-	volatile int	check_point;
-	volatile int	route_start;
-	volatile int	overall_route_start;
-	int 			margin;
-
 	/* nodes */
 	track_node *exit_node;
-	track_node *stop_node;
-	track_node *reverse_node;
-	int reverse_node_offset;
-	track_node *merge_node;
-	int merge_state;
 
+	/* train following */
+	struct train_data *	volatile  parent_train;
+	volatile int					follow_dist;
+	volatile int					follow_percentage;
+	volatile int					dist_traveled;
+	
+	/* orbit */
+	Orbit *orbit;
 
 	/* timer */
 	volatile unsigned int timer;
 	volatile unsigned int prev_timer;
-
+	volatile unsigned int sensor_timeout;
 
 	/* Volatile Data */
 	int				index;
@@ -99,26 +77,19 @@ typedef struct train_data {
 	volatile TrainDirection	direction;
 
 	volatile Action action;
-	volatile StopType stop_type;
 
 	track_node * volatile landmark;
 	track_node * volatile predict_dest;
 	track_node * volatile last_receive_sensor;
-	track_node * volatile sensor_for_reserve;
-	volatile int	predict_sensor_num;
+
 	volatile int	forward_distance;
 	volatile int	ahead_lm;
-	volatile int	dist_since_last_rs;
-	volatile int	is_lost;
-	volatile int	on_route;
 
-	volatile unsigned int 	last_reservation_time;
+	// volatile unsigned int 	last_reservation_time;
 	volatile int			waiting_for_reserver;
 	Reservation				reservation_record;
 	Reservation				recovery_reservation;
 
-	int				reverse_protect;
-	track_node *	untrust_sensor;
 } TrainData;
 
 void init_train37(TrainData *train);

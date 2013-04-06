@@ -26,13 +26,6 @@
 
 #define TRAIN_REVERSE 15
 
-typedef struct center_data {
-	char			*sensor_data;
-	track_node		*last_lost_sensor;
-	unsigned int	last_lost_timestamp;
-	int				lost_count;
-} CenterData;
-
 typedef struct train_global {
 	int com1_tid;
 	int com2_tid;
@@ -47,6 +40,7 @@ typedef struct train_global {
 } TrainGlobal;
 
 typedef enum train_msg_type {
+	// Train commands
 	CMD_SPEED = 0,
 	CMD_REVERSE,
 	CMD_SWITCH,
@@ -55,18 +49,23 @@ typedef enum train_msg_type {
 	CMD_MARGIN,
 	CMD_SET,
 	CMD_MAX,
+	// Location update
 	SENSOR_DATA,
 	LOCATION_CHANGE,
 	LOCATION_RECOVERY,
+	// Reservation
 	TRACK_RESERVE,
 	TRACK_RECOVERY_RESERVE,
 	TRACK_RESERVE_FAIL,
 	TRACK_RESERVE_SUCCEED,
+	// Route finding
 	FIND_ROUTE,
 	CLEAR_ROUTE,
 	GOTO_DEST,
 	GOTO_MERGE,
 	NEED_REVERSE,
+	// Satellite report
+	SATELLITE_REPORT,
 	TRAIN_MSG_MAX,
 } TrainMsgType;
 
@@ -91,12 +90,22 @@ typedef struct {
 	int				num_sensor;
 } ReservationMsg;
 
+typedef struct {
+	TrainMsgType	type;
+	TrainData*		train_data;
+	int				orbit_id;
+	int				distance;
+	track_node*		next_sensor;
+	TrainData*		parent_data;
+} SatelliteReport;
+
 typedef union train_msg {
 	TrainMsgType	type;
 	SensorMsg		sensor_msg;
 	CmdMsg			cmd_msg;
 	LocationMsg		location_msg;
 	ReservationMsg	reservation_msg;
+	SatelliteReport	satellite_report;
 } TrainMsg;
 
 typedef struct {
@@ -104,6 +113,14 @@ typedef struct {
 	TrainData		*train_data;
 	track_node		*destination;
 } RouteMsg;
+
+typedef struct center_data {
+	char			*sensor_data;
+	track_node		*last_lost_sensor;
+	unsigned int	last_lost_timestamp;
+	int				lost_count;
+	SatelliteReport	*satellite_reports;
+} CenterData;
 
 void trainBootstrap();
 void trainCenter(TrainGlobal *train_global);

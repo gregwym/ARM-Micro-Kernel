@@ -57,42 +57,22 @@ void init_train37(TrainData *train) {
 	train->acceleration = 0;
 	train->acceleration_step = -1;
 	train->acceleration_alarm = 0;
-	
-	train->check_point = -1;
-	train->route_start = TRACK_MAX;
-	train->overall_route_start = TRACK_MAX;
-	train->margin = 230;
-	
-	train->exit_node = NULL;
-	train->stop_node = NULL;
-	train->reverse_node = NULL;
-	train->reverse_node_offset = 0;
-	train->merge_node = NULL;
-	train->merge_state = 0;
+
 	
 	train->timer = 0xffffffff;
 	train->prev_timer = 0xffffffff;
-	train->last_reservation_time = 0xffffffff;
+	train->sensor_timeout = 0;
 	
-	train->dist_since_last_rs = 0;
-	train->reverse_delay = FALSE;
+
 	train->last_receive_sensor = NULL;
-	train->sensor_for_reserve = NULL;
-	train->predict_sensor_num = 0;
 	train->waiting_for_reserver = FALSE;
-	train->is_lost = FALSE;
-	train->on_route = FALSE;
 
-	train->action = Free_Run;
-	train->stop_type = None;
+	train->action = To_Orbit;
 
-	train->reservation_record.landmark_id = 132;
-	train->reservation_record.distance = 0;
-	train->recovery_reservation.landmark_id = -1;
-	train->recovery_reservation.distance = 0;
-	
-	train->reverse_protect = FALSE;
-	train->untrust_sensor = NULL;
+	// train->reservation_record.landmark_id = 132;
+	// train->reservation_record.distance = 0;
+	// train->recovery_reservation.landmark_id = -1;
+	// train->recovery_reservation.distance = 0;
 }
 
 void init_train49(TrainData *train) {
@@ -135,6 +115,7 @@ void init_train49(TrainData *train) {
 	
 	train->timer = 0xffffffff;
 	train->prev_timer = 0xffffffff;
+	train->sensor_timeout = 0;
 
 	train->tid = -1;
 	train->speed = 0;
@@ -156,37 +137,14 @@ void init_train49(TrainData *train) {
 	train->acceleration_step = -1;
 	train->acceleration_alarm = 0;
 	
-	train->check_point = -1;
-	train->route_start = TRACK_MAX;
-	train->overall_route_start = TRACK_MAX;
-	train->margin = 250;
-	
-	train->dist_since_last_rs = 0;
-	train->last_receive_sensor = NULL;
-	train->sensor_for_reserve = NULL;
-	train->predict_sensor_num = 0;
 	train->waiting_for_reserver = FALSE;
-	train->last_reservation_time = 0xffffffff;
-	train->is_lost = FALSE;
-	train->on_route = FALSE;
-	
-	train->exit_node = NULL;
-	train->stop_node = NULL;
-	train->reverse_node = NULL;
-	train->reverse_node_offset = 0;
-	train->merge_node = NULL;
-	train->merge_state = 0;
 
-	train->action = Free_Run;
-	train->stop_type = None;
+	train->action = To_Orbit;
 
 	train->reservation_record.landmark_id = 132;
-	train->reservation_record.distance = 0;
-	train->recovery_reservation.landmark_id = -1;
-	train->recovery_reservation.distance = 0;
-	
-	train->reverse_protect = FALSE;
-	train->untrust_sensor = NULL;
+	// train->reservation_record.distance = 0;
+	// train->recovery_reservation.landmark_id = -1;
+	// train->recovery_reservation.distance = 0;
 }
 
 void init_train50(TrainData *train) {
@@ -229,6 +187,7 @@ void init_train50(TrainData *train) {
 	
 	train->timer = 0xffffffff;
 	train->prev_timer = 0xffffffff;
+	train->sensor_timeout = 0;
 
 	train->tid = -1;
 	train->speed = 0;
@@ -249,36 +208,11 @@ void init_train50(TrainData *train) {
 	train->acceleration = 0;
 	train->acceleration_step = -1;
 	train->acceleration_alarm = 0;
-	
-	train->check_point = -1;
-	train->route_start = TRACK_MAX;
-	train->overall_route_start = TRACK_MAX;
-	train->margin = 250;
-	
-	train->dist_since_last_rs = 0;
-	train->last_receive_sensor = NULL;
-	train->sensor_for_reserve = NULL;
-	train->predict_sensor_num = 0;
-	train->waiting_for_reserver = FALSE;
-	train->last_reservation_time = 0xffffffff;
-	train->is_lost = FALSE;
-	train->on_route = FALSE;
-	
-	train->exit_node = NULL;
-	train->stop_node = NULL;
-	train->reverse_node = NULL;
-	train->reverse_node_offset = 0;
-	train->merge_node = NULL;
-	train->merge_state = 0;
 
-	train->action = Free_Run;
-	train->stop_type = None;
+	train->action = To_Orbit;
 
 	train->reservation_record.landmark_id = 134;
-	train->reservation_record.distance = 0;
-	train->recovery_reservation.landmark_id = -1;
-	train->recovery_reservation.distance = 0;
-	
-	train->reverse_protect = FALSE;
-	train->untrust_sensor = NULL;
+	// train->reservation_record.distance = 0;
+	// train->recovery_reservation.landmark_id = -1;
+	// train->recovery_reservation.distance = 0;
 }
