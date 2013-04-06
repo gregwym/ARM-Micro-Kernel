@@ -346,13 +346,19 @@ void handleLocationRecovery(TrainGlobal *train_global, CenterData *center_data, 
 }
 
 void saveSatelliteReport(TrainGlobal *train_global, CenterData *center_data, SatelliteReport *satellite_report) {
-	// Save report
 	SatelliteReport *satellite_reports = center_data->satellite_reports;
-	int train_index = satellite_report->train_data->index;
-	memcpy(&(satellite_reports[train_index]), satellite_report, sizeof(SatelliteReport));
+	TrainData *train_data = satellite_report->train_data;
+	TrainData **track_reservation = train_global->track_reservation;
+	int sensor_index = satellite_report->next_sensor->index;
 
+	// Save report
+	memcpy(&(satellite_reports[train_data->index]), satellite_report, sizeof(SatelliteReport));
+
+	// Clear last sensor reservation
+	track_reservation[train_data->reservation_record.landmark_id] = NULL;
 	// Update sensor reservation
-	// TODO
+	track_reservation[sensor_index] = train_data;
+	train_data->reservation_record.landmark_id = sensor_index;
 }
 
 void fetchSatelliteReport(TrainGlobal *train_global, CenterData *center_data, SatelliteReport *satellite_report, int train_index) {

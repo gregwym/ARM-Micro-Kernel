@@ -95,6 +95,7 @@ typedef struct {
 	TrainData*		train_data;
 	int				orbit_id;
 	int				distance;
+	track_node*		next_sensor;
 	TrainData*		parent_data;
 } SatelliteReport;
 
