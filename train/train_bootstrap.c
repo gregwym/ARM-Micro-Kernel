@@ -74,12 +74,21 @@ void trainBootstrap() {
 	/* Switch Data */
 	char switch_table[SWITCH_TOTAL];
 	memset(switch_table, SWITCH_CUR, SWITCH_TOTAL);
+	
+	/* Orbit Data */
+	Orbit orbits[4];
+	init_orbit1(&(orbits[0]), track_nodes);
 
 	/* Train Data */
 	TrainData trains_data[TRAIN_MAX];
 	TrainData *train_id_data[TRAIN_ID_MAX];
 	init_train49(&(trains_data[0]));
 	init_train50(&(trains_data[1]));
+	
+	trains_data[0].orbit = &(orbit[0]);
+	trains_data[1].orbit = &(orbit[0]);
+
+	
 	for(i = 0; i < TRAIN_MAX; i++) {
 		trains_data[i].index = i;
 		train_id_data[trains_data[i].id] = &(trains_data[i]);
