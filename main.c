@@ -140,7 +140,7 @@ int main() {
 		asm("bl	handlerRedirection(PLT)");
 	}
 
-	printStat(&global);
+	// printStat(&global);
 
 	/* Turm off timer */
 	setTimerControl(TIMER1_BASE, FALSE, FALSE, FALSE);
