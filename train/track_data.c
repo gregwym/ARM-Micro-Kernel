@@ -2378,7 +2378,7 @@ void init_orbit1(Orbit *orbit, track_node *track) {
 	orbit->orbit_route[0] = orbit->orbit_start;
 	orbit->orbit_length = 5313;
 
-  listInitial(&(orbit->satellite_list));
+	listInitial(orbit->satellite_list);
 
 	i = 0;
 	while (1) {
@@ -2409,6 +2409,51 @@ void init_orbit1(Orbit *orbit, track_node *track) {
 }
 
 
+// void init_orbit2(Orbit *orbit, track_node *track) {
+	// int i, direction;
+	// track_node *tmp;
+	// orbit->id = 2;
+	// for (i = 0; i < 22; i++) {
+		// orbit->orbit_switches[i] = SWITCH_CUR;
+	// }
+
+	// orbit->orbit_start = &(track[3]);
+	// orbit->orbit_route[0] = orbit->orbit_start;
+	// orbit->orbit_length = 4704;
+	// orbit->orbit_switches[14] = SWITCH_STR;
+	// orbit->orbit_switches[5] = SWITCH_STR;
+	// orbit->orbit_switches[8] = SWITCH_STR;
+
+  // listInitial(&(orbit->satellite_list));
+
+	// i = 0;
+	// while (1) {
+		// switch(orbit->orbit_route[i]->type) {
+			// case NODE_ENTER:
+			// case NODE_SENSOR:
+			// case NODE_MERGE:
+				// tmp = orbit->orbit_route[i]->edge[DIR_AHEAD].dest;
+				// break;
+			// case NODE_BRANCH:
+				// direction = orbit->orbit_switches[switchIdToIndex(orbit->orbit_route[i]->num)] - 33;
+				// tmp = orbit->orbit_route[i]->edge[direction].dest;
+				// break;
+			// case NODE_EXIT:
+				// assert(0, "orbit2 init hit an exit point");
+			// default:
+				// break;
+		// }
+
+		// if (tmp != orbit->orbit_start) {
+			// orbit->orbit_route[i + 1] = tmp;
+		// } else {
+			// orbit->nodes_num = i + 1;
+			// break;
+		// }
+		// i++;
+	// }
+// }
+
 void init_orbit2(Orbit *orbit, track_node *track) {
 	int i, direction;
 	track_node *tmp;
@@ -2417,14 +2462,11 @@ void init_orbit2(Orbit *orbit, track_node *track) {
 		orbit->orbit_switches[i] = SWITCH_CUR;
 	}
 
-	orbit->orbit_start = &(track[3]);
+	orbit->orbit_start = &(track[72]);
 	orbit->orbit_route[0] = orbit->orbit_start;
-	orbit->orbit_length = 4704;
-	orbit->orbit_switches[14] = SWITCH_STR;
-	orbit->orbit_switches[5] = SWITCH_STR;
-	orbit->orbit_switches[8] = SWITCH_STR;
+	orbit->orbit_length = 2652;
 
-  listInitial(&(orbit->satellite_list));
+	listInitial(orbit->satellite_list);
 
 	i = 0;
 	while (1) {
@@ -2462,53 +2504,11 @@ void init_orbit3(Orbit *orbit, track_node *track) {
 		orbit->orbit_switches[i] = SWITCH_CUR;
 	}
 
-	orbit->orbit_start = &(track[72]);
-	orbit->orbit_route[0] = orbit->orbit_start;
-	orbit->orbit_length = 2652;
-
-  listInitial(&(orbit->satellite_list));
-
-	i = 0;
-	while (1) {
-		switch(orbit->orbit_route[i]->type) {
-			case NODE_ENTER:
-			case NODE_SENSOR:
-			case NODE_MERGE:
-				tmp = orbit->orbit_route[i]->edge[DIR_AHEAD].dest;
-				break;
-			case NODE_BRANCH:
-				direction = orbit->orbit_switches[switchIdToIndex(orbit->orbit_route[i]->num)] - 33;
-				tmp = orbit->orbit_route[i]->edge[direction].dest;
-				break;
-			case NODE_EXIT:
-				assert(0, "orbit2 init hit an exit point");
-			default:
-				break;
-		}
-
-		if (tmp != orbit->orbit_start) {
-			orbit->orbit_route[i + 1] = tmp;
-		} else {
-			orbit->nodes_num = i + 1;
-			break;
-		}
-		i++;
-	}
-}
-
-void init_orbit4(Orbit *orbit, track_node *track) {
-	int i, direction;
-	track_node *tmp;
-	orbit->id = 4;
-	for (i = 0; i < 22; i++) {
-		orbit->orbit_switches[i] = SWITCH_CUR;
-	}
-
 	orbit->orbit_start = &(track[3]);
 	orbit->orbit_route[0] = orbit->orbit_start;
 	orbit->orbit_length = 2809;
 
-  listInitial(&(orbit->satellite_list));
+	listInitial(orbit->satellite_list);
 
 	i = 0;
 	while (1) {
