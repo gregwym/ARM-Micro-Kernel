@@ -198,7 +198,7 @@ track_node *predictNextSensor(TrainGlobal *train_global, TrainData *train_data) 
 		int check_point = train_data->check_point;
 		assert(train_data->landmark == route[check_point], "check point does not match cur landmark");
 		check_point++;
-		while (check_point < train_data->route_nodes_num - 1) {
+		while (check_point < train_data->route_nodes_num) {
 			switch(route[check_point]->type) {
 				case NODE_ENTER:
 				case NODE_MERGE:
@@ -841,23 +841,27 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 						IDEBUG(DB_ROUTE, com2_tid, ROW_DEBUG_2 + i, COLUMN_WIDTH * (j++), "END");
 					}
 					
-					train_data->orbit = new_orbit;
 					
 					if (train_data->landmark->type != NODE_BRANCH) {
-						// if (train_data->orbit != NULL) {
-							// route_nodes = dijkstra(train_data, track_nodes, train_data->landmark, train_global->map[train_data->orbit->id * ORBIT_MAX + new_orbit->id], train_data->route);
-						// } else {
-							// route_nodes = dijkstra(train_data, track_nodes, train_data->landmark, train_global->map[new_orbit->id], train_data->route);
-						// }
-						route_nodes = dijkstra(train_data, track_nodes, train_data->landmark, train_data->orbit->orbit_start, train_data->route);
+						if (train_data->orbit != NULL) {
+							route_nodes = dijkstra(train_data, track_nodes, train_data->landmark, 
+								train_global->map[train_data->orbit->id * ORBIT_MAX + new_orbit->id], train_data->route);
+						} else {
+							route_nodes = dijkstra(train_data, track_nodes, train_data->landmark, 
+								train_global->map[new_orbit->id], train_data->route);
+						}
+						// route_nodes = dijkstra(train_data, track_nodes, train_data->landmark, train_data->orbit->orbit_start, train_data->route);
 					} else {
-						// if (train_data->orbit != NULL) {
-							// route_nodes = dijkstra(train_data, track_nodes, train_data->predict_dest, train_global->map[train_data->orbit->id * ORBIT_MAX + new_orbit->id], train_data->route);
-						// } else {
-							// route_nodes = dijkstra(train_data, track_nodes, train_data->predict_dest, train_global->map[new_orbit->id], train_data->route);
-						// }
-						route_nodes = dijkstra(train_data, track_nodes, train_data->predict_dest, train_data->orbit->orbit_start, train_data->route);
+						if (train_data->orbit != NULL) {
+							route_nodes = dijkstra(train_data, track_nodes, train_data->predict_dest, 
+								train_global->map[train_data->orbit->id * ORBIT_MAX + new_orbit->id], train_data->route);
+						} else {
+							route_nodes = dijkstra(train_data, track_nodes, train_data->predict_dest, 
+								train_global->map[new_orbit->id], train_data->route);
+						}
+						// route_nodes = dijkstra(train_data, track_nodes, train_data->predict_dest, train_data->orbit->orbit_start, train_data->route);
 					}
+					train_data->orbit = new_orbit;
 					if (route_nodes == 0) {
 						assert(0, "dijkstra cannot find route");
 					} else {
@@ -938,7 +942,7 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 							} else if (result > expect_dist_diff) {
 								adjustSpeed(train_global, train_data, 1);
 							} else if (result < expect_dist_diff - 300) {
-								adjustSpeed(train_global, train_data, -3);
+								adjustSpeed(train_global, train_data, -5);
 							} else if (result < expect_dist_diff) {
 								adjustSpeed(train_global, train_data, -1);
 							} else {
@@ -962,7 +966,7 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 							} else if (((result + 100 - train_data->follow_percentage) % 100) < 50) {
 								adjustSpeed(train_global, train_data, 3);
 							} else if (((result + 100 - train_data->follow_percentage) % 100) < 90) {
-								adjustSpeed(train_global, train_data, -3);
+								adjustSpeed(train_global, train_data, -5);
 							} else if (((result + 100 - train_data->follow_percentage) % 100) <= 100) {
 								adjustSpeed(train_global, train_data, -1);
 							} else {
@@ -982,7 +986,7 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 							} else if (result > expect_dist_diff) {
 								adjustSpeed(train_global, train_data, 1);
 							} else if (result < expect_dist_diff - 300) {
-								adjustSpeed(train_global, train_data, -3);
+								adjustSpeed(train_global, train_data, -5);
 							} else if (result < expect_dist_diff) {
 								adjustSpeed(train_global, train_data, -1);
 							} else {
@@ -1007,7 +1011,7 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 							} else if (((result + 100 - train_data->follow_percentage) % 100) < 50) {
 								adjustSpeed(train_global, train_data, 3);
 							} else if (((result + 100 - train_data->follow_percentage) % 100) < 90) {
-								adjustSpeed(train_global, train_data, -3);
+								adjustSpeed(train_global, train_data, -5);
 							} else if (((result + 100 - train_data->follow_percentage) % 100) <= 100) {
 								adjustSpeed(train_global, train_data, -1);
 							} else {

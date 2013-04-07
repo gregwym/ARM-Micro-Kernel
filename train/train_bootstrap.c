@@ -124,13 +124,15 @@ void trainBootstrap() {
 	train_global.recovery_reservation = recovery_reservation;
 	
 	/* initial map */
-	train_global.map[0] = &(track_nodes[13]);		//A14
+	train_global.map[0] = &(track_nodes[14]);		//A15
 	train_global.map[1] = &(track_nodes[52]);		//D5
 	train_global.map[2] = &(track_nodes[3]);		//A4
 	train_global.map[3] = &(track_nodes[55]);		//D8
+	train_global.map[4] = &(track_nodes[52]);		//D5
 	train_global.map[5] = &(track_nodes[43]);		//C12
 	train_global.map[6] = &(track_nodes[74]);		//E11
 	train_global.map[7] = &(track_nodes[77]);		//E14
+	train_global.map[8] = &(track_nodes[3]);		//A4
 
 	/* initial UI */
 	initializeUI(train_global.com2_tid, trains_data);
