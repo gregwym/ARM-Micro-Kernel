@@ -11,6 +11,8 @@
 #define TRAIN_INIT_DELAY	200
 #define RECOVERY_TIME_THRESHOLD	4000
 
+#define SENSOR_RESERVE_EACH	2
+
 /* Helpers */
 inline int switchIdToIndex(int id) {
 	return id % SWITCH_INDEX_MOD - 1;
@@ -80,11 +82,53 @@ int isContinuousSensor(track_node *src, track_node *dest, int count) {
 	return FALSE;
 }
 
+inline void attributeSensor(TrainGlobal *train_global, CenterData *center_data, int landmark_id, int new_bit) {
+	// TrainData *recovery_train_data, *reservation_train_data;
+	// recovery_train_data = train_global->recovery_reservation[landmark_id];
+	// reservation_train_data = train_global->track_reservation[landmark_id];
+	TrainData **sensor_reservation = center_data->sensor_reservation;
+	TrainData *attributed_to = NULL, *current = NULL;
+	int i = 0, j = 0;
+
+	for(i = landmark_id * SENSOR_RESERVE_EACH,
+	    j = i + SENSOR_RESERVE_EACH; i < j; i++) {
+		current = sensor_reservation[i];
+		if (current != NULL) {
+			if (attributed_to == NULL) {
+				attributed_to = current;
+			} else {
+				sensor_reservation[i - 1] = current;
+				sensor_reservation[i] = NULL;
+			}
+		}
+	}
+
+	if(attributed_to != NULL) {
+		CreateWithArgs(2, locationPostman, attributed_to->tid, landmark_id, new_bit, 0);
+		IDEBUG(DB_RESERVE, train_global->com2_tid, ROW_DEBUG_1 + 3, attributed_to->index * WIDTH_DEBUG, "#%s => %d  ", train_global->track_nodes[landmark_id].name, attributed_to->id);
+	// } else if(recovery_train_data != NULL) {
+	// 	CreateWithArgs(2, locationPostman, recovery_train_data->tid, landmark_id, new_bit, 0);
+	// 	IDEBUG(DB_RESERVE, train_global->com2_tid, ROW_DEBUG_1 + 3, recovery_train_data->index * WIDTH_DEBUG, "#%s => %d  ", train_global->track_nodes[landmark_id].name, recovery_train_data->id);
+	// } else if(reservation_train_data != NULL) {
+	// 	CreateWithArgs(2, locationPostman, reservation_train_data->tid, landmark_id, new_bit, 0);
+	// 	IDEBUG(DB_RESERVE, train_global->com2_tid, ROW_DEBUG_1 + 3, reservation_train_data->index * WIDTH_DEBUG, "#%s => %d  ", train_global->track_nodes[landmark_id].name, reservation_train_data->id);
+	} else {
+		track_node *current_sensor = &(train_global->track_nodes[landmark_id]);
+		IDEBUG(DB_RESERVE, train_global->com2_tid, ROW_DEBUG_1 + 4, (center_data->lost_count % 10) * COLUMN_WIDTH, "#%s  ", current_sensor->name);
+		if(center_data->last_lost_sensor != NULL && isContinuousSensor(center_data->last_lost_sensor, current_sensor, 1)) {
+			// assert(0, "Train is lost");
+			IDEBUG(DB_RESERVE, train_global->com2_tid, ROW_DEBUG_1 + 5, 0, "Train lost at %s", current_sensor->name);
+		}
+		center_data->last_lost_sensor = current_sensor;
+		center_data->last_lost_timestamp = getTimerValue(TIMER3_BASE);
+		center_data->lost_count++;
+	}
+}
+
 /* Infomation Handlers */
 inline void handleSensorUpdate(TrainGlobal *train_global, CenterData *center_data, char *new_data) {
 	int i, j, landmark_id;
 	char old_byte, new_byte, old_bit, new_bit;
-	TrainData *recovery_train_data, *train_data;
 	char *saved_data = center_data->sensor_data;
 
 	char buf[128];
@@ -105,25 +149,7 @@ inline void handleSensorUpdate(TrainGlobal *train_global, CenterData *center_dat
 				// If the bit changed
 				if(old_bit != new_bit && (!new_bit)) {
 					landmark_id = sensorIdToLandmark(i, j);
-					recovery_train_data = train_global->recovery_reservation[landmark_id];
-					train_data = train_global->track_reservation[landmark_id];
-					if(recovery_train_data != NULL) {
-						CreateWithArgs(2, locationPostman, recovery_train_data->tid, landmark_id, new_bit, 0);
-						IDEBUG(DB_RESERVE, train_global->com2_tid, ROW_DEBUG_1 + 3, recovery_train_data->index * WIDTH_DEBUG, "#%s => %d  ", train_global->track_nodes[landmark_id].name, recovery_train_data->id);
-					} else if(train_data != NULL) {
-						CreateWithArgs(2, locationPostman, train_data->tid, landmark_id, new_bit, 0);
-						IDEBUG(DB_RESERVE, train_global->com2_tid, ROW_DEBUG_1 + 3, train_data->index * WIDTH_DEBUG, "#%s => %d  ", train_global->track_nodes[landmark_id].name, train_data->id);
-					} else {
-						track_node *current_sensor = &(train_global->track_nodes[landmark_id]);
-						IDEBUG(DB_RESERVE, train_global->com2_tid, ROW_DEBUG_1 + 4, (center_data->lost_count % 10) * COLUMN_WIDTH, "#%s  ", current_sensor->name);
-						if(center_data->last_lost_sensor != NULL && isContinuousSensor(center_data->last_lost_sensor, current_sensor, 1)) {
-							// assert(0, "Train is lost");
-							IDEBUG(DB_RESERVE, train_global->com2_tid, ROW_DEBUG_1 + 5, 0, "Train lost at %s", current_sensor->name);
-						}
-						center_data->last_lost_sensor = current_sensor;
-						center_data->last_lost_timestamp = getTimerValue(TIMER3_BASE);
-						center_data->lost_count++;
-					}
+					attributeSensor(train_global, center_data, landmark_id, new_bit);
 				}
 				old_byte = old_byte >> 1;
 				new_byte = new_byte >> 1;
@@ -348,20 +374,32 @@ void handleLocationRecovery(TrainGlobal *train_global, CenterData *center_data, 
 void saveSatelliteReport(TrainGlobal *train_global, CenterData *center_data, SatelliteReport *satellite_report) {
 	SatelliteReport *satellite_reports = center_data->satellite_reports;
 	TrainData *train_data = satellite_report->train_data;
-	TrainData **track_reservation = train_global->track_reservation;
+	TrainData **sensor_reservation = center_data->sensor_reservation;
 	int sensor_index = satellite_report->next_sensor->index;
+	int i, j;
 
 	// Save report
 	memcpy(&(satellite_reports[train_data->index]), satellite_report, sizeof(SatelliteReport));
 
 	// Clear last sensor reservation
-	if (track_reservation[train_data->reservation_record.landmark_id] == train_data) {
-		track_reservation[train_data->reservation_record.landmark_id] = NULL;
+	for(i = train_data->reservation_record.landmark_id * SENSOR_RESERVE_EACH,
+	    j = i + SENSOR_RESERVE_EACH; i < j; i++) {
+		if (sensor_reservation[i] == train_data) {
+			sensor_reservation[i] = NULL;
+		}
 	}
+
 	// Update sensor reservation
-	track_reservation[sensor_index] = train_data;
-	train_data->reservation_record.landmark_id = sensor_index;
-	
+	for(i = sensor_index * SENSOR_RESERVE_EACH,
+	    j = i + SENSOR_RESERVE_EACH; i < j; i++) {
+		if (sensor_reservation[i] == NULL) {
+			sensor_reservation[i] = train_data;
+			train_data->reservation_record.landmark_id = sensor_index;
+			break;
+		}
+	}
+	assert(i < j, "Fail to reserve sensor");
+
 	IDEBUG(DB_RESERVE, train_global->com2_tid, ROW_DEBUG_1,
 	       WIDTH_DEBUG * train_data->index, "#%dR %s    ",
 	       train_data->id, train_global->track_nodes[sensor_index].name);
@@ -389,12 +427,15 @@ void trainCenter(TrainGlobal *train_global) {
 
 	/* SensorData */
 	char sensor_data[SENSOR_BYTES_TOTAL];
+	TrainData *sensor_reservation[TRACK_MAX * SENSOR_RESERVE_EACH];
 	memset(sensor_data, 0, SENSOR_BYTES_TOTAL);
+	memset(sensor_reservation, (int)NULL, sizeof(TrainData *) * TRACK_MAX * SENSOR_RESERVE_EACH);
 	char sensor_decoder_ids[SENSOR_DECODER_TOTAL];
 	for(i = 0; i < SENSOR_DECODER_TOTAL; i++) {
 		sensor_decoder_ids[i] = 'A' + i;
 	}
 	center_data.sensor_data = sensor_data;
+	center_data.sensor_reservation = sensor_reservation;
 	center_data.last_lost_sensor = NULL;
 	center_data.last_lost_timestamp = 0;
 	center_data.lost_count = 0;

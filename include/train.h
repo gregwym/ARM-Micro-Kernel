@@ -120,6 +120,7 @@ typedef union train_msg {
 
 typedef struct center_data {
 	char			*sensor_data;
+	TrainData		**sensor_reservation;
 	track_node		*last_lost_sensor;
 	unsigned int	last_lost_timestamp;
 	int				lost_count;
