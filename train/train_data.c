@@ -77,7 +77,7 @@ void init_train37(TrainData *train) {
 
 	train->last_receive_sensor = NULL;
 
-	train->action = To_Orbit;
+	train->action = Off_Route;
 
 	train->reservation_record.landmark_id = 132;
 	train->reservation_record.distance = 0;
@@ -160,7 +160,7 @@ void init_train49(TrainData *train) {
 	train->acceleration_step = -1;
 	train->acceleration_alarm = 0;
 
-	train->action = To_Orbit;
+	train->action = Off_Route;
 
 	train->reservation_record.landmark_id = 24;
 	train->reservation_record.distance = 0;
@@ -243,7 +243,7 @@ void init_train50(TrainData *train) {
 	train->acceleration_step = -1;
 	train->acceleration_alarm = 0;
 
-	train->action = To_Orbit;
+	train->action = Off_Route;
 
 	train->reservation_record.landmark_id = 26;
 	train->reservation_record.distance = 0;

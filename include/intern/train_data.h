@@ -20,6 +20,7 @@ typedef enum {
 typedef enum {
 	To_Orbit,
 	On_Orbit,
+	Off_Route,
 } Action;
 
 typedef enum {
@@ -64,6 +65,8 @@ typedef struct train_data {
 	/* orbit */
 	Orbit * volatile		orbit;
 	volatile int			check_point;
+	track_node *			route[TRACK_MAX];
+	volatile int			route_nodes_num;
 
 	/* timer */
 	volatile unsigned int	timer;

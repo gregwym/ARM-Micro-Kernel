@@ -2413,7 +2413,7 @@ void init_orbit2(Orbit *orbit, track_node *track) {
 		orbit->orbit_switches[i] = SWITCH_CUR;
 	}
 	
-	orbit->orbit_start = &(track[48]);
+	orbit->orbit_start = &(track[72]);
 	orbit->orbit_route[0] = orbit->orbit_start;
 	orbit->orbit_length = 2652;
 	i = 0;

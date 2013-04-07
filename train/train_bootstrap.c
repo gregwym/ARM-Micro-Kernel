@@ -86,7 +86,7 @@ void trainBootstrap() {
 	init_train49(&(trains_data[0]));
 	init_train50(&(trains_data[1]));
 
-	trains_data[1].parent_train = NULL;
+	trains_data[0].parent_train = NULL;
 	trains_data[1].parent_train = &(trains_data[0]);
 
 	for(i = 0; i < TRAIN_MAX; i++) {
