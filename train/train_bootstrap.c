@@ -93,9 +93,9 @@ void trainBootstrap() {
 	/* Train Data */
 	TrainData trains_data[TRAIN_MAX];
 	TrainData *train_id_data[TRAIN_ID_MAX];
-	init_train49(&(trains_data[0]));
-	init_train50(&(trains_data[1]));
-	init_train51(&(trains_data[2]));
+	init_train47(&(trains_data[0]));
+	init_train49(&(trains_data[1]));
+	init_train50(&(trains_data[2]));
 
 	for(i = 0; i < TRAIN_MAX; i++) {
 		trains_data[i].index = i;

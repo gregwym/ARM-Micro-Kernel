@@ -11,7 +11,7 @@
 #define TRAIN_INIT_DELAY	200
 #define RECOVERY_TIME_THRESHOLD	4000
 
-#define SENSOR_RESERVE_EACH	2
+#define SENSOR_RESERVE_EACH	TRAIN_MAX
 
 /* Helpers */
 inline int switchIdToIndex(int id) {
