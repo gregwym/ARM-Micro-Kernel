@@ -9,6 +9,7 @@
 #define RESERVER_PRIORITY 7
 
 #define SPEED_MEDIAN	25
+#define	SWITCH_THRESHOLD	190
 
 int measureDist(TrainData *train_data) {
 	int dist = 0;
@@ -654,13 +655,14 @@ void updateTrainStatus(TrainGlobal *train_global, TrainData *train_data) {
 					train_data->check_point = ret;
 				}
 			}
-		} else {
+		} else if (train_data->sensor_timeout != 0) {
 			train_data->sensor_timeout = train_data->timer - 1200;
 		}
 	}
 
 	if (train_data->timer < train_data->sensor_timeout) {
 		CreateWithArgs(2, relocationRequest, (int)train_global, (int)train_data, 0, 0);
+		train_data->sensor_timeout = 0;
 	}
 
 }
@@ -764,7 +766,7 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 
 			updateTrainStatus(train_global, train_data);
 			updateReport(train_global, train_data);
-			changeNextSwitch(train_global, train_data, train_data->check_point, 180);
+			changeNextSwitch(train_global, train_data, train_data->check_point, SWITCH_THRESHOLD);
 
 			train_data->prev_timer = train_data->timer;
 
@@ -921,7 +923,7 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 					result = updateCheckPoint(train_data, train_data->orbit->orbit_route, train_data->check_point);
 					assert(result >= 0, "current landmark is not on orbit");
 					train_data->check_point = result;
-					changeNextSwitch(train_global, train_data, train_data->check_point, 180);
+					changeNextSwitch(train_global, train_data, train_data->check_point, SWITCH_THRESHOLD);
 				}
 				train_data->next_sensor = predictNextSensor(train_global, train_data);
 				train_data->sensor_timeout = 0;
