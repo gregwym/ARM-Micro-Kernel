@@ -20,6 +20,7 @@ typedef enum {
 typedef enum {
 	To_Orbit,
 	On_Orbit,
+	Off_Route,
 } Action;
 
 typedef enum {
@@ -45,48 +46,52 @@ typedef struct train_data {
 	int			deceleration;
 
 	/* speed and acceleration */
-	volatile int	speed;
-	volatile int	old_speed;
-	volatile int	velocity;
+	volatile int			speed;
+	volatile int			old_speed;
+	volatile int			velocity;
 	volatile unsigned int	acceleration_alarm;
 	volatile int			acceleration_step;
 	volatile int			acceleration;
-	volatile int	v_to_0;
-	volatile int	reverse_delay;
-
-	/* nodes */
-	track_node *exit_node;
+	volatile int			v_to_0;
+	volatile int			reverse_delay;
 
 	/* train following */
-	struct train_data *	volatile  parent_train;
-	volatile int					follow_dist;
-	volatile int					follow_percentage;
-	volatile int					dist_traveled;
+	struct train_data * volatile	parent_train;
+	volatile FollowMode		follow_mode;
+	volatile int			follow_dist;
+	volatile int			follow_percentage;
+	volatile int			dist_traveled;
 	
 	/* orbit */
-	Orbit *orbit;
+	Orbit * volatile		orbit;
+	volatile int			check_point;
+	track_node *			route[TRACK_MAX];
+	volatile int			route_nodes_num;
 
 	/* timer */
-	volatile unsigned int timer;
-	volatile unsigned int prev_timer;
-	volatile unsigned int sensor_timeout;
+	volatile unsigned int	timer;
+	volatile unsigned int	prev_timer;
+	volatile unsigned int	sensor_timeout;
+	
+	/* report */
+	volatile unsigned int	last_report_time;
+	volatile int			waiting_for_reporter;
+	track_node * volatile 	next_sensor;
 
 	/* Volatile Data */
-	int				index;
-	int				tid;
+	int						index;
+	int						tid;
 	volatile TrainDirection	direction;
 
-	volatile Action action;
+	volatile Action			action;
 
-	track_node * volatile landmark;
-	track_node * volatile predict_dest;
-	track_node * volatile last_receive_sensor;
+	track_node * volatile	landmark;
+	track_node * volatile	predict_dest;
+	track_node * volatile	last_receive_sensor;
 
-	volatile int	forward_distance;
-	volatile int	ahead_lm;
+	volatile int			forward_distance;
+	volatile int			ahead_lm;
 
-	// volatile unsigned int 	last_reservation_time;
-	volatile int			waiting_for_reserver;
 	Reservation				reservation_record;
 	Reservation				recovery_reservation;
 
