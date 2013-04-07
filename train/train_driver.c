@@ -372,13 +372,13 @@ void trainSecretary() {
 }
 
 void changeNextSwitch(TrainGlobal *train_global, TrainData *train_data, int check_point, int threshold) {
-	int ahead_lm = train_data->ahead_lm >> DIST_SHIFT;
-	int distance = 0;
+	int ahead_lm = (train_data->forward_distance - train_data->ahead_lm) >> DIST_SHIFT;
+	int distance = ahead_lm;
 	if (train_data->action == On_Orbit) {
 		int nodes_num = train_data->orbit->nodes_num;
 		check_point = (check_point + 1) % nodes_num;
 		track_node **route = train_data->orbit->orbit_route;
-		for (;distance < threshold + ahead_lm; check_point = (check_point + 1) % nodes_num) {
+		for (;distance < threshold; check_point = (check_point + 1) % nodes_num) {
 			if (route[check_point]->type == NODE_BRANCH) {
 				if (route[(check_point + 1) % nodes_num] == route[check_point]->edge[DIR_STRAIGHT].dest) {
 					if (train_global->switch_table[switchIdToIndex(route[check_point]->num)] != SWITCH_STR) {
@@ -400,7 +400,7 @@ void changeNextSwitch(TrainGlobal *train_global, TrainData *train_data, int chec
 		int nodes_num = train_data->route_nodes_num;
 		check_point = check_point + 1;
 		track_node **route = train_data->route;
-		for (;distance < threshold + ahead_lm && check_point < nodes_num - 1; check_point++) {
+		for (;distance < threshold && check_point < nodes_num - 1; check_point++) {
 			if (route[check_point]->type == NODE_BRANCH) {
 				if (route[check_point + 1] == route[check_point]->edge[DIR_STRAIGHT].dest) {
 					if (train_global->switch_table[switchIdToIndex(route[check_point]->num)] != SWITCH_STR) {
@@ -725,7 +725,7 @@ void adjustSpeed(TrainGlobal *train_global, TrainData *train_data, int adjust_lv
 
 void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 	track_node *track_nodes = train_global->track_nodes;
-	int i, tid, result, route_nodes, cnt = 0;
+	int i, j, tid, result, route_nodes, cnt = 0;
 	int train_id = train_data->id;
 	int train_index = train_data->index;
 
@@ -747,15 +747,13 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 	Delay(710);
 
 	int expect_dist_diff = 0;
-	int actual_dist_diff = 0;
+	// int actual_dist_diff = 0;
 	Orbit *new_orbit = NULL;
 	int parent_percentage;
 	int self_percentage;
 	LinkedListNode *current_node;
 	LinkedListNode *last_node;
-	LinkedListNode *back;
 	int found_first = FALSE;
-	int j;
 
 	while(1) {
 		result = Receive(&tid, (char *)(&msg), sizeof(TrainMsg));
@@ -766,7 +764,7 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 
 			updateTrainStatus(train_global, train_data);
 			updateReport(train_global, train_data);
-			changeNextSwitch(train_global, train_data, train_data->check_point, 40);
+			changeNextSwitch(train_global, train_data, train_data->check_point, 180);
 
 			train_data->prev_timer = train_data->timer;
 
@@ -805,9 +803,11 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 				break;
 
 			case CMD_SET:
+				Reply(tid, NULL, 0);
 				updateCurrentLandmark(train_global, train_data, &(track_nodes[msg.location_msg.value]), train_global->switch_table);
 				break;
 			case CMD_ORBIT:
+				Reply(tid, NULL, 0);
 				new_orbit = &(train_global->orbits[msg.cmd_msg.value]);
 				
 				if (train_data->orbit != new_orbit) {
@@ -921,7 +921,7 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 					result = updateCheckPoint(train_data, train_data->orbit->orbit_route, train_data->check_point);
 					assert(result >= 0, "current landmark is not on orbit");
 					train_data->check_point = result;
-					changeNextSwitch(train_global, train_data, train_data->check_point, 40);
+					changeNextSwitch(train_global, train_data, train_data->check_point, 180);
 				}
 				train_data->next_sensor = predictNextSensor(train_global, train_data);
 				train_data->sensor_timeout = 0;
