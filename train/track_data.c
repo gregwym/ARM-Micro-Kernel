@@ -2366,7 +2366,7 @@ void init_trackb(track_node *track) {
 void init_orbit1(Orbit *orbit, track_node *track) {
 	int i, direction;
 	track_node *tmp;
-	orbit->id = 1;
+	orbit->id = 0;
 	for (i = 0; i < 22; i++) {
 		orbit->orbit_switches[i] = SWITCH_CUR;
 	}
@@ -2457,7 +2457,7 @@ void init_orbit1(Orbit *orbit, track_node *track) {
 void init_orbit2(Orbit *orbit, track_node *track) {
 	int i, direction;
 	track_node *tmp;
-	orbit->id = 2;
+	orbit->id = 1;
 	for (i = 0; i < 22; i++) {
 		orbit->orbit_switches[i] = SWITCH_CUR;
 	}
@@ -2499,7 +2499,7 @@ void init_orbit2(Orbit *orbit, track_node *track) {
 void init_orbit3(Orbit *orbit, track_node *track) {
 	int i, direction;
 	track_node *tmp;
-	orbit->id = 3;
+	orbit->id = 2;
 	for (i = 0; i < 22; i++) {
 		orbit->orbit_switches[i] = SWITCH_CUR;
 	}

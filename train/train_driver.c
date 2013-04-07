@@ -8,6 +8,9 @@
 #define RESERVE_CHECKPOINT_LEN 50
 #define RESERVER_PRIORITY 7
 
+#define SPEED_MEDIAN	25
+#define	SWITCH_THRESHOLD	190
+
 int measureDist(TrainData *train_data) {
 	int dist = 0;
 	int direction;
@@ -37,7 +40,8 @@ int measureDist(TrainData *train_data) {
 
 int measureRemainDist(TrainData *train_data) {
 	int check_point = train_data->check_point;
-	int direction, dist = 0;
+	int direction;
+	int dist = 0;
 	track_node **route = train_data->route;
 	track_node *checked_node;
 	assert(train_data->action == To_Orbit, "measureRemainDist's type is not To_Orbit");
@@ -197,7 +201,7 @@ track_node *predictNextSensor(TrainGlobal *train_global, TrainData *train_data) 
 		int check_point = train_data->check_point;
 		assert(train_data->landmark == route[check_point], "check point does not match cur landmark");
 		check_point++;
-		while (check_point < train_data->route_nodes_num - 1) {
+		while (check_point < train_data->route_nodes_num) {
 			switch(route[check_point]->type) {
 				case NODE_ENTER:
 				case NODE_MERGE:
@@ -292,7 +296,7 @@ void stReport(TrainGlobal *train_global, TrainData *train_data) {
 		result = Send(MyParentTid(), (char *)(&msg), sizeof(SatelliteReport), NULL, 0);
 		assert(result == 0, "stReport fail to send to driver");
 	} else {
-		msg.type = SATELLITE_REPORT;
+		msg.type = SATELLITE_REPORT_NONE;
 		result = Send(MyParentTid(), (char *)(&(msg.type)), sizeof(TrainMsgType), NULL, 0);
 		assert(result == 0, "stReport fail to send to driver");
 	}
@@ -369,13 +373,13 @@ void trainSecretary() {
 }
 
 void changeNextSwitch(TrainGlobal *train_global, TrainData *train_data, int check_point, int threshold) {
-	int ahead_lm = train_data->ahead_lm >> DIST_SHIFT;
-	int distance = 0;
+	int ahead_lm = (train_data->forward_distance - train_data->ahead_lm) >> DIST_SHIFT;
+	int distance = ahead_lm;
 	if (train_data->action == On_Orbit) {
 		int nodes_num = train_data->orbit->nodes_num;
 		check_point = (check_point + 1) % nodes_num;
 		track_node **route = train_data->orbit->orbit_route;
-		for (;distance < threshold + ahead_lm; check_point = (check_point + 1) % nodes_num) {
+		for (;distance < threshold; check_point = (check_point + 1) % nodes_num) {
 			if (route[check_point]->type == NODE_BRANCH) {
 				if (route[(check_point + 1) % nodes_num] == route[check_point]->edge[DIR_STRAIGHT].dest) {
 					if (train_global->switch_table[switchIdToIndex(route[check_point]->num)] != SWITCH_STR) {
@@ -397,7 +401,7 @@ void changeNextSwitch(TrainGlobal *train_global, TrainData *train_data, int chec
 		int nodes_num = train_data->route_nodes_num;
 		check_point = check_point + 1;
 		track_node **route = train_data->route;
-		for (;distance < threshold + ahead_lm && check_point < nodes_num - 1; check_point++) {
+		for (;distance < threshold && check_point < nodes_num - 1; check_point++) {
 			if (route[check_point]->type == NODE_BRANCH) {
 				if (route[check_point + 1] == route[check_point]->edge[DIR_STRAIGHT].dest) {
 					if (train_global->switch_table[switchIdToIndex(route[check_point]->num)] != SWITCH_STR) {
@@ -651,13 +655,14 @@ void updateTrainStatus(TrainGlobal *train_global, TrainData *train_data) {
 					train_data->check_point = ret;
 				}
 			}
-		} else {
+		} else if (train_data->sensor_timeout != 0) {
 			train_data->sensor_timeout = train_data->timer - 1200;
 		}
 	}
 
 	if (train_data->timer < train_data->sensor_timeout) {
 		CreateWithArgs(2, relocationRequest, (int)train_global, (int)train_data, 0, 0);
+		train_data->sensor_timeout = 0;
 	}
 
 }
@@ -722,7 +727,7 @@ void adjustSpeed(TrainGlobal *train_global, TrainData *train_data, int adjust_lv
 
 void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 	track_node *track_nodes = train_global->track_nodes;
-	int i, tid, result, route_nodes, cnt = 0;
+	int i, j, tid, result, route_nodes, cnt = 0;
 	int train_id = train_data->id;
 	int train_index = train_data->index;
 
@@ -744,15 +749,13 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 	Delay(710);
 
 	int expect_dist_diff = 0;
-	int actual_dist_diff = 0;
+	// int actual_dist_diff = 0;
 	Orbit *new_orbit = NULL;
 	int parent_percentage;
 	int self_percentage;
 	LinkedListNode *current_node;
 	LinkedListNode *last_node;
-	LinkedListNode *back;
 	int found_first = FALSE;
-	int j;
 
 	while(1) {
 		result = Receive(&tid, (char *)(&msg), sizeof(TrainMsg));
@@ -763,7 +766,7 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 
 			updateTrainStatus(train_global, train_data);
 			updateReport(train_global, train_data);
-			changeNextSwitch(train_global, train_data, train_data->check_point, 40);
+			changeNextSwitch(train_global, train_data, train_data->check_point, SWITCH_THRESHOLD);
 
 			train_data->prev_timer = train_data->timer;
 
@@ -802,9 +805,11 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 				break;
 
 			case CMD_SET:
+				Reply(tid, NULL, 0);
 				updateCurrentLandmark(train_global, train_data, &(track_nodes[msg.location_msg.value]), train_global->switch_table);
 				break;
 			case CMD_ORBIT:
+				Reply(tid, NULL, 0);
 				new_orbit = &(train_global->orbits[msg.cmd_msg.value]);
 				
 				if (train_data->orbit != new_orbit) {
@@ -825,7 +830,7 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 								// Is linked list head
 								if(!found_first) {
 									((TrainData *)current_node->current)->parent_train = NULL;
-									changeSpeed(train_global, ((TrainData *)current_node)->current, 26);
+									changeSpeed(train_global, (TrainData *)(current_node->current), SPEED_MEDIAN);
 									found_first = TRUE;
 								} else {
 									((TrainData *)current_node->current)->parent_train = (TrainData *)last_node->current;
@@ -841,12 +846,26 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 					}
 					
 					
-					train_data->orbit = new_orbit;
 					if (train_data->landmark->type != NODE_BRANCH) {
-						route_nodes = dijkstra(train_data, track_nodes, train_data->landmark, new_orbit->orbit_start, train_data->route);
+						if (train_data->orbit != NULL) {
+							route_nodes = dijkstra(train_data, track_nodes, train_data->landmark, 
+								train_global->map[train_data->orbit->id * ORBIT_MAX + new_orbit->id], train_data->route);
+						} else {
+							route_nodes = dijkstra(train_data, track_nodes, train_data->landmark, 
+								train_global->map[new_orbit->id], train_data->route);
+						}
+						// route_nodes = dijkstra(train_data, track_nodes, train_data->landmark, train_data->orbit->orbit_start, train_data->route);
 					} else {
-						route_nodes = dijkstra(train_data, track_nodes, train_data->predict_dest, new_orbit->orbit_start, train_data->route);
+						if (train_data->orbit != NULL) {
+							route_nodes = dijkstra(train_data, track_nodes, train_data->predict_dest, 
+								train_global->map[train_data->orbit->id * ORBIT_MAX + new_orbit->id], train_data->route);
+						} else {
+							route_nodes = dijkstra(train_data, track_nodes, train_data->predict_dest, 
+								train_global->map[new_orbit->id], train_data->route);
+						}
+						// route_nodes = dijkstra(train_data, track_nodes, train_data->predict_dest, train_data->orbit->orbit_start, train_data->route);
 					}
+					train_data->orbit = new_orbit;
 					if (route_nodes == 0) {
 						assert(0, "dijkstra cannot find route");
 					} else {
@@ -854,7 +873,7 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 						train_data->check_point = 0;
 						train_data->action = To_Orbit;
 					}
-					changeSpeed(train_global, train_data, 26);
+					changeSpeed(train_global, train_data, SPEED_MEDIAN);
 					// check_point = route_start;
 				}
 
@@ -873,7 +892,7 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 						train_data->check_point = result;
 					} else {
 						if (train_data->action == To_Orbit) {
-							result = updateCheckPoint(train_data, train_data->route, 0);
+							result = updateCheckPoint(train_data, train_data->route, train_data->check_point);
 							if (result == -1) {
 								uiprintf(com2_tid, 56, train_data->index * 40, "Off_route");
 								train_data->action = Off_Route;
@@ -897,14 +916,14 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 						train_data->check_point = 0;
 						train_data->action = To_Orbit;
 					}
-					changeSpeed(train_global, train_data, 26);
+					changeSpeed(train_global, train_data, SPEED_MEDIAN);
 				}
 				if (train_data->action == On_Orbit) {
 					train_data->dist_traveled = measureDist(train_data);
 					result = updateCheckPoint(train_data, train_data->orbit->orbit_route, train_data->check_point);
 					assert(result >= 0, "current landmark is not on orbit");
 					train_data->check_point = result;
-					changeNextSwitch(train_global, train_data, train_data->check_point, 40);
+					changeNextSwitch(train_global, train_data, train_data->check_point, SWITCH_THRESHOLD);
 				}
 				train_data->next_sensor = predictNextSensor(train_global, train_data);
 				train_data->sensor_timeout = 0;
@@ -923,15 +942,15 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 							// }
 							result = (msg.satellite_report.distance + train_data->orbit->orbit_length - train_data->dist_traveled) % train_data->orbit->orbit_length;
 							if (result > expect_dist_diff + 300) {
-								adjustSpeed(train_global, train_data, 2);
+								adjustSpeed(train_global, train_data, 3);
 							} else if (result > expect_dist_diff) {
 								adjustSpeed(train_global, train_data, 1);
 							} else if (result < expect_dist_diff - 300) {
-								adjustSpeed(train_global, train_data, -2);
+								adjustSpeed(train_global, train_data, -5);
 							} else if (result < expect_dist_diff) {
 								adjustSpeed(train_global, train_data, -1);
 							} else {
-								changeSpeed(train_global, train_data, 26);
+								changeSpeed(train_global, train_data, SPEED_MEDIAN);
 							}
 						} else {
 							if (train_data->parent_train->orbit->orbit_length - train_data->orbit->orbit_length > 1400) {
@@ -946,16 +965,14 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 								self_percentage = (train_data->dist_traveled * 100) / train_data->orbit->orbit_length;
 							}
 							result = (parent_percentage + 100 - self_percentage) % 100;
-							if (result > train_data->follow_percentage + 15) {
-								adjustSpeed(train_global, train_data, 2);
-							} else if (result > train_data->follow_percentage) {
+							if (((result + 100 - train_data->follow_percentage) % 100) < 10) {
 								adjustSpeed(train_global, train_data, 1);
-							} else if (result < train_data->follow_percentage - 15) {
-								adjustSpeed(train_global, train_data, -2);
-							} else if (result < train_data->follow_percentage) {
-								adjustSpeed(train_global, train_data, -1);
+							} else if (((result + 100 - train_data->follow_percentage) % 100) < 80) {
+								changeSpeed(train_global, train_data, 30);
+							} else if (((result + 100 - train_data->follow_percentage) % 100) < 100) {
+								adjustSpeed(train_global, train_data, -5);
 							} else {
-								changeSpeed(train_global, train_data, 26);
+								changeSpeed(train_global, train_data, SPEED_MEDIAN);
 							}
 						}
 					} else if (train_data->action == To_Orbit) {
@@ -965,52 +982,74 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 							// } else {
 							expect_dist_diff = train_data->follow_dist;
 							train_data->dist_traveled = train_data->orbit->orbit_length - (measureRemainDist(train_data) % train_data->orbit->orbit_length);
-							result = (msg.satellite_report.distance + train_data->orbit->orbit_length - train_data->dist_traveled) % train_data->orbit->orbit_length;
+							result = (msg.satellite_report.distance - 250 + train_data->orbit->orbit_length - train_data->dist_traveled) % train_data->orbit->orbit_length;
 							if (result > expect_dist_diff + 300) {
-								adjustSpeed(train_global, train_data, 2);
+								changeSpeed(train_global, train_data, 30);
 							} else if (result > expect_dist_diff) {
 								adjustSpeed(train_global, train_data, 1);
 							} else if (result < expect_dist_diff - 300) {
-								adjustSpeed(train_global, train_data, -2);
+								changeSpeed(train_global, train_data, 30);
 							} else if (result < expect_dist_diff) {
-								adjustSpeed(train_global, train_data, -1);
+								adjustSpeed(train_global, train_data, -4);
 							} else {
-								changeSpeed(train_global, train_data, 26);
+								changeSpeed(train_global, train_data, SPEED_MEDIAN);
 							}
 						} else {
+							// train_data->dist_traveled = train_data->orbit->orbit_length - (measureRemainDist(train_data) % train_data->orbit->orbit_length);
+							// if (train_data->parent_train->orbit->orbit_length - train_data->orbit->orbit_length > 1400) {
+								// parent_percentage = (((msg.satellite_report.distance * 2) % train_data->parent_train->orbit->orbit_length) * 100) / train_data->parent_train->orbit->orbit_length;
+								// self_percentage = (train_data->dist_traveled * 100) / train_data->orbit->orbit_length;
+							// } else if (train_data->parent_train->orbit->orbit_length - train_data->orbit->orbit_length < -1400) {
+								// parent_percentage = (msg.satellite_report.distance * 100) / train_data->parent_train->orbit->orbit_length;
+								// self_percentage = (((train_data->dist_traveled * 2) % train_data->orbit->orbit_length) * 100) / train_data->orbit->orbit_length;
+							// } else {
+								// parent_percentage = (msg.satellite_report.distance * 100) / train_data->parent_train->orbit->orbit_length;
+								// self_percentage = (train_data->dist_traveled * 100) / train_data->orbit->orbit_length;
+							// }
+							// result = (parent_percentage + 100 - self_percentage) % 100;
+							// if (((result + 100 - train_data->follow_percentage) % 100) < 85) {
+								// adjustSpeed(train_global, train_data, 3);
+							// } else if (((result + 100 - train_data->follow_percentage) % 100) < 100) {
+								// adjustSpeed(train_global, train_data, -5);
+							// } else {
+								// changeSpeed(train_global, train_data, 26);
+							// }
+							// if (parent_percentage > self_percentage) {
+								// adjustSpeed(train_global, train_data, -5);
+							// } else {
+								// adjustSpeed(train_global, train_data, 3);
+							// }
 							train_data->dist_traveled = train_data->orbit->orbit_length - (measureRemainDist(train_data) % train_data->orbit->orbit_length);
-							if (train_data->parent_train->orbit->orbit_length - train_data->orbit->orbit_length > 1400) {
-								parent_percentage = (((msg.satellite_report.distance * 2) % train_data->parent_train->orbit->orbit_length) * 100) / train_data->parent_train->orbit->orbit_length;
-								self_percentage = (train_data->dist_traveled * 100) / train_data->orbit->orbit_length;
-							} else if (train_data->parent_train->orbit->orbit_length - train_data->orbit->orbit_length < -1400) {
-								parent_percentage = (msg.satellite_report.distance * 100) / train_data->parent_train->orbit->orbit_length;
-								self_percentage = (((train_data->dist_traveled * 2) % train_data->orbit->orbit_length) * 100) / train_data->orbit->orbit_length;
-							} else {
-								// assert(
-								parent_percentage = (msg.satellite_report.distance * 100) / train_data->parent_train->orbit->orbit_length;
-								self_percentage = (train_data->dist_traveled * 100) / train_data->orbit->orbit_length;
-							}
-							result = (parent_percentage + 100 - self_percentage) % 100;
-							if (result > train_data->follow_percentage + 15) {
-								adjustSpeed(train_global, train_data, 2);
-							} else if (result > train_data->follow_percentage) {
+							expect_dist_diff = train_data->follow_dist;
+							result = (msg.satellite_report.distance - 250 + train_data->orbit->orbit_length - train_data->dist_traveled) % train_data->orbit->orbit_length;
+							if (result > expect_dist_diff + 300) {
+								changeSpeed(train_global, train_data, 30);
+							} else if (result > expect_dist_diff) {
 								adjustSpeed(train_global, train_data, 1);
-							} else if (result < train_data->follow_percentage - 15) {
-								adjustSpeed(train_global, train_data, -2);
-							} else if (result < train_data->follow_percentage) {
-								adjustSpeed(train_global, train_data, -1);
+							} else if (result < expect_dist_diff - 350) {
+								changeSpeed(train_global, train_data, 30);
+							} else if (result < expect_dist_diff) {
+								adjustSpeed(train_global, train_data, -5);
 							} else {
-								changeSpeed(train_global, train_data, 26);
+								changeSpeed(train_global, train_data, SPEED_MEDIAN);
 							}
 						}
 					}
 				}
-				if (train_data->action == On_Orbit) {
+				if (train_data->action != Off_Route) {
+					uiprintf(com2_tid, 36, train_data->index * 40 + 2, "%d  ", train_data->dist_traveled);
+					uiprintf(com2_tid, 37, train_data->index * 40 + 2, "%d  ", (train_data->dist_traveled * 100) / train_data->orbit->orbit_length);
+				}
+				
+				break;
+			case SATELLITE_REPORT_NONE:
+				Reply(tid, NULL, 0);
+				train_data->waiting_for_reporter = FALSE;
+				if (train_data->action != Off_Route) {
 					uiprintf(com2_tid, 36, train_data->index * 40 + 2, "%d  ", train_data->dist_traveled);
 					uiprintf(com2_tid, 37, train_data->index * 40 + 2, "%d  ", (train_data->dist_traveled * 100) / train_data->orbit->orbit_length);
 				}
 				break;
-
 			default:
 				assert(0, "Driver got unknown msg, type\n");
 				break;
