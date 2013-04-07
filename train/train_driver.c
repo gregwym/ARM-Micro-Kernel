@@ -771,6 +771,21 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 						}
 					}
 				}
+				if (train_data->action == Off_Route) {
+					if (train_data->landmark->type != NODE_BRANCH) {
+						route_nodes = dijkstra(train_data, track_nodes, train_data->landmark, new_orbit->orbit_start, train_data->route);
+					} else {
+						route_nodes = dijkstra(train_data, track_nodes, train_data->predict_dest, new_orbit->orbit_start, train_data->route);
+					}
+					if (route_nodes == 0) {
+						assert(0, "dijkstra cannot find route");
+					} else {
+						train_data->route_nodes_num = route_nodes;
+						train_data->check_point = 0;
+						train_data->action = To_Orbit;
+					}
+					changeSpeed(train_global, train_data, 26);
+				}
 				if (train_data->action == On_Orbit) {
 					train_data->dist_traveled = measureDist(train_data);
 					result = updateCheckPoint(train_data, train_data->orbit->orbit_route, train_data->check_point);
@@ -787,11 +802,11 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 				train_data->waiting_for_reporter = FALSE;
 				if (train_data->parent_train != NULL && train_data->action == On_Orbit && train_data->parent_train->action == On_Orbit) {
 					if (train_data->parent_train->orbit == train_data->orbit) {
-						if (train_data->follow_mode == Percentage) {
-							expect_dist_diff = (train_data->orbit->orbit_length * train_data->follow_percentage) / 100;
-						} else {
-							expect_dist_diff = train_data->follow_dist;
-						}
+						// if (train_data->follow_mode == Percentage) {
+							// expect_dist_diff = (train_data->orbit->orbit_length * train_data->follow_percentage) / 100;
+						// } else {
+						expect_dist_diff = train_data->follow_dist;
+						// }
 						actual_dist_diff = (msg.satellite_report.distance + train_data->orbit->orbit_length - train_data->dist_traveled) % train_data->orbit->orbit_length;
 						result = actual_dist_diff - expect_dist_diff;
 						if (result > 200) {
@@ -813,7 +828,8 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 							parent_percentage = (msg.satellite_report.distance * 100) / train_data->parent_train->orbit->orbit_length;
 							self_percentage = (((train_data->dist_traveled * 2) % train_data->orbit->orbit_length) * 100) / train_data->orbit->orbit_length;
 						} else {
-							parent_percentage = (msg.satellite_report.distance * 100) / train_data->parent_train->orbit->orbit_length;
+							// assert(
+							parent_percentage = (msg.satellite_report.distance * 100) / train_data->parent_train->orbit->orbit_length);
 							self_percentage = (train_data->dist_traveled * 100) / train_data->orbit->orbit_length;
 						}
 						result = (parent_percentage + 100 - self_percentage) % 100;
