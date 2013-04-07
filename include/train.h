@@ -71,6 +71,7 @@ typedef enum train_msg_type {
 	NEED_REVERSE,
 	// Satellite report
 	SATELLITE_REPORT,
+	SATELLITE_REPORT_NONE,
 	TRAIN_MSG_MAX,
 } TrainMsgType;
 
