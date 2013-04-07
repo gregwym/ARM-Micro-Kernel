@@ -39,6 +39,7 @@ typedef struct train_global {
 	LinkedListNode *satellite_nodes;
 	TrainData	**track_reservation;
 	TrainData	**recovery_reservation;
+	track_node	*map[ORBIT_MAX * ORBIT_MAX];
 } TrainGlobal;
 
 /* Messages */
