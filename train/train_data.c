@@ -134,7 +134,7 @@ void init_train49(TrainData *train) {
 	train->parent_train = NULL;
 	train->follow_mode = Percentage;
 	train->follow_dist = 200;
-	train->follow_percentage = 50;
+	train->follow_percentage = 20;
 	train->dist_traveled = 0;
 	
 	train->orbit = NULL;
@@ -217,7 +217,7 @@ void init_train50(TrainData *train) {
 	train->parent_train = NULL;
 	train->follow_mode = Percentage;
 	train->follow_dist = 200;
-	train->follow_percentage = 50;
+	train->follow_percentage = 20;
 	train->dist_traveled = 0;
 	
 	train->orbit = NULL;

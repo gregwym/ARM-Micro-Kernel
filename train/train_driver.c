@@ -60,7 +60,7 @@ inline void dijkstraUpdate(Heap *dist_heap, HeapNode *heap_nodes, track_node **p
 	}
 }
 
-int dijkstra(track_node *track_nodes, track_node *src,
+int dijkstra(TrainData *train_data, track_node *track_nodes, track_node *src,
               track_node *dest, track_node **route) {
 	if (src == NULL || dest == NULL) {
 		assert(0, "dijkstra get null src or dest");
@@ -132,6 +132,10 @@ int dijkstra(track_node *track_nodes, track_node *src,
 		u = previous[u->index];
 	}
 	route[i] = src;
+	if (src != train_data->landmark) {
+		route[i - 1] = train_data->landmark;
+		i--;
+	}
 	
 	for(j = 0; i < TRACK_MAX; i++, j++) {
 		route[j] = route[i];
@@ -691,7 +695,7 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 
 			updateTrainStatus(train_global, train_data);
 			updateReport(train_global, train_data);
-			changeNextSwitch(train_global, train_data, train_data->check_point, 150);
+			changeNextSwitch(train_global, train_data, train_data->check_point, 70);
 
 			train_data->prev_timer = train_data->timer;
 
@@ -725,8 +729,11 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 				new_orbit = &(train_global->orbits[msg.cmd_msg.value]);
 				if (train_data->orbit != new_orbit) {
 					train_data->orbit = new_orbit;
-					// TODO: save route to train_data, modify changeNextSwitch.
-					route_nodes = dijkstra(track_nodes, train_data->landmark, new_orbit->orbit_start, train_data->route);
+					if (train_data->landmark->type != NODE_BRANCH) {
+						route_nodes = dijkstra(train_data, track_nodes, train_data->landmark, new_orbit->orbit_start, train_data->route);
+					} else {
+						route_nodes = dijkstra(train_data, track_nodes, train_data->predict_dest, new_orbit->orbit_start, train_data->route);
+					}
 					if (route_nodes == 0) {
 						assert(0, "dijkstra cannot find route");
 					} else {
@@ -768,7 +775,7 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 					result = updateCheckPoint(train_data, train_data->orbit->orbit_route, train_data->check_point);
 					assert(result >= 0, "current landmark is not on orbit");
 					train_data->check_point = result;
-					changeNextSwitch(train_global, train_data, train_data->check_point, 150);
+					changeNextSwitch(train_global, train_data, train_data->check_point, 70);
 				}
 				train_data->next_sensor = predictNextSensor(train_global, train_data);
 				train_data->sensor_timeout = 0;
@@ -799,26 +806,26 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 						}
 					} else {
 						if (train_data->parent_train->orbit->orbit_length - train_data->orbit->orbit_length > 1400) {
-							
 							parent_percentage = (((msg.satellite_report.distance * 2) % train_data->parent_train->orbit->orbit_length) * 100) / train_data->parent_train->orbit->orbit_length;
 							self_percentage = (train_data->dist_traveled * 100) / train_data->orbit->orbit_length;
-							result = (parent_percentage + 100 - self_percentage) % 100;
-							bwprintf(COM2, "ba zha hei!");
-							if (result > train_data->follow_percentage + 15) {
-								changeSpeed(train_global, train_data, 28);
-							} else if (result > train_data->follow_percentage) {
-								changeSpeed(train_global, train_data, 27);
-							} else if (result < train_data->follow_percentage - 15) {
-								changeSpeed(train_global, train_data, 8);
-							} else if (result < train_data->follow_percentage) {
-								changeSpeed(train_global, train_data, 9);
-							} else {
-								changeSpeed(train_global, train_data, 26);
-							}
 						} else if (train_data->parent_train->orbit->orbit_length - train_data->orbit->orbit_length < -1400) {
-						
+							parent_percentage = (msg.satellite_report.distance * 100) / train_data->parent_train->orbit->orbit_length;
+							self_percentage = (((train_data->dist_traveled * 2) % train_data->orbit->orbit_length) * 100) / train_data->orbit->orbit_length;
 						} else {
-							
+							parent_percentage = (msg.satellite_report.distance * 100) / train_data->parent_train->orbit->orbit_length;
+							self_percentage = (train_data->dist_traveled * 100) / train_data->orbit->orbit_length;
+						}
+						result = (parent_percentage + 100 - self_percentage) % 100;
+						if (result > train_data->follow_percentage + 15) {
+							changeSpeed(train_global, train_data, 28);
+						} else if (result > train_data->follow_percentage) {
+							changeSpeed(train_global, train_data, 27);
+						} else if (result < train_data->follow_percentage - 15) {
+							changeSpeed(train_global, train_data, 8);
+						} else if (result < train_data->follow_percentage) {
+							changeSpeed(train_global, train_data, 9);
+						} else {
+							changeSpeed(train_global, train_data, 26);
 						}
 					}
 				}

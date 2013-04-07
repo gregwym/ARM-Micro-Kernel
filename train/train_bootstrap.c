@@ -79,6 +79,8 @@ void trainBootstrap() {
 	Orbit orbits[ORBIT_MAX];
 	init_orbit1(&(orbits[0]), track_nodes);
 	init_orbit2(&(orbits[1]), track_nodes);
+	init_orbit3(&(orbits[2]), track_nodes);
+	init_orbit4(&(orbits[3]), track_nodes);
 
 	/* Train Data */
 	TrainData trains_data[TRAIN_MAX];
