@@ -169,6 +169,15 @@ int deliverCmd(char *input, const char **train_cmds, int tid) {
 				return -1;
 			}
 			break;
+		case CMD_ORBIT:
+			input = str2token(input, token, 8);
+			cmd_msg.id = tr_atoi(token);
+			if (cmd_msg.id < 0) return -1;
+
+			input = str2token(input, token, 8);
+			cmd_msg.value = tr_atoi(token);
+			if (cmd_msg.value < 0 || cmd_msg.value > 4) return -1;
+			break;
 		case CMD_QUIT:
 			break;
 		default:
@@ -193,6 +202,7 @@ void trainCmdNotifier() {
 	train_cmds[CMD_GOTO] = "to";
 	train_cmds[CMD_MARGIN] = "mg";
 	train_cmds[CMD_SET] = "set";
+	train_cmds[CMD_ORBIT] = "ob";
 
 	while (1) {
 		ch = Getc(com2_tid);
