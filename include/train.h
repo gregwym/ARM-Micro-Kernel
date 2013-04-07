@@ -39,6 +39,7 @@ typedef struct train_global {
 	LinkedListNode *satellite_nodes;
 	TrainData	**track_reservation;
 	TrainData	**recovery_reservation;
+	track_node	*map[ORBIT_MAX * ORBIT_MAX];
 } TrainGlobal;
 
 /* Messages */
@@ -70,6 +71,7 @@ typedef enum train_msg_type {
 	NEED_REVERSE,
 	// Satellite report
 	SATELLITE_REPORT,
+	SATELLITE_REPORT_NONE,
 	TRAIN_MSG_MAX,
 } TrainMsgType;
 

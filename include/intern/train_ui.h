@@ -3,7 +3,7 @@
 #define ROW_LAST_COMMAND 3
 #define ROW_SWITCH_TABLE 5
 #define ROW_TRAIN 10
-#define ROW_USER_INPUT 22
+#define ROW_USER_INPUT 27
 #define ROW_DEBUG_1 40
 #define ROW_DEBUG_2 50
 #define ROW_BOTTOM 60
