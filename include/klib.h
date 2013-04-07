@@ -73,6 +73,25 @@ void bufferPushStr(CircularBuffer *circ_buffer, char *str, int strlen);
 
 void bufferPushChar(CircularBuffer *circ_buffer, char c);
 
+
+/* Linked List */
+typedef struct linked_list_node {
+	void *current;
+	struct linked_list_node * previous;
+	struct linked_list_node * next;
+} LinkedListNode;
+
+typedef struct linked_list {
+	LinkedListNode*  head;
+	LinkedListNode*  tail;
+} LinkedList;
+
+void listInitial(LinkedList *list);
+void listPush(LinkedList *list, LinkedListNode *node);
+void listAppend(LinkedList *list, LinkedListNode *node);
+void listRemove(LinkedList *list, LinkedListNode *node);
+
+
 /* Print */
 #include <intern/irqio.h>
 #include <intern/bwio.h>

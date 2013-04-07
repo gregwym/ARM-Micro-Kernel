@@ -19,6 +19,7 @@ typedef struct {
 	track_node *orbit_route[50];
 	track_node *orbit_start;
 	char orbit_switches[22];
+	LinkedList satellite_list;
 } Orbit;
 
 void init_orbit1(Orbit *orbit, track_node *nodes);
