@@ -82,6 +82,9 @@ void trainBootstrap() {
 	init_orbit3(&(orbits[2]), track_nodes);
 	init_orbit4(&(orbits[3]), track_nodes);
 
+	/* Satellite Nodes */
+	LinkedListNode satellite_nodes[TRAIN_MAX];
+
 	/* Train Data */
 	TrainData trains_data[TRAIN_MAX];
 	TrainData *train_id_data[TRAIN_ID_MAX];
@@ -94,6 +97,9 @@ void trainBootstrap() {
 	for(i = 0; i < TRAIN_MAX; i++) {
 		trains_data[i].index = i;
 		train_id_data[trains_data[i].id] = &(trains_data[i]);
+		satellite_nodes[i].current = &(trains_data[i]);
+		satellite_nodes[i].previous = NULL;
+		satellite_nodes[i].next = NULL;
 	}
 
 	/* Track Reservation */
@@ -111,6 +117,7 @@ void trainBootstrap() {
 	train_global.trains_data = trains_data;
 	train_global.train_id_data = train_id_data;
 	train_global.orbits = orbits;
+	train_global.satellite_nodes = satellite_nodes;
 	train_global.track_reservation = track_reservation;
 	train_global.recovery_reservation = recovery_reservation;
 
@@ -122,7 +129,7 @@ void trainBootstrap() {
 	train_global.center_tid = tid;
 	// tid = CreateWithArgs(8, routeServer, (int)(&train_global), 0, 0, 0);
 	// train_global.route_server_tid = tid;
-	
+
 	Receive(&tid, NULL, 0);
 
 	assert(0, "Train Bootstrap exit");

@@ -136,7 +136,7 @@ int dijkstra(TrainData *train_data, track_node *track_nodes, track_node *src,
 		route[i - 1] = train_data->landmark;
 		i--;
 	}
-	
+
 	for(j = 0; i < TRACK_MAX; i++, j++) {
 		route[j] = route[i];
 	}
@@ -167,7 +167,7 @@ track_node *predictNextSensor(TrainGlobal *train_global, TrainData *train_data) 
 					assert(0, "predictNextSensor hit exit(1)");
 				default:
 					break;
-			}			
+			}
 		}
 	} else {
 		while (loop) {
@@ -190,6 +190,7 @@ track_node *predictNextSensor(TrainGlobal *train_global, TrainData *train_data) 
 			}
 		}
 	}
+	return NULL;
 }
 
 track_node *findNextNode(TrainGlobal *train_global, TrainData *train_data) {
@@ -371,7 +372,7 @@ void changeNextSwitch(TrainGlobal *train_global, TrainData *train_data, int chec
 				distance += route[check_point]->edge[DIR_AHEAD].dist;
 			}
 		}
-	}	
+	}
 }
 // void changeNextSW(TrainGlobal *train_global, TrainData *train_data, int check_point, char *switch_table, int threshold) {
 	// char cmd[2];
@@ -586,7 +587,7 @@ void updateTrainStatus(TrainGlobal *train_global, TrainData *train_data) {
 		}
 	}
 
-	
+
 	// location update
 	train_data->ahead_lm = train_data->ahead_lm + train_data->velocity * (train_data->prev_timer - train_data->timer);
 	// train_data->dist_since_last_rs += train_data->velocity * (train_data->prev_timer - train_data->timer);
@@ -606,16 +607,16 @@ void updateTrainStatus(TrainGlobal *train_global, TrainData *train_data) {
 				} else {
 					train_data->check_point = ret;
 				}
-			}	
+			}
 		} else {
 			train_data->sensor_timeout = train_data->timer - 1200;
 		}
 	}
-	
+
 	if (train_data->timer < train_data->sensor_timeout) {
 		CreateWithArgs(2, relocationRequest, (int)train_global, (int)train_data, 0, 0);
 	}
-		
+
 }
 
 // void updateReservation(TrainGlobal *train_global, TrainData *train_data) {
@@ -675,11 +676,11 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 	// Initialize train speed
 	setTrainSpeed(train_id, train_data->speed, com1_tid);
 
-	int secretary_tid = Create(2, trainSecretary);	
+	int secretary_tid = Create(2, trainSecretary);
 	train_data->next_sensor = predictNextSensor(train_global, train_data);
 
 	Delay(710);
-	
+
 	int expect_dist_diff = 0;
 	int actual_dist_diff = 0;
 	Orbit *new_orbit = NULL;
@@ -721,7 +722,7 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 				Reply(tid, NULL, 0);
 				changeSpeed(train_global, train_data, 0);
 				break;
-				
+
 			case CMD_SET:
 				updateCurrentLandmark(train_global, train_data, &(track_nodes[msg.location_msg.value]), train_global->switch_table);
 				break;
@@ -780,7 +781,7 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 				train_data->next_sensor = predictNextSensor(train_global, train_data);
 				train_data->sensor_timeout = 0;
 				break;
-			
+
 			case SATELLITE_REPORT:
 				Reply(tid, NULL, 0);
 				train_data->waiting_for_reporter = FALSE;
@@ -834,7 +835,7 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 					uiprintf(com2_tid, 37, train_data->index * 40 + 2, "%d  ", (train_data->dist_traveled * 100) / train_data->orbit->orbit_length);
 				}
 				break;
-			
+
 			default:
 				assert(0, "Driver got unknown msg, type\n");
 				break;

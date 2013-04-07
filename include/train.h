@@ -36,6 +36,7 @@ typedef struct train_global {
 	TrainData	*trains_data;
 	TrainData	**train_id_data;
 	Orbit		*orbits;
+	LinkedListNode *satellite_nodes;
 	TrainData	**track_reservation;
 	TrainData	**recovery_reservation;
 } TrainGlobal;

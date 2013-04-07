@@ -2373,10 +2373,13 @@ void init_orbit1(Orbit *orbit, track_node *track) {
 	orbit->orbit_switches[3] = SWITCH_STR;
 	orbit->orbit_switches[8] = SWITCH_STR;
 	orbit->orbit_switches[10] = SWITCH_STR;
-	
+
 	orbit->orbit_start = &(track[14]);
 	orbit->orbit_route[0] = orbit->orbit_start;
 	orbit->orbit_length = 5313;
+
+  listInitial(&(orbit->satellite_list));
+
 	i = 0;
 	while (1) {
 		switch(orbit->orbit_route[i]->type) {
@@ -2394,7 +2397,7 @@ void init_orbit1(Orbit *orbit, track_node *track) {
 			default:
 				break;
 		}
-	
+
 		if (tmp != orbit->orbit_start) {
 			orbit->orbit_route[i + 1] = tmp;
 		} else {
@@ -2404,7 +2407,7 @@ void init_orbit1(Orbit *orbit, track_node *track) {
 		i++;
 	}
 }
-	
+
 
 void init_orbit2(Orbit *orbit, track_node *track) {
 	int i, direction;
@@ -2413,13 +2416,16 @@ void init_orbit2(Orbit *orbit, track_node *track) {
 	for (i = 0; i < 22; i++) {
 		orbit->orbit_switches[i] = SWITCH_CUR;
 	}
-	
+
 	orbit->orbit_start = &(track[3]);
 	orbit->orbit_route[0] = orbit->orbit_start;
 	orbit->orbit_length = 4704;
 	orbit->orbit_switches[14] = SWITCH_STR;
 	orbit->orbit_switches[5] = SWITCH_STR;
 	orbit->orbit_switches[8] = SWITCH_STR;
+
+  listInitial(&(orbit->satellite_list));
+
 	i = 0;
 	while (1) {
 		switch(orbit->orbit_route[i]->type) {
@@ -2437,7 +2443,7 @@ void init_orbit2(Orbit *orbit, track_node *track) {
 			default:
 				break;
 		}
-	
+
 		if (tmp != orbit->orbit_start) {
 			orbit->orbit_route[i + 1] = tmp;
 		} else {
@@ -2455,10 +2461,13 @@ void init_orbit3(Orbit *orbit, track_node *track) {
 	for (i = 0; i < 22; i++) {
 		orbit->orbit_switches[i] = SWITCH_CUR;
 	}
-	
+
 	orbit->orbit_start = &(track[72]);
 	orbit->orbit_route[0] = orbit->orbit_start;
 	orbit->orbit_length = 2652;
+
+  listInitial(&(orbit->satellite_list));
+
 	i = 0;
 	while (1) {
 		switch(orbit->orbit_route[i]->type) {
@@ -2476,7 +2485,7 @@ void init_orbit3(Orbit *orbit, track_node *track) {
 			default:
 				break;
 		}
-	
+
 		if (tmp != orbit->orbit_start) {
 			orbit->orbit_route[i + 1] = tmp;
 		} else {
@@ -2494,10 +2503,13 @@ void init_orbit4(Orbit *orbit, track_node *track) {
 	for (i = 0; i < 22; i++) {
 		orbit->orbit_switches[i] = SWITCH_CUR;
 	}
-	
+
 	orbit->orbit_start = &(track[3]);
 	orbit->orbit_route[0] = orbit->orbit_start;
 	orbit->orbit_length = 2809;
+
+  listInitial(&(orbit->satellite_list));
+
 	i = 0;
 	while (1) {
 		switch(orbit->orbit_route[i]->type) {
@@ -2515,7 +2527,7 @@ void init_orbit4(Orbit *orbit, track_node *track) {
 			default:
 				break;
 		}
-	
+
 		if (tmp != orbit->orbit_start) {
 			orbit->orbit_route[i + 1] = tmp;
 		} else {
@@ -2527,4 +2539,4 @@ void init_orbit4(Orbit *orbit, track_node *track) {
 }
 
 
-	
+
