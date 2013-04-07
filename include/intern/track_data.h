@@ -7,7 +7,7 @@
 
 // The track initialization functions expect an array of this size.
 #define TRACK_MAX 144
-#define ORBIT_MAX 4
+#define ORBIT_MAX 3
 
 void init_tracka(track_node *track);
 void init_trackb(track_node *track);
@@ -19,7 +19,7 @@ typedef struct {
 	track_node *orbit_route[50];
 	track_node *orbit_start;
 	char orbit_switches[22];
-	LinkedList satellite_list;
+	LinkedList *satellite_list;
 } Orbit;
 
 void init_orbit1(Orbit *orbit, track_node *nodes);
