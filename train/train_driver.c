@@ -657,6 +657,10 @@ void updateTrainStatus(TrainGlobal *train_global, TrainData *train_data) {
 			updateCurrentLandmark(train_global, train_data, NULL, train_global->switch_table);
 			if (train_data->action == On_Orbit) {
 				ret = updateCheckPoint(train_data, train_data->orbit->orbit_route, train_data->check_point);
+				if (ret < 0) {
+					bwprintf(COM2, "%d, %s, %d\n", train_data->id, train_data->landmark->name, train_data->orbit->id);
+					Halt();
+				}
 				assert(ret >= 0, "current landmark is not on orbit");
 				train_data->check_point = ret;
 			} else if (train_data->action == To_Orbit) {
@@ -915,6 +919,10 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 					if (isOnOrbit(train_data)) {
 						train_data->action = On_Orbit;
 						result = updateCheckPoint(train_data, train_data->orbit->orbit_route, 0);
+						if (result < 0) {
+							bwprintf(COM2, "%d not on orbit at %s\n", train_data->id, train_data->landmark->name);
+							Halt();
+						}
 						assert(result >= 0, "current landmark is not on orbit");
 						train_data->check_point = result;
 					} else {

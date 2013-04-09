@@ -58,7 +58,7 @@ int main() {
 
 	// Tune up the system
 	enableCache();
-	speedUpCpu();
+	// speedUpCpu();
 
 	// Setup UART2
 	setUARTLineControl(UART2_BASE, 3, FALSE, FALSE, FALSE, FALSE, FALSE, 115200);

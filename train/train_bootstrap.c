@@ -70,7 +70,6 @@ void trainBootstrap() {
 	/* Track Data */
 	track_node track_nodes[TRACK_MAX];
 	init_trackb(track_nodes);
-
 	/* Switch Data */
 	char switch_table[SWITCH_TOTAL];
 	memset(switch_table, SWITCH_CUR, SWITCH_TOTAL);
@@ -78,14 +77,16 @@ void trainBootstrap() {
 	/* Orbit Data */
 	Orbit orbits[ORBIT_MAX];
 	LinkedList satellite_lists[ORBIT_MAX];
+	for (i = 0; i < ORBIT_MAX; i++) {
+		orbits[i].satellite_list = &(satellite_lists[i]);
+	}
+	
 	init_orbit1(&(orbits[0]), track_nodes);
 	init_orbit2(&(orbits[1]), track_nodes);
 	init_orbit3(&(orbits[2]), track_nodes);
 	// init_orbit4(&(orbits[3]), track_nodes);
 	
-	for (i = 0; i < ORBIT_MAX; i++) {
-		orbits[i].satellite_list = &(satellite_lists[i]);
-	}
+	
 
 	/* Satellite Nodes */
 	LinkedListNode satellite_nodes[TRAIN_MAX];
