@@ -1576,7 +1576,7 @@ void init_trackb(track_node *track) {
   track[46].edge[DIR_AHEAD].reverse = &track[58].edge[DIR_AHEAD];
   track[46].edge[DIR_AHEAD].src = &track[46];
   track[46].edge[DIR_AHEAD].dest = &track[59];
-  track[46].edge[DIR_AHEAD].dist = 404;
+  track[46].edge[DIR_AHEAD].dist = 4000;
   track[47].name = "C16";
   track[47].type = NODE_SENSOR;
   track[47].num = 47;

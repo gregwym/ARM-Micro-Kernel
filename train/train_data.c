@@ -1,7 +1,7 @@
 #include <klib.h>
 #include <intern/train_data.h>
 
-#define FL_DIST 450
+#define FL_DIST 440
 #define FL_PERC 30
 
 void init_train37(TrainData *train) {
