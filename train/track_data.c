@@ -2380,8 +2380,8 @@ void init_orbit1(Orbit *orbit, track_node *track) {
 
 	listInitial(orbit->satellite_list);
 
-	i = 0;
-	while (1) {
+	for (i = 0; i <= TRACK_MAX;i++) {
+		assert(i < TRACK_MAX, "CNM");
 		switch(orbit->orbit_route[i]->type) {
 			case NODE_ENTER:
 			case NODE_SENSOR:
@@ -2404,7 +2404,6 @@ void init_orbit1(Orbit *orbit, track_node *track) {
 			orbit->nodes_num = i + 1;
 			break;
 		}
-		i++;
 	}
 }
 

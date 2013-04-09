@@ -26,6 +26,11 @@
 
 #define TRAIN_REVERSE 15
 
+typedef struct {
+	track_node *branch;
+	int avoid_state;
+} AvoidBranch;
+
 typedef struct train_global {
 	int com1_tid;
 	int com2_tid;
@@ -39,7 +44,7 @@ typedef struct train_global {
 	LinkedListNode *satellite_nodes;
 	TrainData	**track_reservation;
 	TrainData	**recovery_reservation;
-	track_node	*map[ORBIT_MAX * ORBIT_MAX];
+	AvoidBranch	map[ORBIT_MAX * ORBIT_MAX];
 } TrainGlobal;
 
 /* Messages */

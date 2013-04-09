@@ -16,7 +16,7 @@ typedef struct {
 	int id;
 	int orbit_length;
 	int nodes_num;
-	track_node *orbit_route[50];
+	track_node *orbit_route[TRACK_MAX];
 	track_node *orbit_start;
 	char orbit_switches[22];
 	LinkedList *satellite_list;

@@ -40,6 +40,7 @@ typedef struct train_data {
 	int			id;
 	int			stop_dist[TRAIN_SPEED_MAX];
 	int			velocities[TRAIN_SPEED_MAX];
+	int			max_velocity;
 	int			accelerations[6];
 	int			acceleration_time;
 	int			ht_length[2];
@@ -98,6 +99,8 @@ typedef struct train_data {
 } TrainData;
 
 void init_train37(TrainData *train);
+void init_train44(TrainData *train);
+void init_train47(TrainData *train);
 void init_train49(TrainData *train);
 void init_train50(TrainData *train);
 

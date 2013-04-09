@@ -70,7 +70,6 @@ void trainBootstrap() {
 	/* Track Data */
 	track_node track_nodes[TRACK_MAX];
 	init_trackb(track_nodes);
-
 	/* Switch Data */
 	char switch_table[SWITCH_TOTAL];
 	memset(switch_table, SWITCH_CUR, SWITCH_TOTAL);
@@ -78,14 +77,16 @@ void trainBootstrap() {
 	/* Orbit Data */
 	Orbit orbits[ORBIT_MAX];
 	LinkedList satellite_lists[ORBIT_MAX];
+	for (i = 0; i < ORBIT_MAX; i++) {
+		orbits[i].satellite_list = &(satellite_lists[i]);
+	}
+	
 	init_orbit1(&(orbits[0]), track_nodes);
 	init_orbit2(&(orbits[1]), track_nodes);
 	init_orbit3(&(orbits[2]), track_nodes);
 	// init_orbit4(&(orbits[3]), track_nodes);
 	
-	for (i = 0; i < ORBIT_MAX; i++) {
-		orbits[i].satellite_list = &(satellite_lists[i]);
-	}
+	
 
 	/* Satellite Nodes */
 	LinkedListNode satellite_nodes[TRAIN_MAX];
@@ -93,9 +94,9 @@ void trainBootstrap() {
 	/* Train Data */
 	TrainData trains_data[TRAIN_MAX];
 	TrainData *train_id_data[TRAIN_ID_MAX];
-	init_train49(&(trains_data[0]));
-	init_train50(&(trains_data[1]));
-	init_train51(&(trains_data[2]));
+	init_train44(&(trains_data[0]));
+	init_train49(&(trains_data[1]));
+	init_train50(&(trains_data[2]));
 
 	for(i = 0; i < TRAIN_MAX; i++) {
 		trains_data[i].index = i;
@@ -125,15 +126,19 @@ void trainBootstrap() {
 	train_global.recovery_reservation = recovery_reservation;
 	
 	/* initial map */
-	train_global.map[0] = &(track_nodes[14]);		//A15
-	train_global.map[1] = &(track_nodes[52]);		//D5
-	train_global.map[2] = &(track_nodes[3]);		//A4
-	train_global.map[3] = &(track_nodes[55]);		//D8
-	train_global.map[4] = &(track_nodes[52]);		//D5
-	train_global.map[5] = &(track_nodes[43]);		//C12
-	train_global.map[6] = &(track_nodes[74]);		//E11
-	train_global.map[7] = &(track_nodes[77]);		//E14
-	train_global.map[8] = &(track_nodes[3]);		//A4
+	train_global.map[0].branch = NULL;				
+	train_global.map[1].branch = &(track_nodes[100]);		//BR11
+	train_global.map[1].avoid_state = DIR_CURVED;
+	train_global.map[2].branch = &(track_nodes[96]);		//BR9
+	train_global.map[2].avoid_state = DIR_CURVED;
+	train_global.map[3].branch = &(track_nodes[98]);		//BR10
+	train_global.map[3].avoid_state = DIR_STRAIGHT;
+	train_global.map[4].branch = NULL;
+	train_global.map[5].branch = NULL;
+	train_global.map[6].branch = &(track_nodes[110]);		//BR16
+	train_global.map[6].avoid_state = DIR_STRAIGHT;
+	train_global.map[7].branch = NULL;
+	train_global.map[8].branch = NULL;
 
 	/* initial UI */
 	initializeUI(train_global.com2_tid, trains_data);
