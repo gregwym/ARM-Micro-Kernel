@@ -9,7 +9,7 @@
 #define RESERVER_PRIORITY 7
 
 #define SPEED_MEDIAN	25
-#define	SWITCH_THRESHOLD	190
+#define	SWITCH_THRESHOLD	300
 
 int measureDist(TrainData *train_data) {
 	int dist = 0;
@@ -108,7 +108,7 @@ inline void dijkstraUpdate(Heap *dist_heap, HeapNode *heap_nodes, track_node **p
 }
 
 int dijkstra(TrainData *train_data, track_node *track_nodes, track_node *src,
-              track_node *dest, track_node **route) {
+              track_node *dest, track_node **route, AvoidBranch avoid_branch) {
 	if (src == NULL || dest == NULL) {
 		assert(0, "dijkstra get null src or dest");
 		return TRACK_MAX;
@@ -158,13 +158,26 @@ int dijkstra(TrainData *train_data, track_node *track_nodes, track_node *src,
 				dijkstraUpdate(&dist_heap, heap_nodes, previous, u, neighbour, alter_dist);
 				break;
 			case NODE_BRANCH:
-				alter_dist = u_dist + u->edge[DIR_STRAIGHT].dist;
-				neighbour = u->edge[DIR_STRAIGHT].dest;
-				dijkstraUpdate(&dist_heap, heap_nodes, previous, u, neighbour, alter_dist);
-
-				alter_dist = u_dist + u->edge[DIR_CURVED].dist;
-				neighbour = u->edge[DIR_CURVED].dest;
-				dijkstraUpdate(&dist_heap, heap_nodes, previous, u, neighbour, alter_dist);
+				if (u == avoid_branch.branch && avoid_branch.avoid_state == DIR_STRAIGHT) {
+					alter_dist = u_dist + u->edge[DIR_STRAIGHT].dist + 5000;
+					neighbour = u->edge[DIR_STRAIGHT].dest;
+					dijkstraUpdate(&dist_heap, heap_nodes, previous, u, neighbour, alter_dist);
+				} else {
+					alter_dist = u_dist + u->edge[DIR_STRAIGHT].dist;
+					neighbour = u->edge[DIR_STRAIGHT].dest;
+					dijkstraUpdate(&dist_heap, heap_nodes, previous, u, neighbour, alter_dist);
+				}
+					
+				if (u == avoid_branch.branch && avoid_branch.avoid_state == DIR_CURVED) {
+					alter_dist = u_dist + u->edge[DIR_CURVED].dist + 5000;
+					neighbour = u->edge[DIR_CURVED].dest;
+					dijkstraUpdate(&dist_heap, heap_nodes, previous, u, neighbour, alter_dist);
+				} else {
+					alter_dist = u_dist + u->edge[DIR_CURVED].dist;
+					neighbour = u->edge[DIR_CURVED].dest;
+					dijkstraUpdate(&dist_heap, heap_nodes, previous, u, neighbour, alter_dist);
+				}
+					
 				break;
 			default:
 				break;
@@ -575,7 +588,7 @@ void changeSpeed(TrainGlobal *train_global, TrainData *train_data, int new_speed
 			train_data->acceleration_step = 0;
 			train_data->acceleration_alarm = getTimerValue(TIMER3_BASE) - 600;
 		} else {
-			train_data->acceleration_step = train_data->velocity * 5 / train_data->velocities[14] + 1;
+			train_data->acceleration_step = (train_data->velocity * 5 / train_data->max_velocity + 1) % 6;
 			train_data->acceleration_alarm = getTimerValue(TIMER3_BASE) - train_data->acceleration_time;
 		}
 		assert(train_data->acceleration_step < 6, "acceleration step exceeds");
@@ -649,7 +662,7 @@ void updateTrainStatus(TrainGlobal *train_global, TrainData *train_data) {
 			} else if (train_data->action == To_Orbit) {
 				ret = updateCheckPoint(train_data, train_data->route, train_data->check_point);
 				if (ret == -1) {
-					uiprintf(train_global->com2_tid, 55, train_data->index * 40, "off route when updateTrainStatus");
+					uiprintf(train_global->com2_tid, 55, train_data->index * 40, "%d off route at %s  ", train_data->id, train_data->landmark);
 					train_data->action = Off_Route;
 				} else {
 					train_data->check_point = ret;
@@ -692,12 +705,12 @@ void updateTrainStatus(TrainGlobal *train_global, TrainData *train_data) {
 	// }
 // }
 
-
-
 void updateReport(TrainGlobal *train_global, TrainData *train_data) {
 	if (train_data->last_report_time - train_data->timer > 400 && !train_data->waiting_for_reporter) {
 		if (train_data->action == On_Orbit) {
 			train_data->dist_traveled = measureDist(train_data);
+		} else if (train_data->action == To_Orbit) {
+			train_data->dist_traveled = train_data->orbit->orbit_length - (measureRemainDist(train_data) % train_data->orbit->orbit_length);
 		}
 		CreateWithArgs(2, stReport, (int)train_global, (int)train_data, 0, 0);
 		train_data->waiting_for_reporter = TRUE;
@@ -710,14 +723,22 @@ void adjustSpeed(TrainGlobal *train_global, TrainData *train_data, int adjust_lv
 	if (adjust_lvl < 0) {
 		for (i = 0; i < 15; i++) {
 			if (train_data->velocities[i] > train_data->parent_train->velocity) {
-				changeSpeed(train_global, train_data, i + adjust_lvl);
+				if (i + adjust_lvl >= 0) {
+					changeSpeed(train_global, train_data, i + adjust_lvl);
+				} else {
+					changeSpeed(train_global, train_data, 4);
+				}
 				return;
 			}
 		}
 	} else {
 		for (i = 0; i < 15; i++) {
 			if (train_data->velocities[i] > train_data->parent_train->velocity) {
-				changeSpeed(train_global, train_data, i + adjust_lvl - 1 + 16);
+				if (i + adjust_lvl - 1<= 14) {
+					changeSpeed(train_global, train_data, i + adjust_lvl - 1 + 16);
+				} else {
+					changeSpeed(train_global, train_data, 30);
+				}
 				return;
 			}
 		}
@@ -817,9 +838,14 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 					// assign parent
 					if (train_data->orbit != NULL) {
 						listRemove(train_data->orbit->satellite_list, &(train_global->satellite_nodes[train_data->index]));
+						if ((new_orbit->id + ORBIT_MAX - train_data->orbit->id) % ORBIT_MAX == 1) {
+							listPush(new_orbit->satellite_list, &(train_global->satellite_nodes[train_data->index]));
+						} else {
+							listAppend(new_orbit->satellite_list, &(train_global->satellite_nodes[train_data->index]));
+						}
+					} else {
+						listAppend(new_orbit->satellite_list, &(train_global->satellite_nodes[train_data->index]));
 					}
-					
-					listAppend(new_orbit->satellite_list, &(train_global->satellite_nodes[train_data->index]));
 					found_first = FALSE;
 					for (i = 0; i < ORBIT_MAX; i++) {
 						current_node = train_global->orbits[i].satellite_list->head;
@@ -849,19 +875,19 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 					if (train_data->landmark->type != NODE_BRANCH) {
 						if (train_data->orbit != NULL) {
 							route_nodes = dijkstra(train_data, track_nodes, train_data->landmark, 
-								train_global->map[train_data->orbit->id * ORBIT_MAX + new_orbit->id], train_data->route);
+								new_orbit->orbit_start, train_data->route, train_global->map[train_data->orbit->id * ORBIT_MAX + new_orbit->id]);
 						} else {
 							route_nodes = dijkstra(train_data, track_nodes, train_data->landmark, 
-								train_global->map[new_orbit->id], train_data->route);
+								new_orbit->orbit_start, train_data->route, train_global->map[new_orbit->id]);
 						}
 						// route_nodes = dijkstra(train_data, track_nodes, train_data->landmark, train_data->orbit->orbit_start, train_data->route);
 					} else {
 						if (train_data->orbit != NULL) {
 							route_nodes = dijkstra(train_data, track_nodes, train_data->predict_dest, 
-								train_global->map[train_data->orbit->id * ORBIT_MAX + new_orbit->id], train_data->route);
+								new_orbit->orbit_start, train_data->route, train_global->map[train_data->orbit->id * ORBIT_MAX + new_orbit->id]);
 						} else {
 							route_nodes = dijkstra(train_data, track_nodes, train_data->predict_dest, 
-								train_global->map[new_orbit->id], train_data->route);
+								new_orbit->orbit_start, train_data->route, train_global->map[new_orbit->id]);
 						}
 						// route_nodes = dijkstra(train_data, track_nodes, train_data->predict_dest, train_data->orbit->orbit_start, train_data->route);
 					}
@@ -876,6 +902,7 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 					changeSpeed(train_global, train_data, SPEED_MEDIAN);
 					// check_point = route_start;
 				}
+				train_data->next_sensor = predictNextSensor(train_global, train_data);
 
 				break;
 			case LOCATION_CHANGE:
@@ -894,7 +921,7 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 						if (train_data->action == To_Orbit) {
 							result = updateCheckPoint(train_data, train_data->route, train_data->check_point);
 							if (result == -1) {
-								uiprintf(com2_tid, 56, train_data->index * 40, "Off_route");
+								uiprintf(com2_tid, 56, train_data->index * 40, "%d Off_route ar %s  ", train_data->id, train_data->landmark);
 								train_data->action = Off_Route;
 								// todo
 							} else {
@@ -905,9 +932,9 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 				}
 				if (train_data->action == Off_Route) {
 					if (train_data->landmark->type != NODE_BRANCH) {
-						route_nodes = dijkstra(train_data, track_nodes, train_data->landmark, new_orbit->orbit_start, train_data->route);
+						route_nodes = dijkstra(train_data, track_nodes, train_data->landmark, new_orbit->orbit_start, train_data->route, train_global->map[0]);
 					} else {
-						route_nodes = dijkstra(train_data, track_nodes, train_data->predict_dest, new_orbit->orbit_start, train_data->route);
+						route_nodes = dijkstra(train_data, track_nodes, train_data->predict_dest, new_orbit->orbit_start, train_data->route, train_global->map[0]);
 					}
 					if (route_nodes == 0) {
 						assert(0, "dijkstra cannot find route");
@@ -932,7 +959,7 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 			case SATELLITE_REPORT:
 				Reply(tid, NULL, 0);
 				train_data->waiting_for_reporter = FALSE;
-				if (train_data->parent_train != NULL && train_data->parent_train->action == On_Orbit) {
+				if (train_data->parent_train != NULL && train_data->parent_train->action != Off_Route) {
 					if (train_data->action == On_Orbit) {
 						if (train_data->parent_train->orbit == train_data->orbit) {
 							// if (train_data->follow_mode == Percentage) {
@@ -948,7 +975,7 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 							} else if (result < expect_dist_diff - 300) {
 								adjustSpeed(train_global, train_data, -5);
 							} else if (result < expect_dist_diff) {
-								adjustSpeed(train_global, train_data, -1);
+								adjustSpeed(train_global, train_data, -2);
 							} else {
 								changeSpeed(train_global, train_data, SPEED_MEDIAN);
 							}
@@ -981,7 +1008,7 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 								// expect_dist_diff = (train_data->orbit->orbit_length * train_data->follow_percentage) / 100;
 							// } else {
 							expect_dist_diff = train_data->follow_dist;
-							train_data->dist_traveled = train_data->orbit->orbit_length - (measureRemainDist(train_data) % train_data->orbit->orbit_length);
+							// train_data->dist_traveled = train_data->orbit->orbit_length - (measureRemainDist(train_data) % train_data->orbit->orbit_length);
 							result = (msg.satellite_report.distance - 250 + train_data->orbit->orbit_length - train_data->dist_traveled) % train_data->orbit->orbit_length;
 							if (result > expect_dist_diff + 300) {
 								changeSpeed(train_global, train_data, 30);
@@ -1019,19 +1046,30 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 							// } else {
 								// adjustSpeed(train_global, train_data, 3);
 							// }
-							train_data->dist_traveled = train_data->orbit->orbit_length - (measureRemainDist(train_data) % train_data->orbit->orbit_length);
-							expect_dist_diff = train_data->follow_dist;
-							result = (msg.satellite_report.distance - 250 + train_data->orbit->orbit_length - train_data->dist_traveled) % train_data->orbit->orbit_length;
-							if (result > expect_dist_diff + 300) {
-								changeSpeed(train_global, train_data, 30);
-							} else if (result > expect_dist_diff) {
-								adjustSpeed(train_global, train_data, 1);
-							} else if (result < expect_dist_diff - 350) {
-								changeSpeed(train_global, train_data, 30);
-							} else if (result < expect_dist_diff) {
-								adjustSpeed(train_global, train_data, -5);
+							// train_data->dist_traveled = train_data->orbit->orbit_length - (measureRemainDist(train_data) % train_data->orbit->orbit_length);
+							if ((train_data->parent_train->orbit->orbit_length / 2500) == 1 && (train_data->orbit->orbit_length / 2500 == 1)) {
+								parent_percentage = (msg.satellite_report.distance * 100) / train_data->parent_train->orbit->orbit_length;
+								self_percentage = (train_data->dist_traveled * 100) / train_data->orbit->orbit_length;
+								result = (parent_percentage + 100 - self_percentage) % 100;
+								if (result > train_data->follow_percentage && result < 50) {
+									adjustSpeed(train_global, train_data, 1);
+								} else {
+									adjustSpeed(train_global, train_data, -4);
+								}
 							} else {
-								changeSpeed(train_global, train_data, SPEED_MEDIAN);
+								expect_dist_diff = train_data->follow_dist;
+								result = (msg.satellite_report.distance - 250 + train_data->orbit->orbit_length - train_data->dist_traveled) % train_data->orbit->orbit_length;
+								if (result > expect_dist_diff + 300) {
+									changeSpeed(train_global, train_data, 30);
+								} else if (result > expect_dist_diff) {
+									adjustSpeed(train_global, train_data, 1);
+								} else if (result < expect_dist_diff - 350) {
+									changeSpeed(train_global, train_data, 30);
+								} else if (result < expect_dist_diff) {
+									adjustSpeed(train_global, train_data, -4);
+								} else {
+									changeSpeed(train_global, train_data, SPEED_MEDIAN);
+								}
 							}
 						}
 					}

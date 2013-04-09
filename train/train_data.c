@@ -1,6 +1,8 @@
 #include <klib.h>
 #include <intern/train_data.h>
 
+#define FL_DIST 450
+
 void init_train37(TrainData *train) {
 	train->id = 37;
 
@@ -133,7 +135,7 @@ void init_train47(TrainData *train) {
 	
 	train->parent_train = NULL;
 	train->follow_mode = Percentage;
-	train->follow_dist = 310;
+	train->follow_dist = FL_DIST;
 	train->follow_percentage = 20;
 	train->dist_traveled = 0;
 	
@@ -149,11 +151,11 @@ void init_train47(TrainData *train) {
 	train->ahead_lm = 0;
 	train->accelerations[0] = 0;
 	train->accelerations[1] = 2;
-	train->accelerations[2] = 4;
-	train->accelerations[3] = 7;
-	train->accelerations[4] = 12;
-	train->accelerations[5] = 24;
-	train->deceleration = -15;
+	train->accelerations[2] = 6;
+	train->accelerations[3] = 10;
+	train->accelerations[4] = 17;
+	train->accelerations[5] = 18;
+	train->deceleration = -13;
 	train->reverse_delay = FALSE;
 	train->acceleration_time = 1400;
 	train->acceleration = 0;
@@ -202,6 +204,8 @@ void init_train49(TrainData *train) {
 	train->velocities[12] = 82189;
 	train->velocities[13] = 85000;
 	train->velocities[14] = 84500;
+	
+	train->max_velocity = 85000;
 
 	train->ht_length[0] = 50;
 	train->ht_length[1] = 180;
@@ -216,7 +220,7 @@ void init_train49(TrainData *train) {
 	
 	train->parent_train = NULL;
 	train->follow_mode = Percentage;
-	train->follow_dist = 310;
+	train->follow_dist = FL_DIST;
 	train->follow_percentage = 20;
 	train->dist_traveled = 0;
 	
@@ -236,7 +240,7 @@ void init_train49(TrainData *train) {
 	train->accelerations[3] = 7;
 	train->accelerations[4] = 12;
 	train->accelerations[5] = 24;
-	train->deceleration = -15;
+	train->deceleration = -13;
 	train->reverse_delay = FALSE;
 	train->acceleration_time = 1400;
 	train->acceleration = 0;
@@ -285,6 +289,8 @@ void init_train50(TrainData *train) {
 	train->velocities[12] = 76608;
 	train->velocities[13] = 82720;
 	train->velocities[14] = 82872;
+	
+	train->max_velocity = 82872;
 
 	train->ht_length[0] = 50;
 	train->ht_length[1] = 180;
@@ -299,7 +305,7 @@ void init_train50(TrainData *train) {
 	
 	train->parent_train = NULL;
 	train->follow_mode = Percentage;
-	train->follow_dist = 310;
+	train->follow_dist = FL_DIST;
 	train->follow_percentage = 20;
 	train->dist_traveled = 0;
 	
@@ -319,7 +325,7 @@ void init_train50(TrainData *train) {
 	train->accelerations[3] = 7;
 	train->accelerations[4] = 12;
 	train->accelerations[5] = 24;
-	train->deceleration = -15;
+	train->deceleration = -13;
 	train->reverse_delay = FALSE;
 	train->acceleration_time = 1400;
 	train->acceleration = 0;
@@ -368,6 +374,8 @@ void init_train51(TrainData *train) {
 	train->velocities[12] = 65928;
 	train->velocities[13] = 77600;
 	train->velocities[14] = 88504;
+	
+	train->max_velocity = 88504;
 
 	train->ht_length[0] = 50;
 	train->ht_length[1] = 180;
@@ -382,7 +390,7 @@ void init_train51(TrainData *train) {
 	
 	train->parent_train = NULL;
 	train->follow_mode = Percentage;
-	train->follow_dist = 310;
+	train->follow_dist = FL_DIST;
 	train->follow_percentage = 20;
 	train->dist_traveled = 0;
 	
