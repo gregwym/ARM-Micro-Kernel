@@ -9,7 +9,7 @@
 #define RESERVER_PRIORITY 7
 
 #define SPEED_MEDIAN	25
-#define	SWITCH_THRESHOLD	300
+#define	SWITCH_THRESHOLD	335
 
 int measureDist(TrainData *train_data) {
 	int dist = 0;
@@ -684,12 +684,13 @@ void updateTrainStatus(TrainGlobal *train_global, TrainData *train_data) {
 					train_data->check_point = ret;
 				}
 			}
-		} else if (train_data->sensor_timeout != 0) {
-			train_data->sensor_timeout = train_data->timer - 1200;
+		} else if (train_data->sensor_timeout == 0) {
+			train_data->sensor_timeout = train_data->timer - 1000;
 		}
 	}
 
 	if (train_data->timer < train_data->sensor_timeout) {
+		train_data->action = Off_Route;
 		CreateWithArgs(2, relocationRequest, (int)train_global, (int)train_data, 0, 0);
 		train_data->sensor_timeout = 0;
 	}
@@ -1078,7 +1079,11 @@ void trainDriver(TrainGlobal *train_global, TrainData *train_data) {
 								}
 							} else {
 								expect_dist_diff = train_data->follow_dist;
-								result = (msg.satellite_report.distance - 250 + train_data->orbit->orbit_length - train_data->dist_traveled) % train_data->orbit->orbit_length;
+								if (train_data->orbit->id == 0) {
+									result = (msg.satellite_report.distance + 50 + train_data->orbit->orbit_length - train_data->dist_traveled) % train_data->orbit->orbit_length;
+								} else {
+									result = (msg.satellite_report.distance - 200 + train_data->orbit->orbit_length - train_data->dist_traveled) % train_data->orbit->orbit_length;
+								}
 								if (result > expect_dist_diff + 300) {
 									changeSpeed(train_global, train_data, 30);
 								} else if (result > expect_dist_diff) {
