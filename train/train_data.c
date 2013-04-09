@@ -335,7 +335,7 @@ void init_train49(TrainData *train) {
 
 	train->action = Off_Route;
 
-	train->reservation_record.landmark_id = 24;
+	train->reservation_record.landmark_id = 26;
 	train->reservation_record.distance = 0;
 	train->recovery_reservation.landmark_id = -1;
 	train->recovery_reservation.distance = 0;
@@ -420,7 +420,7 @@ void init_train50(TrainData *train) {
 
 	train->action = Off_Route;
 
-	train->reservation_record.landmark_id = 26;
+	train->reservation_record.landmark_id = 24;
 	train->reservation_record.distance = 0;
 	train->recovery_reservation.landmark_id = -1;
 	train->recovery_reservation.distance = 0;
