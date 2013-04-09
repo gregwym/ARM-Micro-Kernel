@@ -2,6 +2,7 @@
 #include <intern/train_data.h>
 
 #define FL_DIST 450
+#define FL_PERC 30
 
 void init_train37(TrainData *train) {
 	train->id = 37;
@@ -136,7 +137,7 @@ void init_train47(TrainData *train) {
 	train->parent_train = NULL;
 	train->follow_mode = Percentage;
 	train->follow_dist = FL_DIST;
-	train->follow_percentage = 20;
+	train->follow_percentage = FL_PERC;
 	train->dist_traveled = 0;
 	
 	train->orbit = NULL;
@@ -221,7 +222,7 @@ void init_train49(TrainData *train) {
 	train->parent_train = NULL;
 	train->follow_mode = Percentage;
 	train->follow_dist = FL_DIST;
-	train->follow_percentage = 20;
+	train->follow_percentage = FL_PERC;
 	train->dist_traveled = 0;
 	
 	train->orbit = NULL;
@@ -306,7 +307,7 @@ void init_train50(TrainData *train) {
 	train->parent_train = NULL;
 	train->follow_mode = Percentage;
 	train->follow_dist = FL_DIST;
-	train->follow_percentage = 20;
+	train->follow_percentage = FL_PERC;
 	train->dist_traveled = 0;
 	
 	train->orbit = NULL;
@@ -391,7 +392,7 @@ void init_train51(TrainData *train) {
 	train->parent_train = NULL;
 	train->follow_mode = Percentage;
 	train->follow_dist = FL_DIST;
-	train->follow_percentage = 20;
+	train->follow_percentage = FL_PERC;
 	train->dist_traveled = 0;
 	
 	train->orbit = NULL;
