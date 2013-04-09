@@ -117,7 +117,7 @@ inline void attributeSensor(TrainGlobal *train_global, CenterData *center_data, 
 		IDEBUG(DB_RESERVE, train_global->com2_tid, ROW_DEBUG_1 + 4, (center_data->lost_count % 10) * COLUMN_WIDTH, "#%s  ", current_sensor->name);
 		if(center_data->last_lost_sensor != NULL && isContinuousSensor(center_data->last_lost_sensor, current_sensor, 1)) {
 			// assert(0, "Train is lost");
-			IDEBUG(DB_RESERVE, train_global->com2_tid, ROW_DEBUG_1 + 5, 0, "Train lost at %s", current_sensor->name);
+			IDEBUG(DB_RESERVE, train_global->com2_tid, ROW_DEBUG_1 + 6, 0, "Train lost at %s", current_sensor->name);
 		}
 		center_data->last_lost_sensor = current_sensor;
 		center_data->last_lost_timestamp = getTimerValue(TIMER3_BASE);
