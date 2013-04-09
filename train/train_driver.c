@@ -255,18 +255,49 @@ track_node *predictNextSensor(TrainGlobal *train_global, TrainData *train_data) 
 
 track_node *findNextNode(TrainGlobal *train_global, TrainData *train_data) {
 	int direction;
+	char *switch_table;
+	if (train_data->action == On_Orbit) {
+		switch_table = train_data->orbit->orbit_switches;
+	} else {
+		switch_table = train_global->switch_table;
+	}
+	
 	switch(train_data->landmark->type) {
 		case NODE_ENTER:
 		case NODE_MERGE:
 		case NODE_SENSOR:
 			return train_data->landmark->edge[DIR_AHEAD].dest;
 		case NODE_BRANCH:
-			direction = train_global->switch_table[switchIdToIndex(train_data->landmark->num)] - 33;
+			direction = switch_table[switchIdToIndex(train_data->landmark->num)] - 33;
 			return train_data->landmark->edge[direction].dest;
 		case NODE_EXIT:
 			return train_data->landmark;
 		default:
 			return NULL;
+	}
+}
+
+int getNextNodeDist(TrainGlobal *train_global, TrainData *train_data, int *direction) {
+	int ret;
+	char *switch_table;
+	if (train_data->action == On_Orbit) {
+		switch_table = train_data->orbit->orbit_switches;
+	} else {
+		switch_table = train_global->switch_table;
+	}
+	switch(train_data->landmark->type) {
+		case NODE_ENTER:
+		case NODE_SENSOR:
+		case NODE_MERGE:
+			*direction = DIR_AHEAD;
+			ret = train_data->landmark->edge[DIR_AHEAD].dist;
+			return ret;
+		case NODE_BRANCH:
+			*direction = switch_table[switchIdToIndex(train_data->landmark->num)] - 33;
+			ret = train_data->landmark->edge[*direction].dist;
+			return ret;
+		default:
+			return -1;
 	}
 }
 
@@ -356,24 +387,6 @@ int calcDistance(track_node *src, track_node *dest, int depth) {
 	}
 
 	return -1;
-}
-
-int getNextNodeDist(track_node *cur_node, char *switch_table, int *direction) {
-	int ret;
-	switch(cur_node->type) {
-		case NODE_ENTER:
-		case NODE_SENSOR:
-		case NODE_MERGE:
-			*direction = DIR_AHEAD;
-			ret = cur_node->edge[DIR_AHEAD].dist;
-			return ret;
-		case NODE_BRANCH:
-			*direction = switch_table[switchIdToIndex(cur_node->num)] - 33;
-			ret = cur_node->edge[*direction].dist;
-			return ret;
-		default:
-			return -1;
-	}
 }
 
 void trainSecretary() {
@@ -550,25 +563,24 @@ int updateCheckPoint(TrainData *train_data, track_node **route, int check_point)
 void updateCurrentLandmark(TrainGlobal *train_global, TrainData *train_data, track_node *sensor_node, char *switch_table) {
 	int train_index = train_data->index;
 	int direction;
-
+	
+	assert(train_data->landmark->type != NODE_EXIT, "update hit exit");
 	if (sensor_node != NULL) {
 		train_data->landmark = sensor_node;
 	} else {
 		train_data->landmark = findNextNode(train_global, train_data);
+		if (train_data->id == 47) {
+			bwprintf(COM2, " %s\t", train_data->landmark->name);
+		}
 	}
 
-	if (train_data->landmark->type != NODE_EXIT) {
-		train_data->ahead_lm = 0;
-		train_data->forward_distance = getNextNodeDist(train_data->landmark, switch_table, &direction);
-		if (train_data->forward_distance >= 0) {
-			train_data->forward_distance = train_data->forward_distance << DIST_SHIFT;
-			train_data->predict_dest = train_data->landmark->edge[direction].dest;
-		} else {
-			DEBUG(DB_ROUTE, "forward_distance -1 %s", train_data->landmark->name);
-		}
+	train_data->ahead_lm = 0;
+	train_data->forward_distance = getNextNodeDist(train_global, train_data, &direction);
+	if (train_data->forward_distance >= 0) {
+		train_data->forward_distance = train_data->forward_distance << DIST_SHIFT;
+		train_data->predict_dest = train_data->landmark->edge[direction].dest;
 	} else {
-		train_data->ahead_lm = 0;
-		train_data->forward_distance = 0;
+		DEBUG(DB_ROUTE, "forward_distance -1 %s", train_data->landmark->name);
 	}
 
 	int com2_tid = train_global->com2_tid;

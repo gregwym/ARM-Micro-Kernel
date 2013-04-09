@@ -94,7 +94,7 @@ void trainBootstrap() {
 	/* Train Data */
 	TrainData trains_data[TRAIN_MAX];
 	TrainData *train_id_data[TRAIN_ID_MAX];
-	init_train47(&(trains_data[0]));
+	init_train44(&(trains_data[0]));
 	init_train49(&(trains_data[1]));
 	init_train50(&(trains_data[2]));
 

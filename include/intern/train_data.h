@@ -99,6 +99,7 @@ typedef struct train_data {
 } TrainData;
 
 void init_train37(TrainData *train);
+void init_train44(TrainData *train);
 void init_train47(TrainData *train);
 void init_train49(TrainData *train);
 void init_train50(TrainData *train);
